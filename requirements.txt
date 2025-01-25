@@ -1,0 +1,15 @@
+catboost==1.2.7
+imbalanced_learn==0.13.0
+lazypredict==0.2.13
+lightgbm==3.3.5
+matplotlib==3.10.0
+mlflow==2.19.0
+mlflow_skinny==2.19.0
+numpy==2.2.2
+optuna==4.1.0
+pandas==1.5.3
+pytest==8.3.4
+scikit_learn==1.6.1
+seaborn==0.13.2
+tqdm==4.64.1
+xgboost==1.7.4

@@ -1,0 +1,15 @@
+[project]
+name = "AI-Toolkit"
+version = "0.1"
+description = "Comprehensive toolkit for AI."
+readme = "README.md"
+license = {file = "LICENSE"}
+keywords = ["python", "machine-learning", "ai", "toolkit", "sklearn", "regression", "classification"]
+requires-python = ">=3.10"
+dynamic = ["dependencies"]
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
+
+[project.optional-dependencies]
+dev = {file = ["requirements-dev.txt"]}
