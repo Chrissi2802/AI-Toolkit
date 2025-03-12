@@ -2,6 +2,7 @@
 ![Python Version](https://img.shields.io/badge/python-3.10+-blue.svg)
 ![Version](https://img.shields.io/badge/version-0.1-blue.svg)
 ![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)
+![Sort Imports](https://img.shields.io/badge/isort-checked-blue.svg)
 ![Code Style](https://img.shields.io/badge/flake8-checked-blue.svg)
 ![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)
 
@@ -10,7 +11,7 @@ A comprehensive Python toolkit for machine learning workflows with a focus on mo
 ## 📑 Table of contents
 - [Features](#-features)
 - [Development & Tests](#-development--tests)
-- [Quickstart](#-quickstart)
+- [Quickstart](#-quick-start)
 - [Documentation](#-detailed-documentation)
 - [Licence](#-licence)
 - [Contact](#-contact)
@@ -19,14 +20,17 @@ A comprehensive Python toolkit for machine learning workflows with a focus on mo
 **Model variety**
 - Classification (Logistic Regression, SVC, KNN, Naive Bayes, Decision Tree, Random Forest, XGBoost, LightGBM)
 - Regression (Ridge, Bayesian Ridge, SVR, KNN, XGBoost, LightGBM, CatBoost)
-- Ensemble models
+- Ensemble models (Voting, Stacking)
 
 **Automated training**
 - Hyperparameter optimization with [Optuna](https://optuna.org/)
-- Cross-validation
+- K-fold cross-validation 
+  - [StratifiedKFold](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.StratifiedKFold.html)
+  - [KFold](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.KFold.html)
 - [SMOTE](https://imbalanced-learn.org/stable/references/generated/imblearn.over_sampling.SMOTE.html) for imbalanced data
 - [MLflow](https://mlflow.org/) integration for experiment tracking
   - `mlflow ui --port 5000` → [http://localhost:5000](http://localhost:5000)
+- [Lazy Predict](https://github.com/shankarpandala/lazypredict) integration for rapid model evaluation and comparison
 
 **Extensive evaluation**
 - Classification metrics (Accuracy, Precision, Recall, F1, ROC-AUC, etc.)
@@ -37,13 +41,15 @@ A comprehensive Python toolkit for machine learning workflows with a focus on mo
 - ROC curve
 - Confusion matrix
 - Residual plots
-- Feature Importance
 - Prediction scatter plots
+- Feature Importance
+- SHAP values
 
 ## 🔬 Development & tests
 ### Code Style
 We use:
 - [Visual Studio Code](https://code.visualstudio.com/) for development
+- [isort](https://pycqa.github.io/isort/) for import sorting
 - [flake8](https://flake8.pycqa.org/en/latest/) for linting
 - [pytest](https://docs.pytest.org/en/stable/) for testing
 
@@ -54,6 +60,9 @@ Create new requirements.txt:
 ```bash
 # Basic dependencies
 pipreqs . --force
+
+# Manual downgrading of the numpy version
+numpy>=1.16.0
 ```
 
 ### 📦 Setup
@@ -63,7 +72,7 @@ git clone https://github.com/Chrissi2802/AI-Toolkit.git
 cd ai-toolkit
 
 # Create a virtual environment
-python -m v_env v_env
+python -m venv v_env
 source v_env/bin/activate  # Linux/Mac
 v_env\Scripts\activate     # Windows
 
@@ -84,6 +93,9 @@ pip install -r requirements-dev.txt
 
 ### 🧪 Tests
 ```bash
+# Import sorting
+isort .
+
 # Linting
 flake8 .
 
@@ -93,21 +105,35 @@ pytest
 # Specific tests
 pytest tests/test_base/
 pytest tests/test_models/
-pytest tests/test_training/
+pytest tests/test_training/ # takes some time
 pytest tests/test_utils/
 ```
 
 ## 🚀 Quick start
-[examples.ipynb](examples/examples.ipynb)
 
 ### Classification
-[classification_example.py](examples/classification_example.py)
+[classification examples](examples/classification_examples.ipynb)
 
 ### Regression
-[regression_example.py](examples/regression_example.py)
+[regression examples](examples/regression_examples.ipynb)
 
 ## 📚 Detailed documentation
-### Models
+### Base `ai_toolkit.base`
+#### Data
+- DatasetConfig
+- BaseDataset
+
+#### Models
+- BaseMlModel
+- BaseMlEnsembleModel
+
+#### Training
+- MetricConfig
+- get_default_metric_configs
+- MlTrainerConfig
+- BaseMlTrainer
+
+### Models `ai_toolkit.models`
 #### Classification
 - [Logistic Regression](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LogisticRegression.html)
 - [Support Vector Classifier](https://scikit-learn.org/stable/modules/generated/sklearn.svm.SVC.html)
@@ -118,6 +144,10 @@ pytest tests/test_utils/
 - [XGBoost Classifier](https://xgboost.readthedocs.io/en/stable/parameter.html)
 - [LightGBM Classifier](https://lightgbm.readthedocs.io/en/latest/Parameters.html)
 
+Ensembles
+- [Voting Classifier](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.VotingClassifier.html)
+- [Stacking Classifier](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.StackingClassifier.html)
+
 #### Regression
 - [Ridge Regression](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.Ridge.html)
 - [Bayesian Ridge Regression](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.BayesianRidge.html)
@@ -127,18 +157,23 @@ pytest tests/test_utils/
 - [LightGBM Regressor](https://lightgbm.readthedocs.io/en/latest/Parameters.html)
 - [CatBoost Regressor](https://catboost.ai/docs/en/concepts/python-reference_catboostregressor)
 
-### Training
+Ensembles
+- [Voting Regressor](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.VotingRegressor.html)
+- [Stacking Regressor](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.StackingRegressor.html)
+
+### Training `ai_toolkit.training`
 - ClassificationModelTrainer
 - lazypredict_classification
 - RegressionModelTrainer
 - lazy_predict_regression
 
-### Evaluation
+### Utils `ai_toolkit.utils`
+#### Evaluation
 - ClassificationMetrics
 - RegressionMetrics
 - CrossValidationMetrics
 
-### Visualisation
+#### Visualisation
 - ClassificationPlots
 - RegressionPlots
 - ModelAnalysisPlots
@@ -153,8 +188,9 @@ AI-Toolkit/
 │   ├── __init__.py
 │   ├── base/
 │   │   ├── __init__.py
-│   │   ├── ensemble.py
-│   │   └── model.py
+│   │   ├── data.py
+│   │   ├── models.py
+│   │   └── training.py
 │   ├── models/
 │   │   ├── __init__.py
 │   │   ├── classification.py
@@ -167,17 +203,22 @@ AI-Toolkit/
 │        ├── __init__.py
 │        ├── evaluation.py
 │        └── visualization.py
+├── docs/
+│   ├── classes.svg
+│   └── packages.svg
 ├── examples/
-│   ├── classification_example.py
-│   ├── examples.ipynb
-│   └── regression_example.py
+│   ├── classification_example.ipynb
+│   └── regression_example.ipynb
 ├── tests/
-│   └── test_base/
-│       └── ...
-│   └── test_models/
-│       └── ...
-│   └── test_training/
-│       └── ...
+│   ├── __init__.py
+│   ├── conftest.py
+│   ├── test_init.py
+│   │── test_base/
+│   │   └── ...
+│   │── test_models/
+│   │   └── ...
+│   │── test_training/
+│   │   └── ...
 │   └── test_utils/
 │       └── ...
 ├── .env
@@ -185,11 +226,18 @@ AI-Toolkit/
 ├── .gitignore
 ├── LICENSE
 ├── pyproject.toml
-├── pytest.ini
 ├── README.md
 ├── requirements-dev.txt
 ├── requirements.txt
 └── template.env
+```
+
+### Architecture
+The [docs](docs) contain diagrams that show the class structure and package dependencies of the project.
+
+```bash
+# Create class diagram
+pyreverse -o svg -d .\docs .\ai_toolkit\
 ```
 
 ## 📝 Licence
@@ -199,8 +247,5 @@ This project is licensed under the Apache 2.0 licence - see [LICENSE](LICENSE) f
 Chrissi - [GitHub](https://github.com/Chrissi2802)
 
 ### 🤝 Contributing
-Contributions are very welcome! 😊
-
-Make sure that:
-- The linting is okay (`flake8`)
-- The tests are successful (`pytest`)
+Contributions are very welcome! 😊 
+Please check out the [Contributing guidelines](CONTRIBUTING.md).

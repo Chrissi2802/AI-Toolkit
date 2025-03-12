@@ -1,15 +1,20 @@
-import pytest
 from typing import Tuple
+from unittest.mock import Mock, patch
+
 import numpy as np
 import optuna
+import pytest
+
 from ai_toolkit.models.regression import (
-    RidgeRegressionModel,
     BayesianRidgeRegressionModel,
-    SVRModel,
-    KNNRegressorModel,
-    XGBoostRegressorModel,
-    LightGBMRegressorModel,
     CatBoostRegressorModel,
+    EnsembleStackingRegressorModel,
+    EnsembleVotingRegressorModel,
+    KNNRegressorModel,
+    LightGBMRegressorModel,
+    RidgeRegressionModel,
+    SVRModel,
+    XGBoostRegressorModel,
     get_all_regression_models,
 )
 
@@ -124,3 +129,116 @@ def test_model_integration(regression_data: Tuple[np.ndarray, np.ndarray]):
 
         except Exception as e:
             pytest.fail(f"Model {name} failed: {str(e)}")
+
+
+def test_feature_importance(
+    regression_data: Tuple[np.ndarray, np.ndarray], optuna_trial: optuna.trial.Trial
+):
+    """Test feature importance method for all regression models.
+
+    Args:
+        regression_data (Tuple[np.ndarray, np.ndarray]): A tuple of features and target arrays.
+        optuna_trial (optuna.trial.Trial): An Optuna trial object.
+    """
+
+    X, y = regression_data
+    model = RidgeRegressionModel()
+
+    # Create and fit model
+    params = model.get_param_space(optuna_trial)
+    reg = model.create_model(params)
+    reg.fit(X, y)
+
+    # Check feature importance
+    assert hasattr(reg, "coef_")
+    importances = reg.coef_
+    assert len(importances) == X.shape[1]
+    assert np.issubdtype(importances.dtype, np.number)
+    assert np.all(np.isfinite(importances))
+
+
+class TestEnsembleModels:
+    """Test suite for ensemble models."""
+
+    def setup_method(self):
+        """Setup method for each test."""
+
+        # Create two Ridge regression models
+        self.model1 = RidgeRegressionModel()
+        self.model1.model_name = "Model1"
+
+        self.model2 = RidgeRegressionModel()
+        self.model2.model_name = "Model2"
+
+    def test_voting_regressor(self, regression_data):
+        """Test voting regressor ensemble."""
+
+        X, y = regression_data
+
+        # Prepare models
+        models = [(self.model1, "mock_run_1"), (self.model2, "mock_run_2")]
+
+        with patch("mlflow.get_run") as mock_get_run:
+            mock_run = Mock()
+            mock_run.data.params = {
+                "alpha": 1.0,
+                "fit_intercept": True,
+                "random_state": 28,
+            }
+            mock_get_run.return_value = mock_run
+
+            # Create and configure ensemble
+            ensemble = EnsembleVotingRegressorModel(models)
+            params = {
+                "estimators": [(m.model_name, m.model) for m, _ in models],
+                "weights": [0.6, 0.4],
+            }
+
+            # Create and train ensemble
+            reg = ensemble.create_model(params)
+            reg.fit(X, y)
+
+            # Test predictions
+            y_pred = reg.predict(X)
+            assert isinstance(y_pred, np.ndarray)
+            assert y_pred.shape == y.shape
+
+    def test_stacking_regressor(self, regression_data, optuna_trial):
+        """Test stacking regressor ensemble."""
+
+        X, y = regression_data
+
+        # Prepare models
+        base_models = [(self.model1, "mock_run_1"), (self.model2, "mock_run_2")]
+        meta_model = RidgeRegressionModel()
+
+        with patch("mlflow.get_run") as mock_get_run:
+            mock_run = Mock()
+            mock_run.data.params = {
+                "alpha": 1.0,
+                "fit_intercept": True,
+                "random_state": 28,
+            }
+            mock_get_run.return_value = mock_run
+
+            # Create and configure ensemble
+            ensemble = EnsembleStackingRegressorModel(base_models, meta_model)
+            params = {
+                "estimators": [(m.model_name, m.model) for m, _ in base_models],
+                "final_estimator": meta_model.create_model(
+                    meta_model.get_param_space(optuna_trial)
+                ),
+                "passthrough": True,
+            }
+
+            # Create and train ensemble
+            reg = ensemble.create_model(params)
+            reg.fit(X, y)
+
+            # Test predictions
+            y_pred = reg.predict(X)
+            assert isinstance(y_pred, np.ndarray)
+            assert np.issubdtype(y_pred.dtype, np.number)
+            assert y_pred.shape == y.shape
+            assert np.all(np.isfinite(y_pred))
+            assert not np.any(np.isnan(y_pred))

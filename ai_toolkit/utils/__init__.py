@@ -4,15 +4,11 @@ Utility functions for AI Toolkit.
 
 from ai_toolkit.utils.evaluation import (
     ClassificationMetrics,
-    RegressionMetrics,
     CrossValidationMetrics,
+    RegressionMetrics,
 )
+from ai_toolkit.utils.visualization import ClassificationPlots, ModelAnalysisPlots, RegressionPlots
 
-from ai_toolkit.utils.visualization import (
-    ClassificationPlots,
-    RegressionPlots,
-    ModelAnalysisPlots,
-)
 
 __all__ = [
     # Evaluation

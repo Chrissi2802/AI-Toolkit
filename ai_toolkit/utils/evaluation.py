@@ -1,4 +1,5 @@
 from typing import Dict, List, Optional
+
 import numpy as np
 from sklearn import metrics
 
@@ -11,6 +12,7 @@ class ClassificationMetrics:
         y_true: np.ndarray,
         y_pred: np.ndarray,
         y_pred_proba: Optional[np.ndarray] = None,
+        average: Optional[str] = "weighted",
     ) -> Dict[str, float]:
         """Calculate all required metrics.
 
@@ -18,34 +20,70 @@ class ClassificationMetrics:
             y_true (np.ndarray): True labels
             y_pred (np.ndarray): Predicted labels
             y_pred_proba (np.ndarray): Predicted probabilities. Defaults to None.
+            average (str): Averaging strategy for multiclass classification. Defaults to 'weighted'.
 
         Returns:
             Dict[str, float]: Dictionary of metric names and values
         """
 
+        # Basic validation
+        if y_true.shape != y_pred.shape:
+            raise ValueError("y_true and y_pred must have the same shape.")
+
+        if y_pred_proba is not None and y_true.shape[0] != y_pred_proba.shape[0]:
+            raise ValueError("y_true and y_pred_proba must have the same length.")
+
         result = {
             "accuracy": metrics.accuracy_score(y_true, y_pred),
-            "balanced_acuracy": metrics.balanced_accuracy_score(y_true, y_pred),
-            "precision": metrics.precision_score(y_true, y_pred),
-            "recall": metrics.recall_score(y_true, y_pred),
-            "f1": metrics.f1_score(y_true, y_pred),
+            "balanced_accuracy": metrics.balanced_accuracy_score(y_true, y_pred),
+            "precision": metrics.precision_score(y_true, y_pred, average=average),
+            "recall": metrics.recall_score(y_true, y_pred, average=average),
+            "f1": metrics.f1_score(y_true, y_pred, average=average),
             "matthews_correlation_coefficient": metrics.matthews_corrcoef(
                 y_true, y_pred
             ),
-            "jaccard": metrics.jaccard_score(y_true, y_pred),
+            "jaccard": metrics.jaccard_score(y_true, y_pred, average=average),
             "hamming_loss": metrics.hamming_loss(y_true, y_pred),
             "d2_log_loss": metrics.d2_log_loss_score(y_true, y_pred),
             "zero_one_loss": metrics.zero_one_loss(y_true, y_pred),
         }
 
+        # Add additional metrics if probabilities are provided
         if y_pred_proba is not None:
+
             result.update(
                 {
-                    "roc_auc": metrics.roc_auc_score(y_true, y_pred_proba),
-                    "brier_score": metrics.brier_score_loss(y_true, y_pred_proba),
                     "log_loss": metrics.log_loss(y_true, y_pred_proba),
                 }
             )
+
+            if y_pred_proba.shape[1] == 2:
+                # Binary classification
+                result.update(
+                    {
+                        "roc_auc": metrics.roc_auc_score(y_true, y_pred_proba[:, 1]),
+                        "brier_score": metrics.brier_score_loss(
+                            y_true, y_pred_proba[:, 1]
+                        ),
+                    }
+                )
+            else:
+                # Multiclass classification
+                result.update(
+                    {
+                        "roc_auc": metrics.roc_auc_score(
+                            y_true, y_pred_proba, average=average, multi_class="ovr"
+                        ),
+                        "brier_score": np.mean(
+                            [
+                                metrics.brier_score_loss(
+                                    (y_true == i).astype(int), y_pred_proba[:, i]
+                                )
+                                for i in range(y_pred_proba.shape[1])
+                            ]
+                        ),
+                    }
+                )
 
         return result
 
@@ -84,6 +122,10 @@ class RegressionMetrics:
             Dict[str, float]: Dictionary of metric names and values
         """
 
+        # Basic validation
+        if y_true.shape != y_pred.shape:
+            raise ValueError("y_true and y_pred must have the same shape.")
+
         return {
             "explained_variance": metrics.explained_variance_score(y_true, y_pred),
             "max_error": metrics.max_error(y_true, y_pred),
@@ -95,7 +137,7 @@ class RegressionMetrics:
             "mean_absolute_percentage_error": metrics.mean_absolute_percentage_error(
                 y_true, y_pred
             ),
-            "d2_absoulte_error": metrics.d2_absolute_error_score(y_true, y_pred),
+            "d2_absolute_error": metrics.d2_absolute_error_score(y_true, y_pred),
             "d2_pinball": metrics.d2_pinball_score(y_true, y_pred),
             "d2_tweedie": metrics.d2_tweedie_score(y_true, y_pred),
             # No negative input values are possible, this leads to errors.

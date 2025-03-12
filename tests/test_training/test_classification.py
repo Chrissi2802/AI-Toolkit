@@ -1,9 +1,11 @@
-import pytest
 from typing import Tuple
-import pandas as pd
+from unittest.mock import Mock
+
 import numpy as np
-import mlflow
-from unittest.mock import Mock, patch
+import pandas as pd
+import pytest
+
+from ai_toolkit.base.training import MlTrainerConfig
 from ai_toolkit.models.classification import LogisticRegressionModel
 from ai_toolkit.training.classification import (
     ClassificationModelTrainer,
@@ -22,15 +24,6 @@ def simple_model() -> LogisticRegressionModel:
     return LogisticRegressionModel()
 
 
-@pytest.fixture(autouse=True)
-def mlflow_cleanup():
-    """Cleanup MLflow runs before and after each test."""
-
-    mlflow.end_run()
-    yield
-    mlflow.end_run()
-
-
 class TestClassificationModelTrainer:
     """Test suite for ClassificationModelTrainer."""
 
@@ -38,20 +31,15 @@ class TestClassificationModelTrainer:
         """Test trainer initialization.
 
         Args:
-            simple_model (LogisticRegressionModel): A simple classification model.
+            simple_model (LogisticRegressionModel): A simple model instance.
         """
 
         trainer = ClassificationModelTrainer(
             base_model=simple_model,
-            n_splits=5,
-            random_state=28,
-            experiment_name="test_classification",
-            optimize_metric="f1",
-            use_smote=True,
-            smote_ratio=1.0,
+            config=MlTrainerConfig(EXPERIMENT_NAME="test_classification"),
         )
 
-        assert trainer.base_model == simple_model
+        assert trainer.base_model is not None
         assert trainer.n_splits == 5
         assert trainer.random_state == 28
         assert trainer.experiment_name == "test_classification"
@@ -61,21 +49,15 @@ class TestClassificationModelTrainer:
         assert trainer.best_model is None
         assert trainer.best_score == -1
 
-    @patch("mlflow.set_experiment")
-    def test_training_workflow(
-        self, mock_set_experiment, classification_data_pd, mock_mlflow
-    ):
+    @pytest.mark.integration
+    def test_training_workflow(self, simple_model, classification_data_pd, mock_mlflow):
         """Test complete training workflow."""
 
         X, y = classification_data_pd
 
         trainer = ClassificationModelTrainer(
-            base_model=LogisticRegressionModel(),
-            n_splits=5,
-            random_state=28,
-            experiment_name="test_classification",
-            optimize_metric="f1",
-            use_smote=False,
+            base_model=simple_model,
+            config=MlTrainerConfig(EXPERIMENT_NAME="test_classification"),
         )
 
         # Train model
@@ -86,57 +68,63 @@ class TestClassificationModelTrainer:
         assert isinstance(metrics, dict)
         assert all(
             metric in metrics
-            for metric in ["accuracy", "balanced_acuracy", "precision", "recall", "f1"]
+            for metric in ["accuracy", "balanced_accuracy", "precision", "recall", "f1"]
         )
         assert all(isinstance(value, float) for value in metrics.values())
 
         # Verify MLflow interactions
-        assert mock_set_experiment.called
         assert mock_mlflow["run"].called
         assert mock_mlflow["log_params"].called
         assert mock_mlflow["log_metric"].called
+        assert mock_mlflow["log_table"].called
 
-    def test_prediction(self, classification_data_pd: Tuple[pd.DataFrame, pd.Series]):
+    def test_prediction(
+        self, classification_data_pd: Tuple[pd.DataFrame, pd.Series], simple_model
+    ):
         """Test prediction functionality.
 
         Args:
             classification_data_pd (Tuple[pd.DataFrame, pd.Series]):
                 A tuple of features and target pandas objects.
+            simple_model (LogisticRegressionModel): A simple model instance.
         """
 
         X, y = classification_data_pd
         trainer = ClassificationModelTrainer(
-            base_model=LogisticRegressionModel(), n_splits=2, random_state=28
+            base_model=simple_model,
+            config=MlTrainerConfig(EXPERIMENT_NAME="test_classification"),
         )
 
         # Train model first
         trainer.train_and_optimize(X, y, n_trials=2)
 
         # Make predictions
-        predictions = trainer.predict(X)
-        assert isinstance(predictions, np.ndarray)
-        assert predictions.shape == (len(X),)
-        assert np.issubdtype(predictions.dtype, np.number)  # Check numeric type
-        assert not np.any(np.isnan(predictions))
-        assert not np.any(np.isinf(predictions))
-        assert set(predictions).issubset({0, 1})  # Binary classification
+        y_pred, y_pred_proba = trainer.predict(X)
+        assert isinstance(y_pred, np.ndarray)
+        assert isinstance(y_pred_proba, np.ndarray)
+        assert y_pred.shape == (len(X),)
+        assert y_pred_proba.shape == (len(X), 2)  # Binary classification
+        assert np.issubdtype(y_pred.dtype, np.number)  # Check numeric type
+        assert not np.any(np.isnan(y_pred))
+        assert not np.any(np.isinf(y_pred))
+        assert set(y_pred).issubset({0, 1})  # Binary classification
+        assert np.all(np.sum(y_pred_proba, axis=1) == 1.0)  # Probabilities sum to 1.0
 
     def test_optimization_objective(
-        self, classification_data_pd: Tuple[pd.DataFrame, pd.Series]
+        self, classification_data_pd: Tuple[pd.DataFrame, pd.Series], simple_model
     ):
         """Test optimization objective function.
 
         Args:
             classification_data_pd (Tuple[pd.DataFrame, pd.Series]):
                 A tuple of features and target pandas objects.
+            simple_model (LogisticRegressionModel): A simple model instance.
         """
 
         X, y = classification_data_pd
         trainer = ClassificationModelTrainer(
-            base_model=LogisticRegressionModel(),
-            n_splits=2,
-            random_state=28,
-            optimize_metric="f1",
+            base_model=simple_model,
+            config=MlTrainerConfig(EXPERIMENT_NAME="test_classification"),
         )
 
         # Create mock trial with correct return values
@@ -170,10 +158,11 @@ class TestClassificationModelTrainer:
         X, y = classification_data_pd
         trainer = ClassificationModelTrainer(
             base_model=LogisticRegressionModel(),
-            n_splits=2,
-            random_state=28,
-            use_smote=use_smote,
-            smote_ratio=smote_ratio,
+            config=MlTrainerConfig(
+                EXPERIMENT_NAME="test_classification",
+                USE_SMOTE=use_smote,
+                SMOTE_RATIO=smote_ratio,
+            ),
         )
 
         # Train model
@@ -182,13 +171,14 @@ class TestClassificationModelTrainer:
         assert isinstance(metrics, dict)
 
     def test_cross_validation_splits(
-        self, classification_data_pd: Tuple[pd.DataFrame, pd.Series]
+        self, classification_data_pd: Tuple[pd.DataFrame, pd.Series], simple_model
     ):
         """Test different cross-validation configurations.
 
         Args:
             classification_data_pd (Tuple[pd.DataFrame, pd.Series]):
                 A tuple of features and target pandas objects.
+            simple_model (LogisticRegressionModel): A simple model instance.
         """
 
         X, y = classification_data_pd
@@ -196,7 +186,11 @@ class TestClassificationModelTrainer:
 
         for n_splits in n_splits_list:
             trainer = ClassificationModelTrainer(
-                base_model=LogisticRegressionModel(), n_splits=n_splits, random_state=28
+                base_model=simple_model,
+                config=MlTrainerConfig(
+                    EXPERIMENT_NAME="test_classification",
+                    N_SPLITS=n_splits,
+                ),
             )
 
             best_model, metrics = trainer.train_and_optimize(X, y, n_trials=2)
@@ -207,35 +201,44 @@ class TestClassificationModelTrainer:
         "optimize_metric", ["accuracy", "f1", "precision", "recall"]
     )
     def test_different_optimization_metrics(
-        self, classification_data_pd, optimize_metric
+        self, classification_data_pd, optimize_metric, simple_model
     ):
         """Test optimization with different metrics."""
 
         X, y = classification_data_pd
+
         trainer = ClassificationModelTrainer(
-            base_model=LogisticRegressionModel(),
-            n_splits=2,
-            random_state=28,
-            optimize_metric=optimize_metric,
+            base_model=simple_model,
+            config=MlTrainerConfig(
+                EXPERIMENT_NAME="test_classification",
+                OPTIMIZE_METRIC=optimize_metric,
+            ),
         )
 
         best_model, metrics = trainer.train_and_optimize(X, y, n_trials=2)
         assert best_model is not None
         assert optimize_metric in metrics
+        assert isinstance(metrics, dict)
+        assert isinstance(metrics[optimize_metric], float)
+        assert 0 <= metrics[optimize_metric] <= 1
 
     def test_error_handling(
-        self, classification_data_pd: Tuple[pd.DataFrame, pd.Series]
+        self,
+        classification_data_pd: Tuple[pd.DataFrame, pd.Series],
+        simple_model,
     ):
         """Test error handling in trainer.
 
         Args:
             classification_data_pd (Tuple[pd.DataFrame, pd.Series]):
                 A tuple of features and target pandas objects.
+            simple_model (LogisticRegressionModel): A simple model instance.
         """
 
         X, y = classification_data_pd
         trainer = ClassificationModelTrainer(
-            base_model=LogisticRegressionModel(), n_splits=2, random_state=28
+            base_model=simple_model,
+            config=MlTrainerConfig(EXPERIMENT_NAME="test_classification"),
         )
 
         # Test prediction without training
@@ -244,7 +247,8 @@ class TestClassificationModelTrainer:
 
         # Test with invalid optimization metric
         trainer_invalid = ClassificationModelTrainer(
-            base_model=LogisticRegressionModel(), optimize_metric="invalid_metric"
+            base_model=simple_model,
+            config=MlTrainerConfig(OPTIMIZE_METRIC="invalid_metric"),
         )
         with pytest.raises(Exception):
             trainer_invalid.train_and_optimize(X, y, n_trials=2)
@@ -282,43 +286,50 @@ def test_lazypredict_classification(
 
 
 @pytest.mark.integration
-def test_full_training_pipeline(classification_data_pd: Tuple[pd.DataFrame, pd.Series]):
+def test_full_training_pipeline(
+    classification_data_pd: Tuple[pd.DataFrame, pd.Series], simple_model
+):
     """Integration test for full training pipeline.
 
     Args:
         classification_data_pd (Tuple[pd.DataFrame, pd.Series]):
             A tuple of features and target pandas objects.
+        simple_model (LogisticRegressionModel): A simple model instance.
     """
 
     X, y = classification_data_pd
 
     # Create trainer with all features enabled
     trainer = ClassificationModelTrainer(
-        base_model=LogisticRegressionModel(),
-        n_splits=5,
-        random_state=28,
-        experiment_name="test_classification",
-        optimize_metric="f1",
-        use_smote=True,
-        smote_ratio=1.0,
+        base_model=simple_model,
+        config=MlTrainerConfig(
+            EXPERIMENT_NAME="test_classification",
+            N_SPLITS=5,
+            OPTIMIZE_METRIC="f1",
+            USE_SMOTE=True,
+            SMOTE_RATIO=1.0,
+        ),
     )
 
     # Train model
     best_model, metrics = trainer.train_and_optimize(X, y, n_trials=3)
 
     # Make predictions
-    predictions = trainer.predict(X)
+    y_pred, y_pred_proba = trainer.predict(X)
 
     # Validate entire pipeline
     assert best_model is not None
     assert isinstance(metrics, dict)
-    assert isinstance(predictions, np.ndarray)
-    assert predictions.shape == (len(X),)
-    assert np.issubdtype(predictions.dtype, np.number)
-    assert not np.any(np.isnan(predictions))
-    assert not np.any(np.isinf(predictions))
-    assert set(predictions).issubset({0, 1})
+    assert isinstance(y_pred, np.ndarray)
+    assert isinstance(y_pred_proba, np.ndarray)
+    assert y_pred.shape == (len(X),)
+    assert y_pred_proba.shape == (len(X), 2)
+    assert np.issubdtype(y_pred.dtype, np.number)
+    assert not np.any(np.isnan(y_pred))
+    assert not np.any(np.isinf(y_pred))
+    assert set(y_pred).issubset({0, 1})
+    assert np.all(np.sum(y_pred_proba, axis=1) == 1.0)
     assert all(
         metric in metrics
-        for metric in ["accuracy", "balanced_acuracy", "precision", "recall", "f1"]
+        for metric in ["accuracy", "balanced_accuracy", "precision", "recall", "f1"]
     )

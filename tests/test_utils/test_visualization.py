@@ -1,14 +1,40 @@
-import pytest
 from typing import Tuple
-import numpy as np
+from unittest.mock import Mock, patch
+
 import matplotlib.pyplot as plt
+import numpy as np
+import pytest
 from matplotlib.figure import Figure
 
 from ai_toolkit.utils.visualization import (
     ClassificationPlots,
-    RegressionPlots,
     ModelAnalysisPlots,
+    RegressionPlots,
 )
+
+
+@pytest.fixture
+def mock_shap():
+    """Create mock SHAP objects and functions."""
+
+    with patch("shap.TreeExplainer") as mock_tree_explainer:
+        with patch("shap.KernelExplainer") as mock_kernel_explainer:
+            with patch("shap.summary_plot") as mock_summary_plot:
+                # Configure mocks with proper numpy arrays
+                mock_values = np.random.randn(100, 5).astype(np.float32)
+                mock_tree_explainer.return_value.shap_values.return_value = mock_values
+                mock_kernel_explainer.return_value.shap_values.return_value = (
+                    mock_values
+                )
+
+                # Configure summary_plot to do nothing
+                mock_summary_plot.return_value = None
+
+                yield {
+                    "tree_explainer": mock_tree_explainer,
+                    "kernel_explainer": mock_kernel_explainer,
+                    "summary_plot": mock_summary_plot,
+                }
 
 
 class TestClassificationPlots:
@@ -26,7 +52,9 @@ class TestClassificationPlots:
 
         y_true, _, y_pred_proba = classification_predictions
 
-        fig = ClassificationPlots.plot_roc_curve(y_true, y_pred_proba, "Test ROC Curve")
+        fig = ClassificationPlots.plot_roc_curve(
+            y_true, y_pred_proba[:, 1], "Test ROC Curve"
+        )
 
         # Test figure properties
         assert isinstance(fig, Figure)
@@ -85,7 +113,7 @@ class TestClassificationPlots:
 
         # Test ROC curve
         fig = ClassificationPlots.plot_roc_curve(
-            y_true, y_pred_proba, "Test ROC Curve", figsize=figsize
+            y_true, y_pred_proba[:, 1], "Test ROC Curve", figsize=figsize
         )
 
         size_inches = fig.get_size_inches()
@@ -237,14 +265,137 @@ class TestModelAnalysisPlots:
         # Clean up
         plt.close(fig)
 
+    def test_shapley_plot_tree_model(self, mock_shap, feature_importance_data):
+        """Test Shapley plot with tree-based model."""
+
+        # Create mock tree-based model
+        class TreeModel:
+
+            def predict(self, X):
+                return np.zeros(len(X))
+
+            def apply(self, X):
+                return np.zeros(len(X))
+
+        mock_model = TreeModel()
+
+        # Get test data
+        _, feature_names = feature_importance_data
+        X = np.random.randn(100, len(feature_names)).astype(np.float32)
+
+        # Create plot
+        fig = ModelAnalysisPlots.plot_shapley_values(mock_model, X, feature_names)
+
+        # Verify TreeExplainer was used
+        mock_shap["tree_explainer"].assert_called_once()
+        mock_shap["kernel_explainer"].assert_not_called()
+
+        # Verify plot creation
+        mock_shap["summary_plot"].assert_called_once()
+
+        # Test figure properties
+        assert isinstance(fig, Figure)
+        ax = fig.gca()
+        assert ax.get_title() == "SHAP Feature Importance"
+
+        plt.close(fig)
+
+    def test_shapley_plot_kernel_model(self, mock_shap, feature_importance_data):
+        """Test Shapley plot with kernel-based model."""
+
+        # Create mock kernel-based model
+        class KernelModel:
+
+            def predict(self, X):
+                return np.zeros(len(X))
+
+        mock_model = KernelModel()
+
+        # Get test data
+        _, feature_names = feature_importance_data
+        X = np.random.randn(100, len(feature_names)).astype(np.float32)
+
+        # Create plot
+        fig = ModelAnalysisPlots.plot_shapley_values(mock_model, X, feature_names)
+
+        # Verify KernelExplainer was used
+        mock_shap["kernel_explainer"].assert_called_once()
+        mock_shap["tree_explainer"].assert_not_called()
+
+        # Verify plot creation
+        mock_shap["summary_plot"].assert_called_once()
+
+        # Test figure properties
+        assert isinstance(fig, Figure)
+        ax = fig.gca()
+        assert ax.get_title() == "SHAP Feature Importance"
+
+        plt.close(fig)
+
+    def test_shapley_plot_empty_data(self, mock_shap):
+        """Test Shapley plot with empty data."""
+
+        mock_model = Mock()
+        X = np.array([])
+        feature_names = []
+
+        with pytest.raises(ValueError):
+            fig = ModelAnalysisPlots.plot_shapley_values(mock_model, X, feature_names)
+            plt.close(fig)
+
+    def test_shapley_plot_sample_reduction(self, mock_shap, feature_importance_data):
+        """Test sample size reduction for large datasets in Shapley plot."""
+
+        # Create mock model
+        mock_model = Mock()
+        mock_model.apply = Mock()
+
+        # Create large test dataset
+        _, feature_names = feature_importance_data
+        X = np.random.randn(1000, len(feature_names))
+
+        with patch("shap.sample") as mock_sample:
+            mock_sample.return_value = X[:100]
+
+            fig = ModelAnalysisPlots.plot_shapley_values(mock_model, X, feature_names)
+
+            # Verify sampling was called
+            mock_sample.assert_called_once()
+            args, kwargs = mock_sample.call_args
+            assert args[0].shape == X.shape
+            assert args[1] == 100  # Sample size
+            assert kwargs["random_state"] == 28
+
+            plt.close(fig)
+
     @pytest.mark.parametrize("figsize", [(10, 6), (12, 8)])
-    def test_plot_sizes(self, feature_importance_data, figsize):
+    def test_plot_sizes(self, feature_importance_data, mock_shap, figsize):
         """Test different plot sizes."""
 
         importance_scores, feature_names = feature_importance_data
 
+        # Test feature importance plot
         fig = ModelAnalysisPlots.plot_feature_importance(
             importance_scores, feature_names, "Test Feature Importance", figsize=figsize
+        )
+        size_inches = fig.get_size_inches()
+        assert np.allclose(size_inches, figsize)
+        plt.close(fig)
+
+        # Test Shapley plot with proper mock model
+        class TreeModel:
+
+            def predict(self, X):
+                return np.zeros(len(X))
+
+            def apply(self, X):
+                return np.zeros(len(X))
+
+        mock_model = TreeModel()
+        X = np.random.randn(100, len(feature_names)).astype(np.float32)
+
+        fig = ModelAnalysisPlots.plot_shapley_values(
+            mock_model, X, feature_names, figsize=figsize
         )
         size_inches = fig.get_size_inches()
         assert np.allclose(size_inches, figsize)
@@ -260,35 +411,80 @@ def test_plot_style_consistency():
     y_pred_proba = np.array([0.1, 0.9, 0.6, 0.9])
     importance_scores = np.array([0.3, 0.7])
     feature_names = ["Feature_1", "Feature_2"]
+    X = np.random.randn(4, 2)  # Sample data for Shapley plot
 
-    # Create all types of plots
-    plots = [
-        ClassificationPlots.plot_roc_curve(y_true, y_pred_proba, "ROC"),
-        ClassificationPlots.plot_confusion_matrix(y_true, y_pred, "Confusion"),
-        RegressionPlots.plot_residuals(y_true, y_pred, "Residuals"),
-        RegressionPlots.plot_prediction_scatter(y_true, y_pred, "Scatter"),
-        ModelAnalysisPlots.plot_feature_importance(
-            importance_scores, feature_names, "Importance"
-        ),
-    ]
+    # Create proper mock model for Shapley plot
+    class TreeModel:
+        def predict(self, X):
+            return np.zeros(len(X))
 
-    # Test style consistency
-    for fig in plots:
-        assert isinstance(fig, Figure)
-        for ax in fig.axes:
-            if not ax.get_label().startswith("<colorbar>"):
-                assert ax.get_title() != ""  # Should have a title
-                assert ax.get_xlabel() != ""  # Should have x-label
-                assert ax.get_ylabel() != ""  # Should have y-label
-        plt.close(fig)
+        def apply(self, X):
+            return np.zeros(len(X))
+
+    mock_model = TreeModel()
+
+    # Mock SHAP functions
+    with patch("shap.TreeExplainer") as mock_tree_explainer:
+        with patch("shap.summary_plot") as mock_summary_plot:
+            # Configure mock with proper numpy arrays
+            mock_values = np.random.randn(4, 2).astype(np.float32)
+            mock_tree_explainer.return_value.shap_values.return_value = mock_values
+            mock_summary_plot.return_value = None
+
+            # Create all types of plots
+            plots = [
+                ClassificationPlots.plot_roc_curve(y_true, y_pred_proba, "ROC"),
+                ClassificationPlots.plot_confusion_matrix(y_true, y_pred, "Confusion"),
+                RegressionPlots.plot_residuals(y_true, y_pred, "Residuals"),
+                RegressionPlots.plot_prediction_scatter(y_true, y_pred, "Scatter"),
+                ModelAnalysisPlots.plot_feature_importance(
+                    importance_scores, feature_names, "Importance"
+                ),
+                ModelAnalysisPlots.plot_shapley_values(
+                    mock_model,
+                    X,
+                    feature_names,
+                ),
+            ]
+
+            # Test style consistency
+            for fig in plots:
+                assert isinstance(fig, Figure)
+                for ax in fig.axes:
+                    if not ax.get_label().startswith("<colorbar>"):
+                        assert ax.get_title() != ""  # Should have a title
+
+                        # Check if not Shapley plot
+                        if "SHAP" not in ax.get_title():
+                            assert ax.get_xlabel() != ""  # Should have x-label
+
+                        assert ax.get_ylabel() != ""  # Should have y-label
+
+                        # Test font sizes are consistent
+                        title_size = ax.title.get_fontsize()
+                        assert title_size > 0
+
+                        # Test axis visibility
+                        assert ax.get_xaxis().get_visible()
+                        assert ax.get_yaxis().get_visible()
+                plt.close(fig)
 
 
 @pytest.mark.parametrize(
     "plot_func,args",
     [
         (ClassificationPlots.plot_roc_curve, (np.array([]), np.array([]), "Empty")),
+        (
+            ClassificationPlots.plot_confusion_matrix,
+            (np.array([]), np.array([]), "Empty"),
+        ),
         (RegressionPlots.plot_residuals, (np.array([]), np.array([]), "Empty")),
+        (
+            RegressionPlots.plot_prediction_scatter,
+            (np.array([]), np.array([]), "Empty"),
+        ),
         (ModelAnalysisPlots.plot_feature_importance, (np.array([]), [], "Empty")),
+        (ModelAnalysisPlots.plot_shapley_values, (None, np.array([]), [])),
     ],
 )
 def test_empty_data_handling(plot_func, args):

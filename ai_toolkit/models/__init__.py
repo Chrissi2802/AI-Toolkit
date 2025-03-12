@@ -3,27 +3,31 @@ Model implementations for AI Toolkit.
 """
 
 from ai_toolkit.models.classification import (
-    LogisticRegressionModel,
-    SVCModel,
-    KNNModel,
-    NaiveBayesModel,
     DecisionTreeModel,
-    RandomForestModel,
-    XGBoostModel,
+    EnsembleStackingClassifierModel,
+    EnsembleVotingClassifierModel,
+    KNNModel,
     LightGBMModel,
+    LogisticRegressionModel,
+    NaiveBayesModel,
+    RandomForestModel,
+    SVCModel,
+    XGBoostModel,
     get_all_classification_models,
 )
-
 from ai_toolkit.models.regression import (
-    RidgeRegressionModel,
     BayesianRidgeRegressionModel,
-    SVRModel,
-    KNNRegressorModel,
-    XGBoostRegressorModel,
-    LightGBMRegressorModel,
     CatBoostRegressorModel,
+    EnsembleStackingRegressorModel,
+    EnsembleVotingRegressorModel,
+    KNNRegressorModel,
+    LightGBMRegressorModel,
+    RidgeRegressionModel,
+    SVRModel,
+    XGBoostRegressorModel,
     get_all_regression_models,
 )
+
 
 __all__ = [
     # Classification models
@@ -36,6 +40,8 @@ __all__ = [
     "XGBoostModel",
     "LightGBMModel",
     "get_all_classification_models",
+    "EnsembleVotingClassifierModel",
+    "EnsembleStackingClassifierModel",
     # Regression models
     "RidgeRegressionModel",
     "BayesianRidgeRegressionModel",
@@ -45,4 +51,6 @@ __all__ = [
     "LightGBMRegressorModel",
     "CatBoostRegressorModel",
     "get_all_regression_models",
+    "EnsembleVotingRegressorModel",
+    "EnsembleStackingRegressorModel",
 ]

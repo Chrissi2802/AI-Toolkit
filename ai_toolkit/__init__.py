@@ -6,30 +6,34 @@ __version__ = "0.1"
 __author__ = "Chrissi"
 
 # base
-from ai_toolkit.base.model import BaseMlModel
-from ai_toolkit.base.ensemble import BaseMlEnsembleModel
+from ai_toolkit.base.data import BaseDataset, DatasetConfig
+from ai_toolkit.base.models import BaseMlEnsembleModel, BaseMlModel
+from ai_toolkit.base.training import BaseMlTrainer, MlTrainerConfig
 
 # models
 from ai_toolkit.models.classification import (
-    LogisticRegressionModel,
-    SVCModel,
-    KNNModel,
-    NaiveBayesModel,
     DecisionTreeModel,
-    RandomForestModel,
-    XGBoostModel,
+    EnsembleStackingClassifierModel,
+    EnsembleVotingClassifierModel,
+    KNNModel,
     LightGBMModel,
+    LogisticRegressionModel,
+    NaiveBayesModel,
+    RandomForestModel,
+    SVCModel,
+    XGBoostModel,
     get_all_classification_models,
 )
-
 from ai_toolkit.models.regression import (
-    RidgeRegressionModel,
     BayesianRidgeRegressionModel,
-    SVRModel,
-    KNNRegressorModel,
-    XGBoostRegressorModel,
-    LightGBMRegressorModel,
     CatBoostRegressorModel,
+    EnsembleStackingRegressorModel,
+    EnsembleVotingRegressorModel,
+    KNNRegressorModel,
+    LightGBMRegressorModel,
+    RidgeRegressionModel,
+    SVRModel,
+    XGBoostRegressorModel,
     get_all_regression_models,
 )
 
@@ -38,7 +42,6 @@ from ai_toolkit.training.classification import (
     ClassificationModelTrainer,
     lazypredict_classification,
 )
-
 from ai_toolkit.training.regression import (
     RegressionModelTrainer,
     lazypredict_regression,
@@ -47,14 +50,13 @@ from ai_toolkit.training.regression import (
 # utils
 from ai_toolkit.utils.evaluation import (
     ClassificationMetrics,
-    RegressionMetrics,
     CrossValidationMetrics,
+    RegressionMetrics,
 )
-
 from ai_toolkit.utils.visualization import (
     ClassificationPlots,
-    RegressionPlots,
     ModelAnalysisPlots,
+    RegressionPlots,
 )
 
 

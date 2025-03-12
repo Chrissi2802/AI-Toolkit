@@ -1,16 +1,21 @@
-import pytest
 from typing import Tuple
+from unittest.mock import Mock, patch
+
 import numpy as np
 import optuna
+import pytest
+
 from ai_toolkit.models.classification import (
-    LogisticRegressionModel,
-    SVCModel,
-    KNNModel,
-    NaiveBayesModel,
     DecisionTreeModel,
-    RandomForestModel,
-    XGBoostModel,
+    EnsembleStackingClassifierModel,
+    EnsembleVotingClassifierModel,
+    KNNModel,
     LightGBMModel,
+    LogisticRegressionModel,
+    NaiveBayesModel,
+    RandomForestModel,
+    SVCModel,
+    XGBoostModel,
     get_all_classification_models,
 )
 
@@ -141,3 +146,123 @@ def test_model_integration(classification_data: Tuple[np.ndarray, np.ndarray]):
 
         except Exception as e:
             pytest.fail(f"Model {name} failed: {str(e)}")
+
+
+def test_feature_importance(
+    classification_data: Tuple[np.ndarray, np.ndarray], optuna_trial: optuna.trial.Trial
+):
+    """Test feature importance method for all models.
+
+    Args:
+        classification_data (Tuple[np.ndarray, np.ndarray]):
+            A tuple of features and target arrays.
+        optuna_trial (optuna.trial.Trial): An Optuna trial object.
+    """
+
+    X, y = classification_data
+    model = RandomForestModel()
+
+    # Create and fit model
+    params = model.get_param_space(optuna_trial)
+    clf = model.create_model(params)
+    clf.fit(X, y)
+
+    # Check feature importance
+    assert hasattr(clf, "feature_importances_")
+    importances = clf.feature_importances_
+    assert len(importances) == X.shape[1]
+    assert np.issubdtype(importances.dtype, np.number)
+    assert np.all(np.isfinite(importances))
+    assert np.all(importances >= 0)
+    assert np.isclose(np.sum(importances), 1.0)
+
+
+class TestEnsembleModels:
+    """Test suite for ensemble models."""
+
+    def setup_method(self):
+        """Setup method for each test."""
+
+        # Create two logistic regression models
+        self.model1 = LogisticRegressionModel()
+        self.model1.model_name = "Model1"  # Set model name for testing
+
+        self.model2 = LogisticRegressionModel()
+        self.model2.model_name = "Model2"  # Set different model name
+
+    def test_voting_classifier(self, classification_data):
+        """Test voting classifier ensemble."""
+
+        X, y = classification_data
+
+        # Prepare models
+        models = [(self.model1, "mock_run_1"), (self.model2, "mock_run_2")]
+
+        with patch("mlflow.get_run") as mock_get_run:
+            mock_run = Mock()
+            mock_run.data.params = {"penalty": "l2", "C": 1.0, "random_state": 28}
+            mock_get_run.return_value = mock_run
+
+            # Create and configure ensemble
+            ensemble = EnsembleVotingClassifierModel(models)
+            params = {
+                "estimators": [(m.model_name, m.model) for m, _ in models],
+                "voting": "soft",  # Use soft voting for probabilities
+                "weights": [0.6, 0.4],
+            }
+
+            # Create and train ensemble
+            clf = ensemble.create_model(params)
+            clf.fit(X, y)
+
+            # Test predictions
+            y_pred = clf.predict(X)
+            assert isinstance(y_pred, np.ndarray)
+            assert y_pred.shape == y.shape
+
+            # Test probability predictions
+            y_proba = clf.predict_proba(X)
+            assert y_proba.shape == (len(y), len(np.unique(y)))
+            assert np.allclose(np.sum(y_proba, axis=1), 1.0)
+
+    def test_stacking_classifier(self, classification_data, optuna_trial):
+        """Test stacking classifier ensemble."""
+
+        X, y = classification_data
+
+        # Prepare models
+        base_models = [(self.model1, "mock_run_1"), (self.model2, "mock_run_2")]
+        meta_model = LogisticRegressionModel()
+
+        with patch("mlflow.get_run") as mock_get_run:
+            mock_run = Mock()
+            mock_run.data.params = {"penalty": "l2", "C": 1.0, "random_state": 28}
+            mock_get_run.return_value = mock_run
+
+            # Create and configure ensemble
+            ensemble = EnsembleStackingClassifierModel(base_models, meta_model)
+            params = {
+                "estimators": [(m.model_name, m.model) for m, _ in base_models],
+                "final_estimator": meta_model.create_model(
+                    meta_model.get_param_space(optuna_trial)
+                ),
+                "stack_method": "predict_proba",
+                "passthrough": True,
+            }
+
+            # Create and train ensemble
+            clf = ensemble.create_model(params)
+            clf.fit(X, y)
+
+            # Test predictions
+            y_pred = clf.predict(X)
+            assert isinstance(y_pred, np.ndarray)
+            assert np.issubdtype(y_pred.dtype, np.number)
+            assert y_pred.shape == y.shape
+            assert np.all(np.isfinite(y_pred))
+            assert not np.any(np.isnan(y_pred))
+
+            # Test probability predictions
+            y_proba = clf.predict_proba(X)
+            assert y_proba.shape == (len(y), len(np.unique(y)))
+            assert np.allclose(np.sum(y_proba, axis=1), 1.0)

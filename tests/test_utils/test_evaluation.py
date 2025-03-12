@@ -1,20 +1,21 @@
-import pytest
-from typing import Tuple, List, Dict
+from typing import Dict, List, Tuple
+
 import numpy as np
+import pytest
 from sklearn.metrics import (
     accuracy_score,
-    precision_score,
-    recall_score,
+    explained_variance_score,
     f1_score,
     mean_squared_error,
+    precision_score,
     r2_score,
-    explained_variance_score,
+    recall_score,
 )
 
 from ai_toolkit.utils.evaluation import (
     ClassificationMetrics,
-    RegressionMetrics,
     CrossValidationMetrics,
+    RegressionMetrics,
 )
 
 
@@ -55,16 +56,18 @@ class TestClassificationMetrics:
         # Test presence of all metrics
         expected_metrics = {
             "accuracy",
-            "balanced_acuracy",
+            "balanced_accuracy",
             "precision",
             "recall",
             "f1",
             "matthews_correlation_coefficient",
             "jaccard",
             "hamming_loss",
+            "d2_log_loss",
+            "zero_one_loss",
+            "log_loss",
             "roc_auc",
             "brier_score",
-            "log_loss",
         }
         assert all(metric in metrics for metric in expected_metrics)
 
@@ -73,10 +76,14 @@ class TestClassificationMetrics:
             metrics["accuracy"], accuracy_score(y_true, y_pred)
         )
         np.testing.assert_almost_equal(
-            metrics["precision"], precision_score(y_true, y_pred)
+            metrics["precision"], precision_score(y_true, y_pred, average="weighted")
         )
-        np.testing.assert_almost_equal(metrics["recall"], recall_score(y_true, y_pred))
-        np.testing.assert_almost_equal(metrics["f1"], f1_score(y_true, y_pred))
+        np.testing.assert_almost_equal(
+            metrics["recall"], recall_score(y_true, y_pred, average="weighted")
+        )
+        np.testing.assert_almost_equal(
+            metrics["f1"], f1_score(y_true, y_pred, average="weighted")
+        )
 
     def test_metrics_without_probabilities(
         self, classification_predictions: Tuple[np.ndarray, np.ndarray, np.ndarray]
@@ -93,9 +100,9 @@ class TestClassificationMetrics:
         metrics = ClassificationMetrics.calculate_basic_metrics(y_true, y_pred)
 
         # Probability-based metrics should not be present
+        assert "log_loss" not in metrics
         assert "roc_auc" not in metrics
         assert "brier_score" not in metrics
-        assert "log_loss" not in metrics
 
     def test_confusion_matrix(
         self, classification_predictions: Tuple[np.ndarray, np.ndarray, np.ndarray]

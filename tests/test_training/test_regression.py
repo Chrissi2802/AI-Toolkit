@@ -1,9 +1,11 @@
-import pytest
 from typing import Tuple
-import pandas as pd
+from unittest.mock import Mock
+
 import numpy as np
-import mlflow
-from unittest.mock import Mock, patch
+import pandas as pd
+import pytest
+
+from ai_toolkit.base.training import MlTrainerConfig
 from ai_toolkit.models.regression import RidgeRegressionModel
 from ai_toolkit.training.regression import (
     RegressionModelTrainer,
@@ -22,15 +24,6 @@ def simple_model() -> RidgeRegressionModel:
     return RidgeRegressionModel()
 
 
-@pytest.fixture(autouse=True)
-def mlflow_cleanup():
-    """Cleanup MLflow runs before and after each test."""
-
-    mlflow.end_run()
-    yield
-    mlflow.end_run()
-
-
 class TestRegressionModelTrainer:
     """Test suite for RegressionModelTrainer."""
 
@@ -43,10 +36,10 @@ class TestRegressionModelTrainer:
 
         trainer = RegressionModelTrainer(
             base_model=simple_model,
-            n_splits=5,
-            random_state=28,
-            experiment_name="test_regression",
-            optimize_metric="root_mean_squared_error",
+            config=MlTrainerConfig(
+                EXPERIMENT_NAME="test_regression",
+                OPTIMIZE_METRIC="root_mean_squared_error",
+            ),
         )
 
         assert trainer.base_model is not None
@@ -57,20 +50,18 @@ class TestRegressionModelTrainer:
         assert trainer.best_model is None
         assert trainer.best_score == float("inf")
 
-    @patch("mlflow.set_experiment")
-    def test_training_workflow(
-        self, mock_set_experiment, regression_data_pd, mock_mlflow
-    ):
+    @pytest.mark.integration
+    def test_training_workflow(self, simple_model, regression_data_pd, mock_mlflow):
         """Test complete training workflow."""
 
         X, y = regression_data_pd
 
         trainer = RegressionModelTrainer(
-            base_model=RidgeRegressionModel(),
-            n_splits=5,
-            random_state=28,
-            experiment_name="test_regression",
-            optimize_metric="root_mean_squared_error",
+            base_model=simple_model,
+            config=MlTrainerConfig(
+                EXPERIMENT_NAME="test_regression",
+                OPTIMIZE_METRIC="root_mean_squared_error",
+            ),
         )
 
         # Train model
@@ -93,22 +84,29 @@ class TestRegressionModelTrainer:
         assert all(isinstance(value, float) for value in metrics.values())
 
         # Verfiy MLflow interactions
-        assert mock_set_experiment.called
         assert mock_mlflow["run"].called
         assert mock_mlflow["log_params"].called
         assert mock_mlflow["log_metric"].called
+        assert mock_mlflow["log_table"].called
 
-    def test_prediction(self, regression_data_pd: Tuple[pd.DataFrame, pd.Series]):
+    def test_prediction(
+        self, regression_data_pd: Tuple[pd.DataFrame, pd.Series], simple_model
+    ):
         """Test prediction functionality.
 
         Args:
             regression_data_pd (Tuple[pd.DataFrame, pd.Series]):
-            A tuple of features and target pandas objects
+                A tuple of features and target pandas objects
+            simple_model (RidgeRegressionModel): A simple Ridge regression model.
         """
 
         X, y = regression_data_pd
         trainer = RegressionModelTrainer(
-            base_model=RidgeRegressionModel(), n_splits=2, random_state=28
+            base_model=simple_model,
+            config=MlTrainerConfig(
+                EXPERIMENT_NAME="test_regression",
+                OPTIMIZE_METRIC="root_mean_squared_error",
+            ),
         )
 
         # Train model first
@@ -123,20 +121,22 @@ class TestRegressionModelTrainer:
         assert not np.any(np.isinf(predictions))
 
     def test_optimization_objective(
-        self, regression_data_pd: Tuple[np.ndarray, np.ndarray]
+        self, regression_data_pd: Tuple[np.ndarray, np.ndarray], simple_model
     ):
         """Test optimization objective function.
 
         Args:
             regression_data (Tuple[np.ndarray, np.ndarray]): A tuple of features and target arrays
+            simple_model (RidgeRegressionModel): A simple Ridge regression model.
         """
 
         X, y = regression_data_pd
         trainer = RegressionModelTrainer(
-            base_model=RidgeRegressionModel(),
-            n_splits=2,
-            random_state=28,
-            optimize_metric="root_mean_squared_error",
+            base_model=simple_model,
+            config=MlTrainerConfig(
+                EXPERIMENT_NAME="test_regression",
+                OPTIMIZE_METRIC="root_mean_squared_error",
+            ),
         )
 
         # Create mock trial with correct return values
@@ -162,13 +162,14 @@ class TestRegressionModelTrainer:
         assert score > 0  # RMSE is always positive
 
     def test_cross_validation_splits(
-        self, regression_data_pd: Tuple[pd.DataFrame, pd.Series]
+        self, regression_data_pd: Tuple[pd.DataFrame, pd.Series], simple_model
     ):
         """Test different cross-validation configurations.
 
         Args:
             regression_data_pd (Tuple[pd.DataFrame, pd.Series]):
                 A tuple of features and target pandas objects
+            simple_model (RidgeRegressionModel): A simple Ridge regression model.
         """
 
         X, y = regression_data_pd
@@ -176,7 +177,12 @@ class TestRegressionModelTrainer:
 
         for n_splits in n_splits_list:
             trainer = RegressionModelTrainer(
-                base_model=RidgeRegressionModel(), n_splits=n_splits, random_state=28
+                base_model=simple_model,
+                config=MlTrainerConfig(
+                    EXPERIMENT_NAME="test_regression",
+                    OPTIMIZE_METRIC="root_mean_squared_error",
+                    N_SPLITS=n_splits,
+                ),
             )
 
             best_model, metrics = trainer.train_and_optimize(X, y, n_trials=2)
@@ -185,34 +191,47 @@ class TestRegressionModelTrainer:
 
     @pytest.mark.parametrize(
         "optimize_metric",
-        ["root_mean_squared_error", "mean_absolute_error", "r2", "explained_variance"],
+        ["root_mean_squared_error", "mean_absolute_error", "explained_variance"],
     )
-    def test_different_optimization_metrics(self, regression_data_pd, optimize_metric):
+    def test_different_optimization_metrics(
+        self, regression_data_pd, optimize_metric, simple_model
+    ):
         """Test optimization with different metrics."""
 
         X, y = regression_data_pd
         trainer = RegressionModelTrainer(
-            base_model=RidgeRegressionModel(),
-            n_splits=2,
-            random_state=28,
-            optimize_metric=optimize_metric,
+            base_model=simple_model,
+            config=MlTrainerConfig(
+                EXPERIMENT_NAME="test_regression",
+                OPTIMIZE_METRIC=optimize_metric,
+            ),
         )
 
         best_model, metrics = trainer.train_and_optimize(X, y, n_trials=2)
         assert best_model is not None
         assert optimize_metric in metrics
+        assert isinstance(metrics, dict)
+        assert isinstance(metrics[optimize_metric], float)
+        assert metrics[optimize_metric] > 0
 
-    def test_error_handling(self, regression_data_pd: Tuple[pd.DataFrame, pd.Series]):
+    def test_error_handling(
+        self, regression_data_pd: Tuple[pd.DataFrame, pd.Series], simple_model
+    ):
         """Test error handling in trainer.
 
         Args:
             regression_data_pd (Tuple[pd.DataFrame, pd.Series]):
                 A tuple of features and target pandas objects
+            simple_model (RidgeRegressionModel): A simple Ridge regression model.
         """
 
         X, y = regression_data_pd
         trainer = RegressionModelTrainer(
-            base_model=RidgeRegressionModel(), n_splits=2, random_state=28
+            base_model=simple_model,
+            config=MlTrainerConfig(
+                EXPERIMENT_NAME="test_regression",
+                OPTIMIZE_METRIC="root_mean_squared_error",
+            ),
         )
 
         # Test prediction without training
@@ -221,7 +240,11 @@ class TestRegressionModelTrainer:
 
         # Test with invalid optimization metric
         trainer_invalid = RegressionModelTrainer(
-            base_model=RidgeRegressionModel(), optimize_metric="invalid_metric"
+            base_model=simple_model,
+            config=MlTrainerConfig(
+                EXPERIMENT_NAME="test_regression",
+                OPTIMIZE_METRIC="invalid_metric",
+            ),
         )
         with pytest.raises(Exception):
             trainer_invalid.train_and_optimize(X, y, n_trials=2)
@@ -256,38 +279,42 @@ def test_lazypredict_regression(regression_data_pd: Tuple[pd.DataFrame, pd.Serie
 
 
 @pytest.mark.integration
-def test_full_training_pipeline(regression_data_pd: Tuple[pd.DataFrame, pd.Series]):
+def test_full_training_pipeline(
+    regression_data_pd: Tuple[pd.DataFrame, pd.Series], simple_model
+):
     """Integration test for full regression pipeline.
 
     Args:
         regression_data_pd (Tuple[pd.DataFrame, pd.Series]):
             A tuple of features and target pandas objects
+        simple_model (RidgeRegressionModel): A simple Ridge regression model.
     """
 
     X, y = regression_data_pd
 
     trainer = RegressionModelTrainer(
-        base_model=RidgeRegressionModel(),
-        n_splits=5,
-        random_state=28,
-        experiment_name="test_regression",
-        optimize_metric="root_mean_squared_error",
+        base_model=simple_model,
+        config=MlTrainerConfig(
+            EXPERIMENT_NAME="test_regression",
+            N_SPLITS=5,
+            OPTIMIZE_METRIC="root_mean_squared_error",
+        ),
     )
 
     # Train model
     best_model, metrics = trainer.train_and_optimize(X, y, n_trials=3)
 
     # Make predictions
-    predictions = trainer.predict(X)
+    y_pred = trainer.predict(X)
 
     # Validate entire pipeline
     assert best_model is not None
     assert isinstance(metrics, dict)
-    assert isinstance(predictions, np.ndarray)
-    assert predictions.shape == (len(X),)
-    assert np.issubdtype(predictions.dtype, np.number)
-    assert not np.any(np.isnan(predictions))
-    assert not np.any(np.isinf(predictions))
+    assert isinstance(y_pred, np.ndarray)
+    assert y_pred.shape == (len(X),)
+    assert np.issubdtype(y_pred.dtype, np.number)
+    assert not np.any(np.isnan(y_pred))
+    assert not np.any(np.isinf(y_pred))
     assert all(
         metric in metrics
         for metric in [

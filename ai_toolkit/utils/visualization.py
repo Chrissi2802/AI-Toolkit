@@ -1,8 +1,11 @@
-from typing import Tuple, List
-import numpy as np
+from typing import List, Tuple
+
 import matplotlib.pyplot as plt
+import numpy as np
 import seaborn as sns
-from sklearn.metrics import roc_curve, confusion_matrix
+import shap
+from sklearn.metrics import confusion_matrix, roc_curve
+
 
 sns.set_style("darkgrid")
 
@@ -30,7 +33,7 @@ class ClassificationPlots:
         """
 
         # Check y_true and y_pred_proba
-        if len(y_true) == 0 or len(y_pred_proba) == 0:
+        if len(y_true) == 0 or y_pred_proba is None:
             raise ValueError("y_true and y_pred_proba cannot be empty.")
 
         fig = plt.figure(figsize=figsize)
@@ -43,6 +46,7 @@ class ClassificationPlots:
         plt.title(title)
         plt.grid()
         plt.legend()
+        plt.tight_layout()
 
         return fig
 
@@ -232,6 +236,52 @@ class ModelAnalysisPlots:
         plt.xlabel("Features")
         plt.ylabel("Importance Score")
         plt.title(title)
+        plt.tight_layout()
+
+        return fig
+
+    @staticmethod
+    def plot_shapley_values(
+        model: object,
+        X: np.ndarray,
+        feature_names: List[str],
+        figsize: Tuple[int, int] = (8, 6),
+    ) -> plt.Figure:
+        """Plot SHAP values.
+
+        Args:
+            model (object): Trained model.
+            X (np.ndarray): Feature matrix.
+            feature_names (List[str]): Feature names.
+            figsize (Tuple[int, int], optional): Figure size. Defaults to (8, 6).
+
+        Returns:
+            plt.Figure: Matplotlib figure object
+        """
+
+        # Check feature_names and shap_values
+        if X is None or len(feature_names) == 0:
+            raise ValueError("X and feature_names cannot be empty.")
+
+        # Reduce number of samples
+        sample_size = 100
+        if len(X) > sample_size:
+            X = shap.sample(X, sample_size, random_state=28)
+
+        # Create explainer
+        if hasattr(model, "apply"):
+            explainer = shap.TreeExplainer(model)
+        else:
+            explainer = shap.KernelExplainer(model.predict, X)
+
+        # Calculate SHAP values
+        shap_values = explainer.shap_values(X)
+
+        # Create figure
+        fig = plt.figure(figsize=figsize)
+        shap.summary_plot(shap_values, feature_names, plot_type="violin", show=False)
+        plt.title("SHAP Feature Importance")
+        plt.ylabel("Feature")
         plt.tight_layout()
 
         return fig

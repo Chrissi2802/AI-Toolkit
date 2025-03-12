@@ -1,68 +1,52 @@
-from typing import Dict, Any, Tuple
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
 from datetime import datetime
-from tqdm.notebook import tqdm
-from sklearn.model_selection import StratifiedKFold
-import optuna
-from imblearn.over_sampling import SMOTE
+from typing import Any, Dict, Tuple, Union
+
+import matplotlib.pyplot as plt
 import mlflow
-from mlflow.types.schema import Schema, ColSpec
-from mlflow.models.signature import ModelSignature
+import numpy as np
+import optuna
+import pandas as pd
+from imblearn.over_sampling import SMOTE
 from lazypredict.Supervised import LazyClassifier
+from sklearn.model_selection import StratifiedKFold
+from tqdm.notebook import tqdm
 
-from ai_toolkit.base.model import BaseMlModel
+from ai_toolkit.base.models import BaseMlEnsembleModel, BaseMlModel
+from ai_toolkit.base.training import BaseMlTrainer, MlTrainerConfig
 from ai_toolkit.utils.evaluation import ClassificationMetrics
-from ai_toolkit.utils.visualization import ClassificationPlots
+from ai_toolkit.utils.visualization import ClassificationPlots, ModelAnalysisPlots
 
 
-class ClassificationModelTrainer:
+class ClassificationModelTrainer(BaseMlTrainer):
     """Handles classification model training and optimization."""
 
     def __init__(
         self,
-        base_model: BaseMlModel,
-        n_splits: int = 5,
-        random_state: int = 28,
-        experiment_name: str = "ml_classification",
-        optimize_metric: str = "f1",
-        use_smote: bool = True,
-        smote_ratio: float = 1.0,
+        base_model: Union[BaseMlModel, BaseMlEnsembleModel],
+        config: MlTrainerConfig = MlTrainerConfig(),
     ) -> None:
         """Initialize the ModelTrainer.
 
         Args:
-            base_model (BaseModel): Base model class to be trained.
-            n_splits (int, optional): Number of cross-validation splits. Defaults to 5.
-            random_state (int, optional): Random state for reproducibility. Defaults to 28.
-            experiment_name (str, optional): MLflow experiment name.
-                Defaults to "ml_classification".
-            optimize_metric (str, optional): Metric to optimize during hyperparameter search.
-                Defaults to "f1".
-            use_smote (bool, optional): Whether to use SMOTE. Defaults to True.
-            smote_ratio (float, optional): SMOTE sampling ratio. Defaults to 1.0.
+            base_model (Union[BaseMlModel, BaseMlEnsembleModel]):
+                Base model or ensemble model class to be trained.
+            config (MlTrainerConfig, optional):
+                Configuration for ML training. Defaults to MlTrainerConfig.
         """
 
-        self.base_model = base_model
-        self.n_splits = n_splits
-        self.random_state = random_state
-        self.experiment_name = experiment_name
-        self.optimize_metric = optimize_metric
-        self.use_smote = use_smote
-        self.smote_ratio = smote_ratio
+        super().__init__(
+            base_model=base_model,
+            config=config,
+        )
+
+        self.use_smote = self.config.USE_SMOTE
+        self.smote_ratio = self.config.SMOTE_RATIO
 
         self.smote = (
-            SMOTE(sampling_strategy=smote_ratio, random_state=random_state)
-            if use_smote
+            SMOTE(sampling_strategy=self.smote_ratio, random_state=self.random_state)
+            if self.use_smote
             else None
         )  # Synthetic Minority Over-sampling Technique (SMOTE)
-
-        self.best_model = None
-        self.best_score = -1  # ! Depends on the metric to optimize
-        self.feature_names = None
-
-        mlflow.set_experiment(self.experiment_name)
 
     def _log_training_info(self, n_trials: int) -> None:
         """Log training parameters to MLflow.
@@ -71,13 +55,9 @@ class ClassificationModelTrainer:
             n_trials (int): Number of optimization trials
         """
 
+        super()._log_training_info(n_trials)
         mlflow.log_params(
             {
-                "model_name": self.base_model.model_name,
-                "n_splits": self.n_splits,
-                "random_state": self.random_state,
-                "n_trials": n_trials,
-                "optimize_metric": self.optimize_metric,
                 "use_smote": self.use_smote,
                 "smote_ratio": self.smote_ratio,
             }
@@ -93,26 +73,13 @@ class ClassificationModelTrainer:
 
         y = y.astype(int)
 
+        super()._log_dataset_info(X, y)
         mlflow.log_params(
             {
-                "n_samples": len(X),
-                "n_features": X.shape[1],
                 "class_distribution": str(np.bincount(y)),
                 "class_ratio": f"{np.bincount(y)[0]}/{np.bincount(y)[1]}",
             }
         )
-
-        mlflow.log_dict(self.feature_names, "feature_names.json")
-
-    def _log_final_metrics(self, mean_metrics: Dict[str, float]) -> None:
-        """Log mean metrics across all folds.
-
-        Args:
-            mean_metrics (Dict[str, float]): Mean metrics dictionary
-        """
-
-        for metric_name, value in mean_metrics.items():
-            mlflow.log_metric(f"mean_{metric_name}", value)
 
     def _log_fold_results(
         self,
@@ -121,6 +88,7 @@ class ClassificationModelTrainer:
         y_true: np.ndarray,
         y_pred: np.ndarray,
         y_pred_proba: np.ndarray,
+        model: Any,
     ) -> None:
         """Log metrics and plots for a specific fold.
 
@@ -130,20 +98,21 @@ class ClassificationModelTrainer:
             y_true (np.ndarray): True labels
             y_pred (np.ndarray): Predicted labels
             y_pred_proba (np.ndarray): Predicted probabilities
+            model (Any): Trained model.
         """
 
-        # Log metrics
-        for metric_name, value in metrics.items():
-            mlflow.log_metric(f"fold_{fold}_{metric_name}", value)
+        # Log fold metrics
+        super()._log_fold_results(fold, metrics)
 
-        # Create and log plot for ROC curve
-        roc_fig = ClassificationPlots.plot_roc_curve(
-            y_true,
-            y_pred_proba,
-            f"ROC Curve - Fold: {fold}",
-        )
-        mlflow.log_figure(roc_fig, f"fold_{fold}_roc_curve.png")
-        plt.close(roc_fig)
+        if y_pred_proba is not None:
+            # Create and log plot for ROC curve
+            roc_fig = ClassificationPlots.plot_roc_curve(
+                y_true,
+                y_pred_proba,
+                f"ROC Curve - Fold: {fold}",
+            )
+            mlflow.log_figure(roc_fig, f"fold_{fold}_roc_curve.png")
+            plt.close(roc_fig)
 
         # Create and log plot for confusion matrix
         cm_fig = ClassificationPlots.plot_confusion_matrix(
@@ -153,6 +122,19 @@ class ClassificationModelTrainer:
         )
         mlflow.log_figure(cm_fig, f"fold_{fold}_confusion_matrix.png")
         plt.close(cm_fig)
+
+        # Calculate feature importance
+        importance_scores = self._calc_feature_importance(model)
+
+        if importance_scores is not None:
+            # Create and log plot for feature importance
+            fi_fig = ModelAnalysisPlots.plot_feature_importance(
+                importance_scores,
+                self.feature_names,
+                f"Feature Importance - Fold: {fold}",
+            )
+            mlflow.log_figure(fi_fig, f"fold_{fold}_feature_importance.png")
+            plt.close(fi_fig)
 
     def _optimize_objective(
         self, trial: optuna.Trial, X: np.ndarray, y: np.ndarray
@@ -187,8 +169,15 @@ class ClassificationModelTrainer:
             model.fit(X_train, y_train)
             y_pred = model.predict(X_val)
 
+            if hasattr(model, "predict_proba"):
+                y_pred_proba = model.predict_proba(X_val)
+            else:
+                y_pred_proba = None
+
             # Calculate metrics
-            metrics = ClassificationMetrics.calculate_basic_metrics(y_val, y_pred)
+            metrics = ClassificationMetrics.calculate_basic_metrics(
+                y_val, y_pred, y_pred_proba
+            )
             scores.append(metrics[self.optimize_metric])
 
         return np.mean(scores)
@@ -224,7 +213,7 @@ class ClassificationModelTrainer:
 
             # Optimize hyperparameters
             study = optuna.create_study(
-                direction="maximize",  # ! Depends on the metric to be optimized
+                direction=self.metric_configs.DIRECTION,  # Depends on the metric to be optimized
                 study_name=self.base_model.model_name + " optimization",
             )
             study.optimize(
@@ -269,11 +258,15 @@ class ClassificationModelTrainer:
                 # Make predictions
                 X_val_df = pd.DataFrame(X_val, columns=self.feature_names)
                 y_pred = model.predict(X_val_df)
-                y_pred_proba = model.predict_proba(X_val_df)[:, 1]
+
+                if hasattr(model, "predict_proba"):
+                    y_pred_proba = model.predict_proba(X_val_df)
+                else:
+                    y_pred_proba = None
 
                 # Store predictions
                 all_predictions[f"fold_{fold}"] = y_pred
-                all_predictions[f"fold_{fold}_proba"] = y_pred_proba
+                all_predictions[f"fold_{fold}_proba"] = y_pred_proba[:, 1]
 
                 # Calculate metrics
                 metrics = ClassificationMetrics.calculate_basic_metrics(
@@ -282,26 +275,29 @@ class ClassificationModelTrainer:
                 all_metrics.append(metrics)
 
                 # Log fold results
-                self._log_fold_results(fold, metrics, y_val, y_pred, y_pred_proba)
+                self._log_fold_results(
+                    fold, metrics, y_val, y_pred, y_pred_proba[:, 1], model
+                )
 
                 # Track best model based on specified metric
-                if (
-                    metrics[self.optimize_metric] > self.best_score
-                ):  # ! Depends on the metric to be optimized
+                if self.metric_configs.BETTER_SCORE(
+                    metrics[self.optimize_metric], self.best_score
+                ):  # Depends on the metric to be optimized
                     self.best_score = metrics[self.optimize_metric]
                     self.best_model = model
 
                     # Log best model plots
                     mlflow.log_metric("best_score", self.best_score)
 
-                    # Create and log plot for ROC curve
-                    roc_fig = ClassificationPlots.plot_roc_curve(
-                        y_val,
-                        y_pred_proba,
-                        f"ROC Curve - Best Model Fold: {fold}",
-                    )
-                    mlflow.log_figure(roc_fig, "best_roc_curve.png")
-                    plt.close(roc_fig)
+                    if y_pred_proba is not None:
+                        # Create and log plot for ROC curve
+                        roc_fig = ClassificationPlots.plot_roc_curve(
+                            y_val,
+                            y_pred_proba[:, 1],
+                            f"ROC Curve - Best Model Fold: {fold}",
+                        )
+                        mlflow.log_figure(roc_fig, "best_roc_curve.png")
+                        plt.close(roc_fig)
 
                     # Create and log plot for confusion matrix
                     cm_fig = ClassificationPlots.plot_confusion_matrix(
@@ -312,70 +308,42 @@ class ClassificationModelTrainer:
                     mlflow.log_figure(cm_fig, "best_confusion_matrix.png")
                     plt.close(cm_fig)
 
-            # Calculate and log mean metrics
-            mean_metrics = {
-                metric: np.mean([m[metric] for m in all_metrics])
-                for metric in all_metrics[0].keys()
-            }
-            self._log_final_metrics(mean_metrics)
+                    # Calculate feature importance
+                    importance_scores = self._calc_feature_importance(self.best_model)
 
-            # Handle different lengths of predictions
-            # Find maximum length of predictions
-            max_length = max(len(v) for v in all_predictions.values())
+                    if importance_scores is not None:
+                        # Create and log plot for feature importance
+                        fi_fig = ModelAnalysisPlots.plot_feature_importance(
+                            importance_scores,
+                            self.feature_names,
+                            f"Feature Importance - Best Model Fold: {fold}",
+                        )
+                        mlflow.log_figure(fi_fig, "best_feature_importance.png")
+                        plt.close(fi_fig)
 
-            # Fill up shorter predictions with NaNs
-            all_predictions_padded = {
-                k: np.pad(
-                    v.flatten().astype(float),
-                    (0, max_length - len(v)),
-                    constant_values=np.nan,
-                )
-                for k, v in all_predictions.items()
-            }
+                    # Create and log plot for SHAP values
+                    shap_fig = ModelAnalysisPlots.plot_shapley_values(
+                        self.best_model,
+                        X_val,
+                        self.feature_names,
+                    )
+                    mlflow.log_figure(shap_fig, "best_shap_values.png")
+                    plt.close(shap_fig)
 
-            # Save predictions in MLflow
-            mlflow.log_table(
-                data=pd.DataFrame(all_predictions_padded),
-                artifact_file="predictions.json",
+            mean_metrics = self._log_final_results(
+                all_metrics, all_predictions, X_array
             )
-
-            # Create and log model signature
-            signature = ModelSignature(
-                inputs=Schema([ColSpec("double", name) for name in self.feature_names]),
-                outputs=Schema([ColSpec("double", "target")]),
-            )
-
-            # Create input example
-            input_example = pd.DataFrame(X_array[:5], columns=self.feature_names)
-
-            # Log the best model
-            mlflow.sklearn.log_model(
-                self.best_model,
-                "model",
-                signature=signature,
-                input_example=input_example,
-            )
-
-            # Print results
-            print(f"\n# Model: {self.base_model.model_name}")
-            print("\n## Best Hyperparameters:", self.base_model.best_params)
-            print(f"\n## Optimize metric '{self.optimize_metric}' for each fold:")
-            for i, metrics in enumerate(all_metrics):
-                print(f"Fold {i+1} Score: {metrics[self.optimize_metric]:.4f}")
-            print("\n## Mean Metrics across all folds:")
-            for metric, value in mean_metrics.items():
-                print(f"{metric}: {value:.4f}")
 
             return self.best_model, mean_metrics
 
-    def predict(self, X: pd.DataFrame) -> np.ndarray:
+    def predict(self, X: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray]:
         """Make predictions using the best model.
 
         Args:
             X (pd.DataFrame): Features
 
         Returns:
-            np.ndarray: Predicted labels
+            Tuple[np.ndarray, np.ndarray]: Predictions and predicted probabilities.
         """
 
         if self.best_model is None:
@@ -385,7 +353,12 @@ class ClassificationModelTrainer:
 
         y_pred = self.best_model.predict(X)
 
-        return y_pred
+        if hasattr(self.best_model, "predict_proba"):
+            y_pred_proba = self.best_model.predict_proba(X)
+        else:
+            y_pred_proba = None
+
+        return y_pred, y_pred_proba
 
 
 def lazypredict_classification(

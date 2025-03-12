@@ -175,4 +175,5 @@ catboost_info/
 
 # MLflow
 mlruns/
+mlartifacts/
 

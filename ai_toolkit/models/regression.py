@@ -1,13 +1,15 @@
-from typing import Dict, Any
-import optuna
-from sklearn.linear_model import Ridge, BayesianRidge
-from sklearn.svm import SVR
-from sklearn.neighbors import KNeighborsRegressor
-import xgboost as xgb
-import lightgbm as lgb
-from catboost import CatBoostRegressor
+from typing import Any, Dict, List, Tuple
 
-from ai_toolkit.base.model import BaseMlModel
+import lightgbm as lgb
+import optuna
+import xgboost as xgb
+from catboost import CatBoostRegressor
+from sklearn.ensemble import StackingRegressor, VotingRegressor
+from sklearn.linear_model import BayesianRidge, Ridge
+from sklearn.neighbors import KNeighborsRegressor
+from sklearn.svm import SVR
+
+from ai_toolkit.base.models import BaseMlEnsembleModel, BaseMlModel
 
 
 class RidgeRegressionModel(BaseMlModel):
@@ -397,6 +399,125 @@ def get_all_regression_models() -> Dict[str, BaseMlModel]:
     }
 
     return models
+
+
+class EnsembleVotingRegressorModel(BaseMlEnsembleModel):
+    """Ensemble voting regressor model.
+    https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.VotingRegressor.html
+    """
+
+    def __init__(self, models: List[Tuple[BaseMlModel, str]]) -> None:
+        """Initialize the ensemble voting regressor model.
+
+        Args:
+            models (List[Tuple[BaseMlModel, str]]):
+                List of ml models for ensemble and MLflow run ids for best parameters.
+        """
+
+        super().__init__(model_name="Ensemble Voting Regressor", models=models)
+
+    def get_param_space(self, trial: optuna.Trial) -> Dict[str, Any]:
+        """Get the hyperparameter space for the ensemble voting regressor model.
+
+        Args:
+            trial (optuna.Trial): An optuna trial object.
+
+        Returns:
+            Dict[str, Any]: A dictionary containing the hyperparameters.
+        """
+
+        params = {
+            "estimators": trial.suggest_categorical(
+                "estimators",
+                [[(model.model_name, model.model) for model, _ in self.models]],
+            ),
+            "weights": [
+                trial.suggest_float(f"weight_{i}", 0.0, 1.0)
+                for i in range(self.num_models)
+            ],
+        }
+
+        return params
+
+    def create_model(self, params: Dict[str, Any]) -> VotingRegressor:
+        """Create a ensemble voting regressor model with the given parameters.
+
+        Args:
+            params (Dict[str, Any]): Parameters for the model.
+
+        Returns:
+            VotingRegressor: A ensemble voting regressor model.
+        """
+
+        params = self._del_weight_keys(params)
+
+        self.model = VotingRegressor(**params)
+
+        return self.model
+
+
+class EnsembleStackingRegressorModel(BaseMlEnsembleModel):
+    """Ensemble stacking regressor model.
+    https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.StackingRegressor.html
+    """
+
+    def __init__(
+        self, models: List[Tuple[BaseMlModel, str]], meta_model: BaseMlModel
+    ) -> None:
+        """Initialize the ensemble stacking regressor model.
+
+        Args:
+            models (List[Tuple[BaseMlModel, str]]):
+                List of ml models for ensemble and MLflow run ids for best parameters.
+            meta_model (BaseMlModel): A meta model for stacking.
+        """
+
+        super().__init__(model_name="Ensemble Stacking Regressor", models=models)
+        self.meta_model = meta_model
+
+    def get_param_space(self, trial: optuna.Trial) -> Dict[str, Any]:
+        """Get the hyperparameter space for the ensemble stacking regressor model.
+
+        Args:
+            trial (optuna.Trial): An optuna trial object.
+
+        Returns:
+            Dict[str, Any]: A dictionary containing the hyperparameters.
+        """
+
+        params = {
+            "estimators": trial.suggest_categorical(
+                "estimators",
+                [[(model.model_name, model.model) for model, _ in self.models]],
+            ),
+            "final_estimator": self.meta_model.create_model(
+                self.meta_model.get_param_space(trial)
+            ),
+            "passthrough": trial.suggest_categorical("passthrough", [False, True]),
+        }
+
+        return params
+
+    def create_model(self, params: Dict[str, Any]) -> StackingRegressor:
+        """Create a ensemble stacking regressor model with the given parameters.
+
+        Args:
+            params (Dict[str, Any]): Parameters for the model.
+
+        Returns:
+            StackingRegressor: A ensemble stacking regressor model.
+        """
+
+        stacking_params, meta_params = self._extract_meta_params(params)
+
+        # Create meta model
+        meta_model = self.meta_model.create_model(meta_params)
+
+        # Create stacking model
+        stacking_params["final_estimator"] = meta_model
+        self.model = StackingRegressor(**stacking_params)
+
+        return self.model
 
 
 if __name__ == "__main__":
