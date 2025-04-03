@@ -291,7 +291,7 @@ def test_default_metric_configs():
         "matthews_correlation_coefficient",
         "jaccard",
         "hamming_loss",
-        "d2_log_loss",
+        # "d2_log_loss",
         "zero_one_loss",
         "log_loss",
         "roc_auc",
@@ -308,6 +308,10 @@ def test_default_metric_configs():
         "d2_absolute_error",
         "d2_pinball",
         "d2_tweedie",
+        # "mean_squared_log_error",
+        # "root_mean_squared_log_error",
+        # "mean_poisson_deviance",
+        # "mean_gamma_deviance",
     }
 
     assert set(configs.keys()) == expected_metrics
@@ -324,7 +328,7 @@ def test_default_metric_configs():
         "roc_auc",
         "explained_variance",
         "r2",
-        "d2_log_loss",
+        # "d2_log_loss",
         "d2_absolute_error",
         "d2_pinball",
         "d2_tweedie",

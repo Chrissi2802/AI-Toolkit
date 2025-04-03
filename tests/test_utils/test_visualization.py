@@ -83,9 +83,10 @@ class TestClassificationPlots:
         """
 
         y_true, y_pred, _ = classification_predictions
+        feature_names = [f"feature_{i}" for i in range(0, np.unique(y_true).size)]
 
         fig = ClassificationPlots.plot_confusion_matrix(
-            y_true, y_pred, "Test Confusion Matrix"
+            y_true, y_pred, feature_names, "Test Confusion Matrix"
         )
 
         # Test figure properties
@@ -110,6 +111,7 @@ class TestClassificationPlots:
         """Test different plot sizes."""
 
         y_true, y_pred, y_pred_proba = classification_predictions
+        feature_names = [f"feature_{i}" for i in range(0, np.unique(y_true).size)]
 
         # Test ROC curve
         fig = ClassificationPlots.plot_roc_curve(
@@ -122,7 +124,7 @@ class TestClassificationPlots:
 
         # Test confusion matrix
         fig = ClassificationPlots.plot_confusion_matrix(
-            y_true, y_pred, "Test Confusion Matrix", figsize=figsize
+            y_true, y_pred, feature_names, "Test Confusion Matrix", figsize=figsize
         )
         size_inches = fig.get_size_inches()
         assert np.allclose(size_inches, figsize)
@@ -339,16 +341,20 @@ class TestModelAnalysisPlots:
         X = np.array([])
         feature_names = []
 
-        with pytest.raises(ValueError):
+        with pytest.raises(RuntimeError, match="Plot creation failed"):
             fig = ModelAnalysisPlots.plot_shapley_values(mock_model, X, feature_names)
             plt.close(fig)
 
     def test_shapley_plot_sample_reduction(self, mock_shap, feature_importance_data):
         """Test sample size reduction for large datasets in Shapley plot."""
 
-        # Create mock model
-        mock_model = Mock()
-        mock_model.apply = Mock()
+        # Create mock kernel-based model
+        class KernelModel:
+
+            def predict(self, X):
+                return np.zeros(len(X))
+
+        mock_model = KernelModel()
 
         # Create large test dataset
         _, feature_names = feature_importance_data
@@ -434,7 +440,9 @@ def test_plot_style_consistency():
             # Create all types of plots
             plots = [
                 ClassificationPlots.plot_roc_curve(y_true, y_pred_proba, "ROC"),
-                ClassificationPlots.plot_confusion_matrix(y_true, y_pred, "Confusion"),
+                ClassificationPlots.plot_confusion_matrix(
+                    y_true, y_pred, feature_names, "Confusion"
+                ),
                 RegressionPlots.plot_residuals(y_true, y_pred, "Residuals"),
                 RegressionPlots.plot_prediction_scatter(y_true, y_pred, "Scatter"),
                 ModelAnalysisPlots.plot_feature_importance(
@@ -476,7 +484,7 @@ def test_plot_style_consistency():
         (ClassificationPlots.plot_roc_curve, (np.array([]), np.array([]), "Empty")),
         (
             ClassificationPlots.plot_confusion_matrix,
-            (np.array([]), np.array([]), "Empty"),
+            (np.array([]), np.array([]), [], "Empty"),
         ),
         (RegressionPlots.plot_residuals, (np.array([]), np.array([]), "Empty")),
         (
@@ -490,6 +498,6 @@ def test_plot_style_consistency():
 def test_empty_data_handling(plot_func, args):
     """Test handling of empty data."""
 
-    with pytest.raises(ValueError):
+    with pytest.raises(RuntimeError, match="Plot creation failed"):
         fig = plot_func(*args)
         plt.close(fig)

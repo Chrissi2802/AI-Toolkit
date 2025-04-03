@@ -10,6 +10,7 @@ from sklearn.neighbors import KNeighborsRegressor
 from sklearn.svm import SVR
 
 from ai_toolkit.base.models import BaseMlEnsembleModel, BaseMlModel
+from ai_toolkit.utils.logging import get_logger
 
 
 class RidgeRegressionModel(BaseMlModel):
@@ -55,9 +56,13 @@ class RidgeRegressionModel(BaseMlModel):
             Ridge: A Ridge Regression model.
         """
 
-        self.model = Ridge(**params)
-
-        return self.model
+        try:
+            self.logger.info("Creating ridge regression model", params=params)
+            self.model = Ridge(**params)
+            return self.model
+        except Exception as e:
+            self.logger.error("Failed to create ridge regression model", error=e)
+            raise RuntimeError("Model creation failed") from e
 
 
 class BayesianRidgeRegressionModel(BaseMlModel):
@@ -103,9 +108,15 @@ class BayesianRidgeRegressionModel(BaseMlModel):
             BayesianRidge: A Bayesian Ridge Regression model.
         """
 
-        self.model = BayesianRidge(**params)
-
-        return self.model
+        try:
+            self.logger.info("Creating bayesian ridge regression model", params=params)
+            self.model = BayesianRidge(**params)
+            return self.model
+        except Exception as e:
+            self.logger.error(
+                "Failed to create bayesian ridge regression model", error=e
+            )
+            raise RuntimeError("Model creation failed") from e
 
 
 class SVRModel(BaseMlModel):
@@ -161,9 +172,15 @@ class SVRModel(BaseMlModel):
             SVR: A Support Vector Regression model.
         """
 
-        self.model = SVR(**params)
-
-        return self.model
+        try:
+            self.logger.info("Creating support vector regression model", params=params)
+            self.model = SVR(**params)
+            return self.model
+        except Exception as e:
+            self.logger.error(
+                "Failed to create support vector regression model", error=e
+            )
+            raise RuntimeError("Model creation failed") from e
 
 
 class KNNRegressorModel(BaseMlModel):
@@ -211,9 +228,17 @@ class KNNRegressorModel(BaseMlModel):
             KNeighborsRegressor: A K-Nearest Neighbors Regression model.
         """
 
-        self.model = KNeighborsRegressor(**params)
-
-        return self.model
+        try:
+            self.logger.info(
+                "Creating K-Nearest Neighbors regression model", params=params
+            )
+            self.model = KNeighborsRegressor(**params)
+            return self.model
+        except Exception as e:
+            self.logger.error(
+                "Failed to create K-Nearest Neighbors regression model", error=e
+            )
+            raise RuntimeError("Model creation failed") from e
 
 
 class XGBoostRegressorModel(BaseMlModel):
@@ -246,13 +271,12 @@ class XGBoostRegressorModel(BaseMlModel):
             "colsample_bytree": trial.suggest_float("colsample_bytree", 0.6, 1.0),
             "reg_alpha": trial.suggest_float("reg_alpha", 1e-8, 1.0, log=True),
             "reg_lambda": trial.suggest_float("reg_lambda", 1e-8, 1.0, log=True),
-            "objective": trial.suggest_categorical(
-                "objective", ["reg:squaredlogerror"]
-            ),
+            "objective": trial.suggest_categorical("objective", ["reg:squarederror"]),
             "tree_method": trial.suggest_categorical("tree_method", ["hist"]),
             "device": trial.suggest_categorical("device", ["cpu"]),
             "random_state": trial.suggest_categorical("random_state", [28]),
         }
+
         return params
 
     def create_model(self, params: Dict[str, Any]) -> xgb.XGBRegressor:
@@ -265,9 +289,13 @@ class XGBoostRegressorModel(BaseMlModel):
             xgb.XGBRegressor: An XGBoost Regressor model.
         """
 
-        self.model = xgb.XGBRegressor(**params)
-
-        return self.model
+        try:
+            self.logger.info("Creating XGBoost regression model", params=params)
+            self.model = xgb.XGBRegressor(**params)
+            return self.model
+        except Exception as e:
+            self.logger.error("Failed to create XGBoost regression model", error=e)
+            raise RuntimeError("Model creation failed") from e
 
 
 class LightGBMRegressorModel(BaseMlModel):
@@ -291,8 +319,8 @@ class LightGBMRegressorModel(BaseMlModel):
         """
 
         params = {
-            "objective": "regression",
-            "metric": "rmse",
+            "objective": trial.suggest_categorical("objective", ["regression"]),
+            "metric": trial.suggest_categorical("metric", ["rmse"]),
             "boosting_type": trial.suggest_categorical(
                 "boosting_type", ["gbdt", "dart"]
             ),
@@ -308,6 +336,7 @@ class LightGBMRegressorModel(BaseMlModel):
             "verbose": trial.suggest_categorical("verbose", [-1]),
             "seed": trial.suggest_categorical("seed", [28]),
         }
+
         return params
 
     def create_model(self, params: Dict[str, Any]) -> lgb.LGBMRegressor:
@@ -320,9 +349,13 @@ class LightGBMRegressorModel(BaseMlModel):
             lgb.LGBMRegressor: A LightGBM Regressor model.
         """
 
-        self.model = lgb.LGBMRegressor(**params)
-
-        return self.model
+        try:
+            self.logger.info("Creating LightGBM regression model", params=params)
+            self.model = lgb.LGBMRegressor(**params)
+            return self.model
+        except Exception as e:
+            self.logger.error("Failed to create LightGBM regression model", error=e)
+            raise RuntimeError("Model creation failed") from e
 
 
 class CatBoostRegressorModel(BaseMlModel):
@@ -376,9 +409,13 @@ class CatBoostRegressorModel(BaseMlModel):
             CatBoostRegressor: A CatBoost Regressor model.
         """
 
-        self.model = CatBoostRegressor(**params)
-
-        return self.model
+        try:
+            self.logger.info("Creating CatBoost regression model", params=params)
+            self.model = CatBoostRegressor(**params)
+            return self.model
+        except Exception as e:
+            self.logger.error("Failed to create CatBoost regression model", error=e)
+            raise RuntimeError("Model creation failed") from e
 
 
 def get_all_regression_models() -> Dict[str, BaseMlModel]:
@@ -388,17 +425,29 @@ def get_all_regression_models() -> Dict[str, BaseMlModel]:
         Dict[str, BaseMlModel]: A dictionary containing all regression models.
     """
 
-    models = {
-        "Ridge Regressor": RidgeRegressionModel(),
-        "Bayesian Ridge Regressor": BayesianRidgeRegressionModel(),
-        "Support Vector Regressor": SVRModel(),
-        "K-Nearest Neighbors Regressor": KNNRegressorModel(),
-        "XGBoost Regressor": XGBoostRegressorModel(),
-        "LightGBM Regressor": LightGBMRegressorModel(),
-        "CatBoost Regressor": CatBoostRegressorModel(),
-    }
+    logger = get_logger("All Regression Models")
+    logger.info("Creating all classification models")
 
-    return models
+    try:
+        models = {
+            "Ridge Regressor": RidgeRegressionModel(),
+            "Bayesian Ridge Regressor": BayesianRidgeRegressionModel(),
+            "Support Vector Regressor": SVRModel(),
+            "K-Nearest Neighbors Regressor": KNNRegressorModel(),
+            "XGBoost Regressor": XGBoostRegressorModel(),
+            "LightGBM Regressor": LightGBMRegressorModel(),
+            "CatBoost Regressor": CatBoostRegressorModel(),
+        }
+
+        logger.info(
+            "Successfully created all models",
+            model_count=len(models),
+            model_names=list(models.keys()),
+        )
+        return models
+    except Exception as e:
+        logger.error("Failed to create all models", error=e)
+        raise RuntimeError("Model initialization failed") from e
 
 
 class EnsembleVotingRegressorModel(BaseMlEnsembleModel):
@@ -449,11 +498,16 @@ class EnsembleVotingRegressorModel(BaseMlEnsembleModel):
             VotingRegressor: A ensemble voting regressor model.
         """
 
-        params = self._del_weight_keys(params)
-
-        self.model = VotingRegressor(**params)
-
-        return self.model
+        try:
+            self.logger.info("Creating ensemble voting regressor model", params=params)
+            params = self._del_weight_keys(params)
+            self.model = VotingRegressor(**params)
+            return self.model
+        except Exception as e:
+            self.logger.error(
+                "Failed to create ensemble voting regressor model", error=e
+            )
+            raise RuntimeError("Model creation failed") from e
 
 
 class EnsembleStackingRegressorModel(BaseMlEnsembleModel):
@@ -508,16 +562,24 @@ class EnsembleStackingRegressorModel(BaseMlEnsembleModel):
             StackingRegressor: A ensemble stacking regressor model.
         """
 
-        stacking_params, meta_params = self._extract_meta_params(params)
+        try:
+            self.logger.info(
+                "Creating ensemble stacking regressor model", params=params
+            )
+            stacking_params, meta_params = self._extract_meta_params(params)
 
-        # Create meta model
-        meta_model = self.meta_model.create_model(meta_params)
+            # Create meta model
+            meta_model = self.meta_model.create_model(meta_params)
 
-        # Create stacking model
-        stacking_params["final_estimator"] = meta_model
-        self.model = StackingRegressor(**stacking_params)
-
-        return self.model
+            # Create stacking model
+            stacking_params["final_estimator"] = meta_model
+            self.model = StackingRegressor(**stacking_params)
+            return self.model
+        except Exception as e:
+            self.logger.error(
+                "Failed to create ensemble stacking regressor model", error=e
+            )
+            raise RuntimeError("Model creation failed") from e
 
 
 if __name__ == "__main__":

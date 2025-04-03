@@ -7,7 +7,12 @@ from ai_toolkit.utils.evaluation import (
     CrossValidationMetrics,
     RegressionMetrics,
 )
-from ai_toolkit.utils.visualization import ClassificationPlots, ModelAnalysisPlots, RegressionPlots
+from ai_toolkit.utils.logging import Logger, LoggerConfig, get_logger
+from ai_toolkit.utils.visualization import (
+    ClassificationPlots,
+    ModelAnalysisPlots,
+    RegressionPlots,
+)
 
 
 __all__ = [
@@ -15,6 +20,10 @@ __all__ = [
     "ClassificationMetrics",
     "RegressionMetrics",
     "CrossValidationMetrics",
+    # Logging
+    "LoggerConfig",
+    "Logger",
+    "get_logger",
     # Visualization
     "ClassificationPlots",
     "RegressionPlots",

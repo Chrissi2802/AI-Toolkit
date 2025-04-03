@@ -63,7 +63,7 @@ class TestClassificationMetrics:
             "matthews_correlation_coefficient",
             "jaccard",
             "hamming_loss",
-            "d2_log_loss",
+            # "d2_log_loss",
             "zero_one_loss",
             "log_loss",
             "roc_auc",
@@ -142,6 +142,21 @@ class TestClassificationMetrics:
         assert metrics["accuracy"] == 0.0
         assert metrics["f1"] == 0.0
 
+    def test_input_validation(self):
+        """Test input validation for classification metrics."""
+
+        # Invalid input shapes
+        y_true = np.array([0, 1, 1])
+        y_pred = np.array([0, 1])
+        with pytest.raises(RuntimeError):
+            ClassificationMetrics.calculate_basic_metrics(y_true, y_pred)
+
+        # Invalid input types
+        y_pred = np.array([0, 1, 1])
+        y_pred_proba = np.array([0, 1])
+        with pytest.raises(RuntimeError):
+            ClassificationMetrics.calculate_basic_metrics(y_true, y_pred, y_pred_proba)
+
 
 class TestRegressionMetrics:
     """Test suite for RegressionMetrics."""
@@ -166,6 +181,14 @@ class TestRegressionMetrics:
             "mean_squared_error",
             "root_mean_squared_error",
             "r2",
+            "mean_absolute_percentage_error",
+            "d2_absolute_error",
+            "d2_pinball",
+            "d2_tweedie",
+            # "mean_squared_log_error",
+            # "root_mean_squared_log_error",
+            # "mean_poisson_deviance",
+            # "mean_gamma_deviance",
         }
         assert all(metric in metrics for metric in expected_metrics)
 
@@ -208,6 +231,15 @@ class TestRegressionMetrics:
         metrics = RegressionMetrics.calculate_basic_metrics(y_true, y_pred)
         assert metrics["r2"] < 1.0
 
+    def test_input_validation(self):
+        """Test input validation for regression metrics."""
+
+        # Invalid input shapes
+        y_true = np.array([1.0, 2.0, 3.0])
+        y_pred = np.array([1.0, 2.0])
+        with pytest.raises(RuntimeError):
+            RegressionMetrics.calculate_basic_metrics(y_true, y_pred)
+
 
 class TestCrossValidationMetrics:
     """Test suite for CrossValidationMetrics."""
@@ -241,12 +273,11 @@ class TestCrossValidationMetrics:
                 np.testing.assert_almost_equal(stats["min"], 0.89)
                 np.testing.assert_almost_equal(stats["max"], 0.95)
 
-    def test_empty_metrics(self):
-        """Test aggregation with empty metrics list."""
+    def test_input_validation(self):
+        """Test input validation for cross-validation metrics aggregation."""
 
-        aggregated = CrossValidationMetrics.aggregate_cv_metrics([])
-        assert isinstance(aggregated, dict)
-        assert len(aggregated) == 0
+        with pytest.raises(RuntimeError):
+            CrossValidationMetrics.aggregate_cv_metrics([])
 
     def test_inconsistent_metrics(self):
         """Test aggregation with inconsistent metrics."""
@@ -256,11 +287,9 @@ class TestCrossValidationMetrics:
             {"metric1": 0.7},  # Missing metric2
             {"metric1": 0.8, "metric2": 0.6},
         ]
-        aggregated = CrossValidationMetrics.aggregate_cv_metrics(inconsistent_metrics)
-        assert "metric1" in aggregated
-        assert "metric2" in aggregated
-        assert aggregated["metric1"]["mean"] != 0.0
-        assert not np.isnan(aggregated["metric1"]["mean"])
+
+        with pytest.raises(RuntimeError):
+            CrossValidationMetrics.aggregate_cv_metrics(inconsistent_metrics)
 
 
 @pytest.mark.parametrize(

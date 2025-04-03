@@ -10,6 +10,8 @@ from sklearn.preprocessing import (
     StandardScaler,
 )
 
+from ai_toolkit.utils.logging import get_logger
+
 
 @dataclass
 class DatasetConfig:
@@ -49,6 +51,10 @@ class BaseDataset(ABC):
         self.X_test = None
         self.y = None
 
+        # Initialize logger
+        self.logger = get_logger(self.__class__.__name__)
+        self.logger.info("Initializing dataset", config=self.config.__dict__)
+
     @abstractmethod
     def load_data(self) -> None:
         """Load the dataset."""
@@ -57,22 +63,57 @@ class BaseDataset(ABC):
     def preprocess(self) -> None:
         """Preprocess the dataset."""
 
-        self._check_data()
-        self._detect_column_types()
-        self._handle_missing_categorical_values()
-        self._handle_missing_numerical_values()
-        self._preprocess_categorical()
-        self._preprocess_numerical()
+        try:
+            self._check_data()
+
+            self.logger.debug("Detecting column types")
+            self._detect_column_types()
+
+            self.logger.debug("Handling missing categorical values")
+            self._handle_missing_categorical_values()
+
+            self.logger.debug("Handling missing numerical values")
+            self._handle_missing_numerical_values()
+
+            self.logger.debug("Preprocessing categorical features")
+            self._preprocess_categorical()
+
+            self.logger.debug("Preprocessing numerical features")
+            self._preprocess_numerical()
+
+            self.logger.info(
+                "Data preprocessing completed",
+                n_samples=self.X.shape[0],
+                n_features=self.X.shape[1],
+                categorical_columns=list(self.categorical_columns),
+                numerical_columns=list(self.numerical_columns),
+            )
+
+        except Exception as e:
+            self.logger.error("Data preprocessing failed", error=e)
+            raise RuntimeError("Data preprocessing failed") from e
 
     def _check_data(self) -> None:
         """Check if the data is loaded."""
 
-        if self.X is None:
-            raise ValueError("X data not loaded.")
-        elif self.y is None:
-            raise ValueError("y data not loaded.")
-        elif self.X_test is None:
-            raise ValueError("X_test data not loaded.")
+        try:
+            if self.X is None:
+                raise ValueError("X data not loaded.")
+            elif self.y is None:
+                raise ValueError("y data not loaded.")
+            elif self.X_test is None:
+                raise ValueError("X_test data not loaded.")
+
+            self.logger.info(
+                "Data validation successful",
+                X_shape=self.X.shape,
+                y_shape=self.y.shape,
+                X_test_shape=self.X_test.shape,
+            )
+
+        except Exception as e:
+            self.logger.error("Data validation failed", error=e)
+            raise ValueError("Data validation failed") from e
 
     def _detect_column_types(self) -> None:
         """Detect column types in the dataset."""

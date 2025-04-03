@@ -11,6 +11,7 @@ from mlflow.types.schema import ColSpec, Schema
 
 from ai_toolkit.base.models import BaseMlModel
 from ai_toolkit.utils.evaluation import CrossValidationMetrics
+from ai_toolkit.utils.logging import get_logger
 
 
 @dataclass
@@ -24,7 +25,7 @@ class MetricConfig:
         },
     )
     INITIAL_SCORE: float = field(
-        default=-float("inf"),
+        default=float("-inf"),
         metadata={"description": "Initial score for optuna optimization."},
     )
     BETTER_SCORE: Callable[[float, float], bool] = field(
@@ -58,37 +59,37 @@ def get_default_metric_configs() -> Dict[str, MetricConfig]:
         # Classification metrics
         "accuracy": MetricConfig(
             DIRECTION="maximize",
-            INITIAL_SCORE=-float("inf"),
+            INITIAL_SCORE=float("-inf"),
             BETTER_SCORE=gt,
         ),
         "balanced_accuracy": MetricConfig(
             DIRECTION="maximize",
-            INITIAL_SCORE=-float("inf"),
+            INITIAL_SCORE=float("-inf"),
             BETTER_SCORE=gt,
         ),
         "precision": MetricConfig(
             DIRECTION="maximize",
-            INITIAL_SCORE=-float("inf"),
+            INITIAL_SCORE=float("-inf"),
             BETTER_SCORE=gt,
         ),
         "recall": MetricConfig(
             DIRECTION="maximize",
-            INITIAL_SCORE=-float("inf"),
+            INITIAL_SCORE=float("-inf"),
             BETTER_SCORE=gt,
         ),
         "f1": MetricConfig(
             DIRECTION="maximize",
-            INITIAL_SCORE=-float("inf"),
+            INITIAL_SCORE=float("-inf"),
             BETTER_SCORE=gt,
         ),
         "matthews_correlation_coefficient": MetricConfig(
             DIRECTION="maximize",
-            INITIAL_SCORE=-float("inf"),
+            INITIAL_SCORE=float("-inf"),
             BETTER_SCORE=gt,
         ),
         "jaccard": MetricConfig(
             DIRECTION="maximize",
-            INITIAL_SCORE=-float("inf"),
+            INITIAL_SCORE=float("-inf"),
             BETTER_SCORE=gt,
         ),
         "hamming_loss": MetricConfig(
@@ -96,11 +97,11 @@ def get_default_metric_configs() -> Dict[str, MetricConfig]:
             INITIAL_SCORE=float("inf"),
             BETTER_SCORE=lt,
         ),
-        "d2_log_loss": MetricConfig(
-            DIRECTION="maximize",
-            INITIAL_SCORE=-float("inf"),
-            BETTER_SCORE=gt,
-        ),
+        # "d2_log_loss": MetricConfig(
+        #     DIRECTION="maximize",
+        #     INITIAL_SCORE=float("-inf"),
+        #     BETTER_SCORE=gt,
+        # ),
         "zero_one_loss": MetricConfig(
             DIRECTION="minimize",
             INITIAL_SCORE=float("inf"),
@@ -113,7 +114,7 @@ def get_default_metric_configs() -> Dict[str, MetricConfig]:
         ),
         "roc_auc": MetricConfig(
             DIRECTION="maximize",
-            INITIAL_SCORE=-float("inf"),
+            INITIAL_SCORE=float("-inf"),
             BETTER_SCORE=gt,
         ),
         "brier_score": MetricConfig(
@@ -124,7 +125,7 @@ def get_default_metric_configs() -> Dict[str, MetricConfig]:
         # Regression metrics
         "explained_variance": MetricConfig(
             DIRECTION="maximize",
-            INITIAL_SCORE=-float("inf"),
+            INITIAL_SCORE=float("-inf"),
             BETTER_SCORE=gt,
         ),
         "max_error": MetricConfig(
@@ -154,7 +155,7 @@ def get_default_metric_configs() -> Dict[str, MetricConfig]:
         ),
         "r2": MetricConfig(
             DIRECTION="maximize",
-            INITIAL_SCORE=-float("inf"),
+            INITIAL_SCORE=float("-inf"),
             BETTER_SCORE=gt,
         ),
         "mean_absolute_percentage_error": MetricConfig(
@@ -164,19 +165,39 @@ def get_default_metric_configs() -> Dict[str, MetricConfig]:
         ),
         "d2_absolute_error": MetricConfig(
             DIRECTION="maximize",
-            INITIAL_SCORE=-float("inf"),
+            INITIAL_SCORE=float("-inf"),
             BETTER_SCORE=gt,
         ),
         "d2_pinball": MetricConfig(
             DIRECTION="maximize",
-            INITIAL_SCORE=-float("inf"),
+            INITIAL_SCORE=float("-inf"),
             BETTER_SCORE=gt,
         ),
         "d2_tweedie": MetricConfig(
             DIRECTION="maximize",
-            INITIAL_SCORE=-float("inf"),
+            INITIAL_SCORE=float("-inf"),
             BETTER_SCORE=gt,
         ),
+        # "mean_squared_log_error": MetricConfig(
+        #     DIRECTION="minimize",
+        #     INITIAL_SCORE=float("inf"),
+        #     BETTER_SCORE=lt,
+        # ),
+        # "root_mean_squared_log_error": MetricConfig(
+        #     DIRECTION="minimize",
+        #     INITIAL_SCORE=float("inf"),
+        #     BETTER_SCORE=lt,
+        # ),
+        # "mean_poisson_deviance": MetricConfig(
+        #     DIRECTION="minimize",
+        #     INITIAL_SCORE=float("inf"),
+        #     BETTER_SCORE=lt,
+        # ),
+        # "mean_gamma_deviance": MetricConfig(
+        #     DIRECTION="minimize",
+        #     INITIAL_SCORE=float("inf"),
+        #     BETTER_SCORE=lt,
+        # ),
     }
 
     return dict_metric_configs
@@ -287,6 +308,14 @@ class BaseMlTrainer(ABC):
         self.best_score = self.metric_configs.INITIAL_SCORE
 
         mlflow.set_experiment(self.experiment_name)
+
+        # Initialize logger
+        self.logger = get_logger(f"{self.__class__.__name__}_{base_model.model_name}")
+        self.logger.info(
+            "Initializing trainer",
+            model_name=base_model.model_name,
+            config=config.__dict__,
+        )
 
     def _log_training_info(self, n_trials: int) -> None:
         """Log training parameters to MLflow.
@@ -409,6 +438,12 @@ class BaseMlTrainer(ABC):
             "model",
             signature=signature,
             input_example=input_example,
+        )
+
+        # Log best_params
+        mlflow.log_table(
+            data=pd.DataFrame([self.base_model.best_params]),
+            artifact_file="best_params.json",
         )
 
         # Print results

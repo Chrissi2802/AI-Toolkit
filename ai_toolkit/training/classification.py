@@ -9,11 +9,13 @@ import pandas as pd
 from imblearn.over_sampling import SMOTE
 from lazypredict.Supervised import LazyClassifier
 from sklearn.model_selection import StratifiedKFold
-from tqdm.notebook import tqdm
+from sklearn.preprocessing import LabelEncoder
+from tqdm import tqdm
 
 from ai_toolkit.base.models import BaseMlEnsembleModel, BaseMlModel
 from ai_toolkit.base.training import BaseMlTrainer, MlTrainerConfig
 from ai_toolkit.utils.evaluation import ClassificationMetrics
+from ai_toolkit.utils.logging import get_logger
 from ai_toolkit.utils.visualization import ClassificationPlots, ModelAnalysisPlots
 
 
@@ -41,12 +43,7 @@ class ClassificationModelTrainer(BaseMlTrainer):
 
         self.use_smote = self.config.USE_SMOTE
         self.smote_ratio = self.config.SMOTE_RATIO
-
-        self.smote = (
-            SMOTE(sampling_strategy=self.smote_ratio, random_state=self.random_state)
-            if self.use_smote
-            else None
-        )  # Synthetic Minority Over-sampling Technique (SMOTE)
+        self.smote = None
 
     def _log_training_info(self, n_trials: int) -> None:
         """Log training parameters to MLflow.
@@ -74,12 +71,17 @@ class ClassificationModelTrainer(BaseMlTrainer):
         y = y.astype(int)
 
         super()._log_dataset_info(X, y)
-        mlflow.log_params(
-            {
-                "class_distribution": str(np.bincount(y)),
-                "class_ratio": f"{np.bincount(y)[0]}/{np.bincount(y)[1]}",
-            }
-        )
+
+        params = {
+            "class_distribution": str(
+                pd.Series(y).value_counts().sort_index().to_dict()
+            )
+        }
+
+        if len(np.unique(y)) == 2:
+            params["class_ratio"] = f"{np.bincount(y)[0]}/{np.bincount(y)[1]}"
+
+        mlflow.log_params(params)
 
     def _log_fold_results(
         self,
@@ -104,11 +106,11 @@ class ClassificationModelTrainer(BaseMlTrainer):
         # Log fold metrics
         super()._log_fold_results(fold, metrics)
 
-        if y_pred_proba is not None:
+        if y_pred_proba is not None and np.unique(y_true).shape[0] == 2:
             # Create and log plot for ROC curve
             roc_fig = ClassificationPlots.plot_roc_curve(
                 y_true,
-                y_pred_proba,
+                y_pred_proba[:, 1],
                 f"ROC Curve - Fold: {fold}",
             )
             mlflow.log_figure(roc_fig, f"fold_{fold}_roc_curve.png")
@@ -118,6 +120,7 @@ class ClassificationModelTrainer(BaseMlTrainer):
         cm_fig = ClassificationPlots.plot_confusion_matrix(
             y_true,
             y_pred,
+            self.feature_names,
             f"Confusion Matrix - Fold: {fold}",
         )
         mlflow.log_figure(cm_fig, f"fold_{fold}_confusion_matrix.png")
@@ -150,37 +153,56 @@ class ClassificationModelTrainer(BaseMlTrainer):
             float: Mean score across all folds
         """
 
-        params = self.base_model.get_param_space(trial)
-        model = self.base_model.create_model(params)
+        self.logger.debug(f"Starting optimization trial {trial.number}")
 
-        skf = StratifiedKFold(
-            n_splits=self.n_splits, shuffle=True, random_state=self.random_state
-        )
-        scores = []
+        try:
+            params = self.base_model.get_param_space(trial)
+            model = self.base_model.create_model(params)
 
-        for train_idx, val_idx in skf.split(X, y):
-            X_train, X_val = X[train_idx], X[val_idx]
-            y_train, y_val = y[train_idx], y[val_idx]
-
-            # Apply SMOTE if enabled
-            if self.use_smote:
-                X_train, y_train = self.smote.fit_resample(X_train, y_train)
-
-            model.fit(X_train, y_train)
-            y_pred = model.predict(X_val)
-
-            if hasattr(model, "predict_proba"):
-                y_pred_proba = model.predict_proba(X_val)
-            else:
-                y_pred_proba = None
-
-            # Calculate metrics
-            metrics = ClassificationMetrics.calculate_basic_metrics(
-                y_val, y_pred, y_pred_proba
+            skf = StratifiedKFold(
+                n_splits=self.n_splits, shuffle=True, random_state=self.random_state
             )
-            scores.append(metrics[self.optimize_metric])
+            scores = []
 
-        return np.mean(scores)
+            for fold, (train_idx, val_idx) in enumerate(skf.split(X, y)):
+                X_train, X_val = X[train_idx], X[val_idx]
+                y_train, y_val = y[train_idx], y[val_idx]
+
+                # Apply SMOTE if enabled
+                if self.use_smote:
+                    X_train, y_train = self.smote.fit_resample(X_train, y_train)
+
+                model.fit(X_train, y_train)
+                y_pred = model.predict(X_val)
+
+                if hasattr(model, "predict_proba"):
+                    y_pred_proba = model.predict_proba(X_val)
+                else:
+                    y_pred_proba = None
+
+                # Calculate metrics
+                metrics = ClassificationMetrics.calculate_basic_metrics(
+                    y_val, y_pred, y_pred_proba
+                )
+                scores.append(metrics[self.optimize_metric])
+
+                self.logger.debug(
+                    f"Fold {fold+1} score: {metrics[self.optimize_metric]:.4f}"
+                )
+
+            mean_score = np.mean(scores)
+
+            self.logger.debug(
+                "Trial completed",
+                trial_number=trial.number,
+                mean_score=mean_score,
+                params=params,
+            )
+            return mean_score
+
+        except Exception as e:
+            self.logger.error("Trial failed", trial_number=trial.number, error=e)
+            raise RuntimeError("Optimization trial failed") from e
 
     def train_and_optimize(
         self,
@@ -199,6 +221,25 @@ class ClassificationModelTrainer(BaseMlTrainer):
             Tuple[Any, Dict[str, float]]: Best model and mean metrics
         """
 
+        if self.use_smote:
+            max_count = max(y.value_counts())
+            sampling_strategy = {
+                cls: (
+                    count
+                    if int(max_count * self.smote_ratio) <= count
+                    else int(max_count * self.smote_ratio)
+                )
+                for cls, count in y.value_counts().sort_index().items()
+            }
+
+            # Synthetic Minority Over-sampling Technique (SMOTE)
+            self.smote = SMOTE(
+                sampling_strategy=sampling_strategy, random_state=self.random_state
+            )
+
+        # Set number of classes for the model
+        self.base_model.set_num_classes(y.nunique())
+
         with mlflow.start_run(
             run_name=f"{self.base_model.model_name}_{datetime.now()}"
         ):
@@ -210,6 +251,10 @@ class ClassificationModelTrainer(BaseMlTrainer):
             # Log information
             self._log_training_info(n_trials)
             self._log_dataset_info(X_array, y_array)
+
+            # Encode target labels
+            encoder = LabelEncoder()
+            y_array = encoder.fit_transform(y_array)
 
             # Optimize hyperparameters
             study = optuna.create_study(
@@ -264,9 +309,15 @@ class ClassificationModelTrainer(BaseMlTrainer):
                 else:
                     y_pred_proba = None
 
+                # Inverse transform target labels
+                y_val = encoder.inverse_transform(y_val)
+                y_pred = encoder.inverse_transform(y_pred)
+
                 # Store predictions
                 all_predictions[f"fold_{fold}"] = y_pred
-                all_predictions[f"fold_{fold}_proba"] = y_pred_proba[:, 1]
+
+                if y_pred_proba is not None:
+                    all_predictions[f"fold_{fold}_proba"] = y_pred_proba[:, 1]
 
                 # Calculate metrics
                 metrics = ClassificationMetrics.calculate_basic_metrics(
@@ -276,7 +327,7 @@ class ClassificationModelTrainer(BaseMlTrainer):
 
                 # Log fold results
                 self._log_fold_results(
-                    fold, metrics, y_val, y_pred, y_pred_proba[:, 1], model
+                    fold, metrics, y_val, y_pred, y_pred_proba, model
                 )
 
                 # Track best model based on specified metric
@@ -289,7 +340,7 @@ class ClassificationModelTrainer(BaseMlTrainer):
                     # Log best model plots
                     mlflow.log_metric("best_score", self.best_score)
 
-                    if y_pred_proba is not None:
+                    if y_pred_proba is not None and np.unique(y_array).shape[0] == 2:
                         # Create and log plot for ROC curve
                         roc_fig = ClassificationPlots.plot_roc_curve(
                             y_val,
@@ -303,6 +354,7 @@ class ClassificationModelTrainer(BaseMlTrainer):
                     cm_fig = ClassificationPlots.plot_confusion_matrix(
                         y_val,
                         y_pred,
+                        self.feature_names,
                         f"Confusion Matrix - Best Model Fold: {fold}",
                     )
                     mlflow.log_figure(cm_fig, "best_confusion_matrix.png")
@@ -346,19 +398,28 @@ class ClassificationModelTrainer(BaseMlTrainer):
             Tuple[np.ndarray, np.ndarray]: Predictions and predicted probabilities.
         """
 
-        if self.best_model is None:
-            raise ValueError(
-                "No model trained yet. Please call train_and_optimize first."
-            )
+        try:
+            self.logger.info("Making predictions", X_shape=X.shape)
 
-        y_pred = self.best_model.predict(X)
+            if self.best_model is None:
+                raise ValueError(
+                    "No model trained yet. Please call train_and_optimize first."
+                )
 
-        if hasattr(self.best_model, "predict_proba"):
-            y_pred_proba = self.best_model.predict_proba(X)
-        else:
-            y_pred_proba = None
+            y_pred = self.best_model.predict(X)
 
-        return y_pred, y_pred_proba
+            if hasattr(self.best_model, "predict_proba"):
+                y_pred_proba = self.best_model.predict_proba(X)
+            else:
+                y_pred_proba = None
+
+            self.logger.info("Predictions completed", predictions_shape=y_pred.shape)
+
+            return y_pred, y_pred_proba
+
+        except Exception as e:
+            self.logger.error("Prediction failed", error=e)
+            raise RuntimeError("Prediction failed") from e
 
 
 def lazypredict_classification(
@@ -367,7 +428,7 @@ def lazypredict_classification(
     n_splits: int = 5,
     random_state: int = 28,
 ) -> pd.DataFrame:
-    """
+    """Run LazyPredict classification on the dataset.
 
     Args:
         X (pd.DataFrame): Feature matrix
@@ -379,54 +440,77 @@ def lazypredict_classification(
         pd.DataFrame: Mean metrics across all folds.
     """
 
-    X_array = X.values
-    y_array = y.values
+    logger = get_logger("Lazypredict classification")
+    logger.info(
+        "Starting lazypredict classification",
+        X_shape=X.shape,
+        y_shape=y.shape,
+        n_splits=n_splits,
+    )
 
-    # Initialize StratifiedKFold
-    skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=random_state)
+    try:
+        X_array = X.values
+        y_array = y.values
 
-    # Store results for each fold
-    fold_results = []
-
-    # Run cross-validation
-    for fold, (train_idx, val_idx) in enumerate(
-        tqdm(skf.split(X_array, y_array), total=n_splits, desc="Cross-Validation")
-    ):
-
-        X_train, X_val = X_array[train_idx], X_array[val_idx]
-        y_train, y_val = y_array[train_idx], y_array[val_idx]
-
-        # Create and train LazyClassifier
-        clf = LazyClassifier(verbose=0, ignore_warnings=True, custom_metric=None)
-        models, _ = clf.fit(X_train, X_val, y_train, y_val)
-
-        # Add fold number to results
-        models["fold"] = fold
-        fold_results.append(models)
-
-    # Combine all fold results
-    all_results = pd.concat(fold_results, axis=0)
-
-    # Calculate mean metrics across folds
-    mean_results = (
-        all_results.groupby(all_results.index)
-        .agg(
-            {
-                "Accuracy": "mean",
-                "Balanced Accuracy": "mean",
-                "ROC AUC": "mean",
-                "F1 Score": "mean",
-                "Time Taken": "mean",
-            }
+        # Initialize StratifiedKFold
+        skf = StratifiedKFold(
+            n_splits=n_splits, shuffle=True, random_state=random_state
         )
-        .round(4)
-    ).sort_values("Balanced Accuracy", ascending=False)
 
-    # Add standard deviation of accuracy as additional information
-    accuracy_std = all_results.groupby(all_results.index)["Accuracy"].std().round(4)
-    mean_results["Accuracy Std"] = accuracy_std
+        # Store results for each fold
+        fold_results = []
 
-    return mean_results
+        # Run cross-validation
+        for fold, (train_idx, val_idx) in enumerate(
+            tqdm(skf.split(X_array, y_array), total=n_splits, desc="Cross-Validation")
+        ):
+            logger.debug(f"Processing fold {fold+1}")
+
+            X_train, X_val = X_array[train_idx], X_array[val_idx]
+            y_train, y_val = y_array[train_idx], y_array[val_idx]
+
+            # Create and train LazyClassifier
+            clf = LazyClassifier(verbose=0, ignore_warnings=True, custom_metric=None)
+            models, _ = clf.fit(X_train, X_val, y_train, y_val)
+
+            # Add fold number to results
+            models["fold"] = fold
+            fold_results.append(models)
+
+        # Combine all fold results
+        all_results = pd.concat(fold_results, axis=0)
+
+        # Calculate mean metrics across folds
+        mean_results = (
+            all_results.groupby(all_results.index)
+            .agg(
+                {
+                    "Accuracy": "mean",
+                    "Balanced Accuracy": "mean",
+                    "ROC AUC": "mean",
+                    "F1 Score": "mean",
+                    "Time Taken": "mean",
+                }
+            )
+            .round(4)
+        ).sort_values("Balanced Accuracy", ascending=False)
+
+        # Add standard deviation of accuracy as additional information
+        accuracy_std = all_results.groupby(all_results.index)["Accuracy"].std().round(4)
+        mean_results["Accuracy Std"] = accuracy_std
+
+        logger.info(
+            "Lazypredict completed",
+            n_models=len(mean_results),
+            best_model=mean_results.index[0],
+            best_accuracy=mean_results["Accuracy"].iloc[0],
+        )
+
+        return mean_results
+
+    except Exception as e:
+        logger.error("Lazypredict failed", error=e)
+        raise RuntimeError("Lazypredict classification failed") from e
 
 
 if __name__ == "__main__":

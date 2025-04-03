@@ -5,6 +5,8 @@ from typing import Any, Dict, List, Tuple
 import mlflow
 import optuna
 
+from ai_toolkit.utils.logging import get_logger
+
 
 class BaseMlModel(ABC):
     """Abstract base class for all ml models."""
@@ -19,6 +21,12 @@ class BaseMlModel(ABC):
         self.model_name = model_name
         self.model = None
         self.best_params = None
+        self.num_classes = None
+        self.is_multiclass = None
+
+        # Initialize logger
+        self.logger = get_logger(f"{self.__class__.__name__}_{model_name}")
+        self.logger.info("Initializing model", model_name=model_name)
 
     @abstractmethod
     def get_param_space(self, trial: optuna.Trial) -> Dict[str, Any]:
@@ -55,6 +63,8 @@ class BaseMlModel(ABC):
             "model_name": self.model_name,
             "model_type": self.__class__.__name__,
             "best_params": self.best_params,
+            "num_classes": self.num_classes,
+            "is_multiclass": self.is_multiclass,
         }
 
     def get_mlflow_best_params(self, run_id: str) -> Dict[str, Any]:
@@ -66,39 +76,56 @@ class BaseMlModel(ABC):
             Dict[str, Any]: Dictionary containing the best parameters.
         """
 
-        # Get the run from MLflow
-        mlflow.set_tracking_uri("http://localhost:5000")
-        run = mlflow.get_run(run_id)
+        try:
+            self.logger.debug("Loading parameters from MLflow", run_id=run_id)
 
-        # Get the parameters from the run
-        params = run.data.params
+            # Get the run from MLflow
+            mlflow.set_tracking_uri("http://localhost:5000")
+            run = mlflow.get_run(run_id)
 
-        # Remove keys that are not in the parameter space
-        keys = [
-            "model_name",
-            "n_splits",
-            "n_trials",
-            "optimize_metric",
-            "n_samples",
-            "n_features",
-            "use_smote",
-            "smote_ratio",
-            "class_distribution",
-            "class_ratio",
-            "target_mean",
-            "target_std",
-            "target_median",
-            "target_min",
-            "target_max",
-        ]
+            # Get the parameters from the mlflow run
+            mlflow_params = run.data.params
 
-        for key in keys:
-            params.pop(key, None)
+            # Create a new study and trial to get the parameter space
+            study = optuna.create_study(study_name="Get best parameters from MLflow")
+            trail = optuna.trial.Trial(
+                study, study._storage.create_new_trial(study._study_id)
+            )
 
-        # Convert the values to the correct type
-        best_params = {key: safe_convert(value) for key, value in params.items()}
+            # Get the parameter space for the model
+            model_params = self.get_param_space(trail).keys()
 
-        return best_params
+            # Remove keys that are not in the parameter space
+            # Convert the values to the correct type
+            best_params = {
+                key: safe_convert(value)
+                for key, value in mlflow_params.items()
+                if key in model_params
+            }
+
+            self.logger.info(
+                "Loaded best parameters", run_id=run_id, params=best_params
+            )
+
+            return best_params
+
+        except Exception as e:
+            self.logger.error(
+                "Failed to load MLflow parameters", error=e, run_id=run_id
+            )
+            raise RuntimeError("Failed to load parameters from MLflow") from e
+
+    def set_num_classes(self, num_classes: int) -> None:
+        """Set the number of classes for classification.
+
+        Args:
+            num_classes (int): Number of classes (2 for binary, > 2 for multi-class)
+        """
+
+        # Set for the model
+        self.num_classes = num_classes
+        self.is_multiclass = self.num_classes is not None and self.num_classes > 2
+        self.logger.info("Set number of classes", num_classes=num_classes)
 
 
 def safe_convert(value: str) -> Any:
@@ -198,6 +225,20 @@ class BaseMlEnsembleModel(BaseMlModel):
         meta_params = {k: v for k, v in params.items() if k not in stacking_keys}
 
         return stacking_params, meta_params
+
+    def set_num_classes(self, num_classes: int) -> None:
+        """Set the number of classes for classification.
+
+        Args:
+            num_classes (int): Number of classes (2 for binary, > 2 for multi-class)
+        """
+
+        # Set for ensemble model
+        super().set_num_classes(num_classes)
+
+        # Set for all base models
+        for model, _ in self.models:
+            model.set_num_classes(num_classes)
 
 
 if __name__ == "__main__":

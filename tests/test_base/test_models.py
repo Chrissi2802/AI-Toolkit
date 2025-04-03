@@ -39,6 +39,8 @@ def test_get_model_info(dummy_model):
     assert info["model_name"] == "Dummy Model"
     assert info["model_type"] == "DummyModel"
     assert info["best_params"] == {"param1": 0.2, "param2": 8}
+    assert info["num_classes"] is None
+    assert info["is_multiclass"] is None
 
 
 def test_model_creation(dummy_model):
@@ -113,6 +115,22 @@ def test_model_creation_with_invalid_params(dummy_model, invalid_params):
     model = dummy_model.create_model(invalid_params)
     for param_name, value in invalid_params.items():
         assert getattr(model, param_name) == value
+
+
+def test_set_num_classes(dummy_model):
+    """Test setting number of classes.
+
+    Args:
+        dummy_model: Dummy model fixture.
+    """
+
+    dummy_model.set_num_classes(2)
+    assert dummy_model.num_classes == 2
+    assert dummy_model.is_multiclass is False
+
+    dummy_model.set_num_classes(3)
+    assert dummy_model.num_classes == 3
+    assert dummy_model.is_multiclass is True
 
 
 class DummyEnsembleModel(BaseMlEnsembleModel):
@@ -333,6 +351,30 @@ def test_ensemble_model_creation(ensemble_model):
     assert hasattr(created_model, "voting")
     assert created_model.weights == [0.6, 0.4]
     assert created_model.voting == "soft"
+
+
+def test_set_num_classes_ensemble(ensemble_model):
+    """Test setting number of classes for ensemble model.
+
+    Args:
+        ensemble_model: Ensemble model fixture.
+    """
+
+    ensemble_model.set_num_classes(2)
+    assert ensemble_model.num_classes == 2
+    assert ensemble_model.is_multiclass is False
+
+    for model, _ in ensemble_model.models:
+        assert model.num_classes == 2
+        assert model.is_multiclass is False
+
+    ensemble_model.set_num_classes(3)
+    assert ensemble_model.num_classes == 3
+    assert ensemble_model.is_multiclass is True
+
+    for model, _ in ensemble_model.models:
+        assert model.num_classes == 3
+        assert model.is_multiclass is True
 
 
 def test_safe_convert():

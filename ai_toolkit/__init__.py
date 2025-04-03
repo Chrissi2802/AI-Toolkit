@@ -8,7 +8,12 @@ __author__ = "Chrissi"
 # base
 from ai_toolkit.base.data import BaseDataset, DatasetConfig
 from ai_toolkit.base.models import BaseMlEnsembleModel, BaseMlModel
-from ai_toolkit.base.training import BaseMlTrainer, MlTrainerConfig
+from ai_toolkit.base.training import (
+    BaseMlTrainer,
+    MetricConfig,
+    MlTrainerConfig,
+    get_default_metric_configs,
+)
 
 # models
 from ai_toolkit.models.classification import (
@@ -53,6 +58,11 @@ from ai_toolkit.utils.evaluation import (
     CrossValidationMetrics,
     RegressionMetrics,
 )
+from ai_toolkit.utils.logging import (
+    Logger,
+    LoggerConfig,
+    get_logger,
+)
 from ai_toolkit.utils.visualization import (
     ClassificationPlots,
     ModelAnalysisPlots,
@@ -60,7 +70,11 @@ from ai_toolkit.utils.visualization import (
 )
 
 
-def get_version():
-    """Get the current version of AI-Toolkit."""
+def get_version() -> str:
+    """Get the current version of AI-Toolkit.
+
+    Returns:
+        str: The current version of AI-Toolkit.
+    """
 
     return __version__

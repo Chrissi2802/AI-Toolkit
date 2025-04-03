@@ -156,6 +156,7 @@ class TestRegressionModelTrainer:
         )
         mock_trial.suggest_float.return_value = 1.0
         mock_trial.suggest_categorical.return_value = True
+        mock_trial.number = 1
 
         score = trainer._optimize_objective(mock_trial, X.values, y.values)
         assert isinstance(score, float)
@@ -235,18 +236,18 @@ class TestRegressionModelTrainer:
         )
 
         # Test prediction without training
-        with pytest.raises(ValueError):
+        with pytest.raises(RuntimeError, match="Prediction failed"):
             trainer.predict(X)
 
         # Test with invalid optimization metric
-        trainer_invalid = RegressionModelTrainer(
-            base_model=simple_model,
-            config=MlTrainerConfig(
-                EXPERIMENT_NAME="test_regression",
-                OPTIMIZE_METRIC="invalid_metric",
-            ),
-        )
-        with pytest.raises(Exception):
+        with pytest.raises(ValueError):
+            trainer_invalid = RegressionModelTrainer(
+                base_model=simple_model,
+                config=MlTrainerConfig(
+                    EXPERIMENT_NAME="test_regression",
+                    OPTIMIZE_METRIC="invalid_metric",
+                ),
+            )
             trainer_invalid.train_and_optimize(X, y, n_trials=2)
 
 

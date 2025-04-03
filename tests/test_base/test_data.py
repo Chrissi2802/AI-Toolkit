@@ -298,44 +298,44 @@ def test_error_handling():
 
     # Test data checks
     dataset.X_test = None
-    with pytest.raises(ValueError, match="X_test data not loaded."):
+    with pytest.raises(ValueError, match="Data validation failed"):
         dataset._check_data()
 
     dataset.y = None
-    with pytest.raises(ValueError, match="y data not loaded."):
+    with pytest.raises(ValueError, match="Data validation failed"):
         dataset._check_data()
 
     dataset.X = None
-    with pytest.raises(ValueError, match="X data not loaded."):
+    with pytest.raises(ValueError, match="Data validation failed"):
         dataset._check_data()
 
     dataset = DummyDataset(DatasetConfig())
 
     # Test preprocessing without loading
-    with pytest.raises(ValueError, match="X data not loaded"):
+    with pytest.raises(RuntimeError, match="Data preprocessing failed"):
         dataset.preprocess()
 
     # Test with invalid fill strategy
-    with pytest.raises(ValueError):
+    with pytest.raises(RuntimeError, match="Data preprocessing failed"):
         config = DatasetConfig(CATEGORICAL_FILL_STRATEGY="invalid")
         dataset = DummyDataset(config)
         dataset.load_data()
         dataset.preprocess()
 
-    with pytest.raises(ValueError):
+    with pytest.raises(RuntimeError, match="Data preprocessing failed"):
         config = DatasetConfig(NUMERICAL_FILL_STRATEGY="invalid")
         dataset = DummyDataset(config)
         dataset.load_data()
         dataset.preprocess()
 
     # Test with invalid preprocessing strategy
-    with pytest.raises(ValueError):
+    with pytest.raises(RuntimeError, match="Data preprocessing failed"):
         config = DatasetConfig(CATEGORICAL_PREPROCESSING_STRATEGY="invalid")
         dataset = DummyDataset(config)
         dataset.load_data()
         dataset.preprocess()
 
-    with pytest.raises(ValueError):
+    with pytest.raises(RuntimeError, match="Data preprocessing failed"):
         config = DatasetConfig(NUMERICAL_PREPROCESSING_STRATEGY="invalid")
         dataset = DummyDataset(config)
         dataset.load_data()

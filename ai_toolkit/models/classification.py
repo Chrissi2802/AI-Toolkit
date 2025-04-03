@@ -15,6 +15,7 @@ from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
 
 from ai_toolkit.base.models import BaseMlEnsembleModel, BaseMlModel
+from ai_toolkit.utils.logging import get_logger
 
 
 class LogisticRegressionModel(BaseMlModel):
@@ -70,9 +71,13 @@ class LogisticRegressionModel(BaseMlModel):
             LogisticRegression: A Logistic Regression model.
         """
 
-        self.model = LogisticRegression(**params)
-
-        return self.model
+        try:
+            self.logger.info("Creating logistic regression model", params=params)
+            self.model = LogisticRegression(**params)
+            return self.model
+        except Exception as e:
+            self.logger.error("Failed to create logistic regression model", error=e)
+            raise RuntimeError("Model creation failed") from e
 
 
 class SVCModel(BaseMlModel):
@@ -127,9 +132,15 @@ class SVCModel(BaseMlModel):
             SVC: A Support Vector Machine model.
         """
 
-        self.model = SVC(**params)
-
-        return self.model
+        try:
+            self.logger.info("Creating support vector classifier model", params=params)
+            self.model = SVC(**params)
+            return self.model
+        except Exception as e:
+            self.logger.error(
+                "Failed to create support vector classifier model", error=e
+            )
+            raise RuntimeError("Model creation failed") from e
 
 
 class KNNModel(BaseMlModel):
@@ -176,9 +187,13 @@ class KNNModel(BaseMlModel):
             KNeighborsClassifier: A K-Nearest Neighbors model.
         """
 
-        self.model = KNeighborsClassifier(**params)
-
-        return self.model
+        try:
+            self.logger.info("Creating K-Nearest Neighbors model", params=params)
+            self.model = KNeighborsClassifier(**params)
+            return self.model
+        except Exception as e:
+            self.logger.error("Failed to create K-Nearest Neighbors model", error=e)
+            raise RuntimeError("Model creation failed") from e
 
 
 class NaiveBayesModel(BaseMlModel):
@@ -219,9 +234,13 @@ class NaiveBayesModel(BaseMlModel):
             GaussianNB: A Gaussian Naive Bayes model.
         """
 
-        self.model = GaussianNB(**params)
-
-        return self.model
+        try:
+            self.logger.info("Creating Naive Bayes model", params=params)
+            self.model = GaussianNB(**params)
+            return self.model
+        except Exception as e:
+            self.logger.error("Failed to create Naive Bayes model", error=e)
+            raise RuntimeError("Model creation failed") from e
 
 
 class DecisionTreeModel(BaseMlModel):
@@ -277,9 +296,13 @@ class DecisionTreeModel(BaseMlModel):
             DecisionTreeClassifier: A Decision Tree model.
         """
 
-        self.model = DecisionTreeClassifier(**params)
-
-        return self.model
+        try:
+            self.logger.info("Creating decision tree model", params=params)
+            self.model = DecisionTreeClassifier(**params)
+            return self.model
+        except Exception as e:
+            self.logger.error("Failed to create decision tree model", error=e)
+            raise RuntimeError("Model creation failed") from e
 
 
 class RandomForestModel(BaseMlModel):
@@ -332,9 +355,13 @@ class RandomForestModel(BaseMlModel):
             RandomForestClassifier: A Random Forest model.
         """
 
-        self.model = RandomForestClassifier(**params)
-
-        return self.model
+        try:
+            self.logger.info("Creating random forest model", params=params)
+            self.model = RandomForestClassifier(**params)
+            return self.model
+        except Exception as e:
+            self.logger.error("Failed to create random forest model", error=e)
+            raise RuntimeError("Model creation failed") from e
 
 
 class XGBoostModel(BaseMlModel):
@@ -367,9 +394,29 @@ class XGBoostModel(BaseMlModel):
             "colsample_bytree": trial.suggest_float("colsample_bytree", 0.5, 1.0),
             "reg_alpha": trial.suggest_float("reg_alpha", 1e-8, 1.0, log=True),
             "reg_lambda": trial.suggest_float("reg_lambda", 1e-8, 1.0, log=True),
-            "objective": "binary:logistic",  # for binary classification
             "random_state": trial.suggest_categorical("random_state", [28]),
         }
+
+        # For multi-class classification
+        if self.is_multiclass:
+            params.update(
+                {
+                    "objective": trial.suggest_categorical(
+                        "objective", ["multi:softmax"]
+                    ),
+                    "num_class": trial.suggest_categorical(
+                        "num_class", [self.num_classes]
+                    ),
+                }
+            )
+        else:  # For binary classification
+            params.update(
+                {
+                    "objective": trial.suggest_categorical(
+                        "objective", ["binary:logistic"]
+                    ),
+                }
+            )
 
         return params
 
@@ -383,9 +430,13 @@ class XGBoostModel(BaseMlModel):
             xgb.XGBClassifier: An XGBoost model.
         """
 
-        self.model = xgb.XGBClassifier(**params)
-
-        return self.model
+        try:
+            self.logger.info("Creating XGBoost model", params=params)
+            self.model = xgb.XGBClassifier(**params)
+            return self.model
+        except Exception as e:
+            self.logger.error("Failed to create XGBoost model", error=e)
+            raise RuntimeError("Model creation failed") from e
 
 
 class LightGBMModel(BaseMlModel):
@@ -410,8 +461,6 @@ class LightGBMModel(BaseMlModel):
 
         params = {
             # Core Parameters
-            "objective": "binary",  # for binary classification
-            "metric": "binary_logloss",
             "boosting_type": trial.suggest_categorical(
                 "boosting_type", ["gbdt", "dart"]
             ),
@@ -430,9 +479,9 @@ class LightGBMModel(BaseMlModel):
             "min_child_samples": trial.suggest_int("min_child_samples", 5, 100),
             "min_child_weight": trial.suggest_float("min_child_weight", 1e-3, 10.0),
             # Performance Parameters
-            "n_jobs": -1,  # use all CPU cores
+            "n_jobs": trial.suggest_categorical("n_jobs", [-1]),  # use all CPU cores
             "random_state": trial.suggest_categorical("random_state", [28]),
-            "verbose": -1,  # suppress messages
+            "verbose": trial.suggest_categorical("verbose", [-1]),  # suppress messages
             # Class Weight Parameters
             "is_unbalance": trial.suggest_categorical("is_unbalance", [True, False]),
         }
@@ -444,6 +493,25 @@ class LightGBMModel(BaseMlModel):
                     "drop_rate": trial.suggest_float("drop_rate", 0.1, 0.5),
                     "skip_drop": trial.suggest_float("skip_drop", 0.1, 0.5),
                     "max_drop": trial.suggest_int("max_drop", 10, 50),
+                }
+            )
+
+        # For multi-class classification
+        if self.is_multiclass:
+            params.update(
+                {
+                    "objective": trial.suggest_categorical("objective", ["multiclass"]),
+                    "num_class": trial.suggest_categorical(
+                        "num_class", [self.num_classes]
+                    ),
+                    "metric": trial.suggest_categorical("metric", ["multi_logloss"]),
+                }
+            )
+        else:  # For binary classification
+            params.update(
+                {
+                    "objective": trial.suggest_categorical("objective", ["binary"]),
+                    "metric": trial.suggest_categorical("metric", ["binary_logloss"]),
                 }
             )
 
@@ -459,9 +527,13 @@ class LightGBMModel(BaseMlModel):
             lgb.LGBMClassifier: A LightGBM model.
         """
 
-        self.model = lgb.LGBMClassifier(**params)
-
-        return self.model
+        try:
+            self.logger.info("Creating LightGBM model", params=params)
+            self.model = lgb.LGBMClassifier(**params)
+            return self.model
+        except Exception as e:
+            self.logger.error("Failed to create LightGBM model", error=e)
+            raise RuntimeError("Model creation failed") from e
 
 
 def get_all_classification_models() -> Dict[str, BaseMlModel]:
@@ -471,18 +543,30 @@ def get_all_classification_models() -> Dict[str, BaseMlModel]:
         Dict[str, BaseMlModel]: A dictionary containing all classification models.
     """
 
-    models = {
-        "Logistic Regression Classifier": LogisticRegressionModel(),
-        "Support Vector Classifier": SVCModel(),
-        "K-Nearest Neighbors Classifier": KNNModel(),
-        "Naive Bayes Classifier": NaiveBayesModel(),
-        "Decision Tree Classifier": DecisionTreeModel(),
-        "Random Forest Classifier": RandomForestModel(),
-        "XGBoost Classifier": XGBoostModel(),
-        "LightGBM Classifier": LightGBMModel(),
-    }
+    logger = get_logger("All Classification Models")
+    logger.info("Creating all classification models")
 
-    return models
+    try:
+        models = {
+            "Logistic Regression Classifier": LogisticRegressionModel(),
+            "Support Vector Classifier": SVCModel(),
+            "K-Nearest Neighbors Classifier": KNNModel(),
+            "Naive Bayes Classifier": NaiveBayesModel(),
+            "Decision Tree Classifier": DecisionTreeModel(),
+            "Random Forest Classifier": RandomForestModel(),
+            "XGBoost Classifier": XGBoostModel(),
+            "LightGBM Classifier": LightGBMModel(),
+        }
+
+        logger.info(
+            "Successfully created all models",
+            model_count=len(models),
+            model_names=list(models.keys()),
+        )
+        return models
+    except Exception as e:
+        logger.error("Failed to create all models", error=e)
+        raise RuntimeError("Model initialization failed") from e
 
 
 class EnsembleVotingClassifierModel(BaseMlEnsembleModel):
@@ -534,11 +618,16 @@ class EnsembleVotingClassifierModel(BaseMlEnsembleModel):
             VotingClassifier: A ensemble voting classifier model.
         """
 
-        params = self._del_weight_keys(params)
-
-        self.model = VotingClassifier(**params)
-
-        return self.model
+        try:
+            self.logger.info("Creating ensemble voting classifier model", params=params)
+            params = self._del_weight_keys(params)
+            self.model = VotingClassifier(**params)
+            return self.model
+        except Exception as e:
+            self.logger.error(
+                "Failed to create ensemble voting classifier model", error=e
+            )
+            raise RuntimeError("Model creation failed") from e
 
 
 class EnsembleStackingClassifierModel(BaseMlEnsembleModel):
@@ -594,16 +683,37 @@ class EnsembleStackingClassifierModel(BaseMlEnsembleModel):
             StackingClassifier: A ensemble stacking classifier model.
         """
 
-        stacking_params, meta_params = self._extract_meta_params(params)
+        try:
+            self.logger.info(
+                "Creating ensemble stacking classifier model", params=params
+            )
+            stacking_params, meta_params = self._extract_meta_params(params)
 
-        # Create meta model
-        meta_model = self.meta_model.create_model(meta_params)
+            # Create meta model
+            meta_model = self.meta_model.create_model(meta_params)
 
-        # Create stacking model
-        stacking_params["final_estimator"] = meta_model
-        self.model = StackingClassifier(**stacking_params)
+            # Create stacking model
+            stacking_params["final_estimator"] = meta_model
+            self.model = StackingClassifier(**stacking_params)
+            return self.model
+        except Exception as e:
+            self.logger.error(
+                "Failed to create ensemble stacking classifier model", error=e
+            )
+            raise RuntimeError("Model creation failed") from e
 
-        return self.model
+    def set_num_classes(self, num_classes: int) -> None:
+        """Set the number of classes for classification.
+
+        Args:
+            num_classes (int): Number of classes (2 for binary, > 2 for multi-class)
+        """
+
+        # Set for ensemble and base models
+        super().set_num_classes(num_classes)
+
+        # Set for meta model
+        self.meta_model.set_num_classes(num_classes)
 
 
 if __name__ == "__main__":

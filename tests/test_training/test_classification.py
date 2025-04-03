@@ -47,7 +47,7 @@ class TestClassificationModelTrainer:
         assert trainer.use_smote is True
         assert trainer.smote_ratio == 1.0
         assert trainer.best_model is None
-        assert trainer.best_score == -1
+        assert trainer.best_score == float("-inf")
 
     @pytest.mark.integration
     def test_training_workflow(self, simple_model, classification_data_pd, mock_mlflow):
@@ -126,6 +126,7 @@ class TestClassificationModelTrainer:
             base_model=simple_model,
             config=MlTrainerConfig(EXPERIMENT_NAME="test_classification"),
         )
+        trainer.use_smote = False
 
         # Create mock trial with correct return values
         mock_trial = Mock()
@@ -143,6 +144,7 @@ class TestClassificationModelTrainer:
         )
         mock_trial.suggest_float.return_value = 1.0
         mock_trial.suggest_int.return_value = 100
+        mock_trial.number = 1
 
         # Test objective
         score = trainer._optimize_objective(mock_trial, X.values, y.values)
@@ -242,20 +244,20 @@ class TestClassificationModelTrainer:
         )
 
         # Test prediction without training
-        with pytest.raises(ValueError):
+        with pytest.raises(RuntimeError, match="Prediction failed"):
             trainer.predict(X)
 
         # Test with invalid optimization metric
-        trainer_invalid = ClassificationModelTrainer(
-            base_model=simple_model,
-            config=MlTrainerConfig(OPTIMIZE_METRIC="invalid_metric"),
-        )
-        with pytest.raises(Exception):
+        with pytest.raises(ValueError):
+            trainer_invalid = ClassificationModelTrainer(
+                base_model=simple_model,
+                config=MlTrainerConfig(OPTIMIZE_METRIC="invalid_metric"),
+            )
             trainer_invalid.train_and_optimize(X, y, n_trials=2)
 
 
 def test_lazypredict_classification(
-    classification_data_pd: Tuple[pd.DataFrame, pd.Series]
+    classification_data_pd: Tuple[pd.DataFrame, pd.Series],
 ):
     """Test lazypredict_classification function.
 

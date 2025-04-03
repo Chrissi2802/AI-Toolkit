@@ -4,7 +4,12 @@ Base classes for AI Toolkit.
 
 from ai_toolkit.base.data import BaseDataset, DatasetConfig
 from ai_toolkit.base.models import BaseMlEnsembleModel, BaseMlModel
-from ai_toolkit.base.training import BaseMlTrainer, MlTrainerConfig
+from ai_toolkit.base.training import (
+    BaseMlTrainer,
+    MetricConfig,
+    MlTrainerConfig,
+    get_default_metric_configs,
+)
 
 
 __all__ = [
@@ -12,6 +17,8 @@ __all__ = [
     "DatasetConfig",
     "BaseMlEnsembleModel",
     "BaseMlModel",
+    "MetricConfig",
+    "get_default_metric_configs",
     "BaseMlTrainer",
     "MlTrainerConfig",
 ]

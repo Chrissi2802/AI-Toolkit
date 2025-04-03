@@ -7,6 +7,10 @@ license = {file = "LICENSE"}
 keywords = ["python", "machine-learning", "ai", "toolkit", "sklearn", "regression", "supervised-learning", "classification"]
 requires-python = ">=3.10"
 dynamic = ["dependencies"]
+authors = [{name = "Chrissi"}]
+
+[project.urls]
+Repository = "https://github.com/Chrissi2802/AI-Toolkit.git"
 
 [tool.setuptools.dynamic]
 dependencies = {file = ["requirements.txt"]}

@@ -6,14 +6,16 @@
 ![Code Style](https://img.shields.io/badge/flake8-checked-blue.svg)
 ![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)
 
+<img src="ai_toolkit_logo.png" width="320" height="180" alt="Logo">
+
 A comprehensive Python toolkit for machine learning workflows with a focus on model development, training and evaluation.
 
 ## 📑 Table of contents
 - [Features](#-features)
 - [Development & Tests](#-development--tests)
-- [Quickstart](#-quick-start)
-- [Documentation](#-detailed-documentation)
-- [Licence](#-licence)
+- [Quick start](#-quick-start)
+- [Detailed documentation](#-detailed-documentation)
+- [License](#-license)
 - [Contact](#-contact)
 
 ## 🚀 Features
@@ -61,6 +63,9 @@ Create new requirements.txt:
 # Basic dependencies
 pipreqs . --force
 
+# Manually add jupyter
+jupyter>=1.0.0
+
 # Manual downgrading of the numpy version
 numpy>=1.16.0
 ```
@@ -72,9 +77,13 @@ git clone https://github.com/Chrissi2802/AI-Toolkit.git
 cd ai-toolkit
 
 # Create a virtual environment
-python -m venv v_env
-source v_env/bin/activate  # Linux/Mac
-v_env\Scripts\activate     # Windows
+python -m venv v_env_ai_toolkit
+source v_env_ai_toolkit/bin/activate  # Linux / Mac
+v_env_ai_toolkit\Scripts\activate     # Windows
+
+# Create a virtual environment with conda
+conda create --name v_env_ai_toolkit python=3.12
+conda activate v_env_ai_toolkit
 
 # Install the ai toolkit
 pip install -e .
@@ -143,6 +152,7 @@ pytest tests/test_utils/
 - [Decision Tree Classifier](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestClassifier.html)
 - [XGBoost Classifier](https://xgboost.readthedocs.io/en/stable/parameter.html)
 - [LightGBM Classifier](https://lightgbm.readthedocs.io/en/latest/Parameters.html)
+- get_all_classification_models
 
 Ensembles
 - [Voting Classifier](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.VotingClassifier.html)
@@ -156,14 +166,18 @@ Ensembles
 - [XGBoost Regressor](https://xgboost.readthedocs.io/en/stable/parameter.html)
 - [LightGBM Regressor](https://lightgbm.readthedocs.io/en/latest/Parameters.html)
 - [CatBoost Regressor](https://catboost.ai/docs/en/concepts/python-reference_catboostregressor)
+- get_all_regression_models
 
 Ensembles
 - [Voting Regressor](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.VotingRegressor.html)
 - [Stacking Regressor](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.StackingRegressor.html)
 
 ### Training `ai_toolkit.training`
+#### Classification
 - ClassificationModelTrainer
 - lazypredict_classification
+
+#### Regression
 - RegressionModelTrainer
 - lazy_predict_regression
 
@@ -173,6 +187,11 @@ Ensembles
 - RegressionMetrics
 - CrossValidationMetrics
 
+#### Logging
+- LoggerConfig
+- Logger
+- get_logger
+
 #### Visualisation
 - ClassificationPlots
 - RegressionPlots
@@ -181,6 +200,8 @@ Ensembles
 ### Structure
 ```bash
 AI-Toolkit/
+├── .git/
+│   └── ...
 ├── .github/
 │   └── workflows/
 │       └── ...
@@ -202,6 +223,7 @@ AI-Toolkit/
 │   └── utils/
 │        ├── __init__.py
 │        ├── evaluation.py
+│        ├── logging.py
 │        └── visualization.py
 ├── docs/
 │   ├── classes.svg
@@ -209,6 +231,8 @@ AI-Toolkit/
 ├── examples/
 │   ├── classification_example.ipynb
 │   └── regression_example.ipynb
+├── logs/
+│   └── ...
 ├── tests/
 │   ├── __init__.py
 │   ├── conftest.py
@@ -224,6 +248,8 @@ AI-Toolkit/
 ├── .env
 ├── .flake8
 ├── .gitignore
+├── ai_toolkit_logo.png
+├── CONTRIBUTING.md
 ├── LICENSE
 ├── pyproject.toml
 ├── README.md
@@ -240,12 +266,12 @@ The [docs](docs) contain diagrams that show the class structure and package depe
 pyreverse -o svg -d .\docs .\ai_toolkit\
 ```
 
-## 📝 Licence
+## 📝 License
 This project is licensed under the Apache 2.0 licence - see [LICENSE](LICENSE) file for details.
 
 ## 📫 Contact
 Chrissi - [GitHub](https://github.com/Chrissi2802)
 
 ### 🤝 Contributing
-Contributions are very welcome! 😊 
+Contributions are very welcome! 😊
 Please check out the [Contributing guidelines](CONTRIBUTING.md).

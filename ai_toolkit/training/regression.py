@@ -8,11 +8,12 @@ import optuna
 import pandas as pd
 from lazypredict.Supervised import LazyRegressor
 from sklearn.model_selection import KFold
-from tqdm.notebook import tqdm
+from tqdm import tqdm
 
 from ai_toolkit.base.models import BaseMlEnsembleModel, BaseMlModel
 from ai_toolkit.base.training import BaseMlTrainer, MlTrainerConfig
 from ai_toolkit.utils.evaluation import RegressionMetrics
+from ai_toolkit.utils.logging import get_logger
 from ai_toolkit.utils.visualization import ModelAnalysisPlots, RegressionPlots
 
 
@@ -120,25 +121,46 @@ class RegressionModelTrainer(BaseMlTrainer):
             float: Mean score across all folds
         """
 
-        params = self.base_model.get_param_space(trial)
-        model = self.base_model.create_model(params)
+        self.logger.debug(f"Starting optimization trial {trial.number}")
 
-        # Cross-validation evaluation
-        kf = KFold(n_splits=self.n_splits, shuffle=True, random_state=self.random_state)
-        scores = []
+        try:
+            params = self.base_model.get_param_space(trial)
+            model = self.base_model.create_model(params)
 
-        for train_idx, val_idx in kf.split(X):
-            X_train, X_val = X[train_idx], X[val_idx]
-            y_train, y_val = y[train_idx], y[val_idx]
+            # Cross-validation evaluation
+            kf = KFold(
+                n_splits=self.n_splits, shuffle=True, random_state=self.random_state
+            )
+            scores = []
 
-            model.fit(X_train, y_train)
-            y_pred = model.predict(X_val)
+            for fold, (train_idx, val_idx) in enumerate(kf.split(X)):
+                X_train, X_val = X[train_idx], X[val_idx]
+                y_train, y_val = y[train_idx], y[val_idx]
 
-            # Calculate metrics
-            metrics = RegressionMetrics.calculate_basic_metrics(y_val, y_pred)
-            scores.append(metrics[self.optimize_metric])
+                model.fit(X_train, y_train)
+                y_pred = model.predict(X_val)
 
-        return np.mean(scores)
+                # Calculate metrics
+                metrics = RegressionMetrics.calculate_basic_metrics(y_val, y_pred)
+                scores.append(metrics[self.optimize_metric])
+
+                self.logger.debug(
+                    f"Fold {fold+1} score: {metrics[self.optimize_metric]:.4f}"
+                )
+
+            mean_score = np.mean(scores)
+
+            self.logger.debug(
+                "Trial completed",
+                trial_number=trial.number,
+                mean_score=mean_score,
+                params=params,
+            )
+            return mean_score
+
+        except Exception as e:
+            self.logger.error("Trial failed", trial_number=trial.number, error=e)
+            raise RuntimeError("Optimization trial failed") from e
 
     def train_and_optimize(
         self,
@@ -283,14 +305,23 @@ class RegressionModelTrainer(BaseMlTrainer):
             np.ndarray: Predicted values
         """
 
-        if self.best_model is None:
-            raise ValueError(
-                "No model trained yet. Please call train_and_optimize first."
-            )
+        try:
+            self.logger.info("Making predictions", X_shape=X.shape)
 
-        y_pred = self.best_model.predict(X)
+            if self.best_model is None:
+                raise ValueError(
+                    "No model trained yet. Please call train_and_optimize first."
+                )
 
-        return y_pred
+            y_pred = self.best_model.predict(X)
+
+            self.logger.info("Predictions completed", predictions_shape=y_pred.shape)
+
+            return y_pred
+
+        except Exception as e:
+            self.logger.error("Prediction failed", error=e)
+            raise RuntimeError("Prediction failed") from e
 
 
 def lazypredict_regression(
@@ -308,55 +339,75 @@ def lazypredict_regression(
         pd.DataFrame: Mean metrics across all folds.
     """
 
-    X_array = X.values
-    y_array = y.values
-
-    # Initialize KFold
-    kf = KFold(n_splits=n_splits, shuffle=True, random_state=random_state)
-
-    # Store results for each fold
-    fold_results = []
-
-    # Run cross-validation
-    for fold, (train_idx, val_idx) in enumerate(
-        tqdm(kf.split(X_array), total=n_splits, desc="Cross-Validation")
-    ):
-
-        X_train, X_val = X_array[train_idx], X_array[val_idx]
-        y_train, y_val = y_array[train_idx], y_array[val_idx]
-
-        # Create and train LazyRegressor
-        reg = LazyRegressor(verbose=0, ignore_warnings=True, custom_metric=None)
-        models, _ = reg.fit(X_train, X_val, y_train, y_val)
-
-        # Add fold number to results
-        models["fold"] = fold
-        fold_results.append(models)
-
-    # Combine all fold results
-    all_results = pd.concat(fold_results, axis=0)
-
-    # Calculate mean metrics across folds
-    mean_results = (
-        all_results.groupby(all_results.index)
-        .agg(
-            {
-                "Adjusted R-Squared": "mean",
-                "R-Squared": "mean",
-                "RMSE": "mean",
-                "Time Taken": "mean",
-            }
-        )
-        .round(4)
-    ).sort_values("Adjusted R-Squared", ascending=False)
-
-    # Add standard deviation of R-Squared as additional information
-    ar2_std = (
-        all_results.groupby(all_results.index)["Adjusted R-Squared"].std().round(4)
+    logger = get_logger("Lazypredict Regression")
+    logger.info(
+        "Starting lazypredict regression",
+        X_shape=X.shape,
+        y_shape=y.shape,
+        n_splits=n_splits,
     )
-    mean_results["Adjusted R-Squared Std"] = ar2_std
 
-    return mean_results
+    try:
+        X_array = X.values
+        y_array = y.values
+
+        # Initialize KFold
+        kf = KFold(n_splits=n_splits, shuffle=True, random_state=random_state)
+
+        # Store results for each fold
+        fold_results = []
+
+        # Run cross-validation
+        for fold, (train_idx, val_idx) in enumerate(
+            tqdm(kf.split(X_array), total=n_splits, desc="Cross-Validation")
+        ):
+
+            X_train, X_val = X_array[train_idx], X_array[val_idx]
+            y_train, y_val = y_array[train_idx], y_array[val_idx]
+
+            # Create and train LazyRegressor
+            reg = LazyRegressor(verbose=0, ignore_warnings=True, custom_metric=None)
+            models, _ = reg.fit(X_train, X_val, y_train, y_val)
+
+            # Add fold number to results
+            models["fold"] = fold
+            fold_results.append(models)
+
+        # Combine all fold results
+        all_results = pd.concat(fold_results, axis=0)
+
+        # Calculate mean metrics across folds
+        mean_results = (
+            all_results.groupby(all_results.index)
+            .agg(
+                {
+                    "Adjusted R-Squared": "mean",
+                    "R-Squared": "mean",
+                    "RMSE": "mean",
+                    "Time Taken": "mean",
+                }
+            )
+            .round(4)
+        ).sort_values("Adjusted R-Squared", ascending=False)
+
+        # Add standard deviation of R-Squared as additional information
+        ar2_std = (
+            all_results.groupby(all_results.index)["Adjusted R-Squared"].std().round(4)
+        )
+        mean_results["Adjusted R-Squared Std"] = ar2_std
+
+        logger.info(
+            "Lazypredict completed",
+            n_models=len(mean_results),
+            best_model=mean_results.index[0],
+            best_accuracy=mean_results["Adjusted R-Squared"].iloc[0],
+        )
+
+        return mean_results
+
+    except Exception as e:
+        logger.error("Lazypredict failed", error=e)
+        raise RuntimeError("Lazypredict regression failed") from e
 
 
 if __name__ == "__main__":
