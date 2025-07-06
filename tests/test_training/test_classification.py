@@ -78,9 +78,7 @@ class TestClassificationModelTrainer:
         assert mock_mlflow["log_metric"].called
         assert mock_mlflow["log_table"].called
 
-    def test_prediction(
-        self, classification_data_pd: Tuple[pd.DataFrame, pd.Series], simple_model
-    ):
+    def test_prediction(self, classification_data_pd: Tuple[pd.DataFrame, pd.Series], simple_model):
         """Test prediction functionality.
 
         Args:
@@ -151,9 +149,7 @@ class TestClassificationModelTrainer:
         assert isinstance(score, float)
         assert 0 <= score <= 1  # F1 score range
 
-    @pytest.mark.parametrize(
-        "use_smote,smote_ratio", [(True, 1.0), (False, 1.0), (True, 0.7)]
-    )
+    @pytest.mark.parametrize("use_smote,smote_ratio", [(True, 1.0), (False, 1.0), (True, 0.7)])
     def test_smote_integration(self, classification_data_pd, use_smote, smote_ratio):
         """Test SMOTE integration with different configurations."""
 
@@ -199,9 +195,7 @@ class TestClassificationModelTrainer:
             assert best_model is not None
             assert isinstance(metrics, dict)
 
-    @pytest.mark.parametrize(
-        "optimize_metric", ["accuracy", "f1", "precision", "recall"]
-    )
+    @pytest.mark.parametrize("optimize_metric", ["accuracy", "f1", "precision", "recall"])
     def test_different_optimization_metrics(
         self, classification_data_pd, optimize_metric, simple_model
     ):

@@ -7,6 +7,9 @@ Here's how you can help:
 - Make your changes
 - Make sure you have completed the quality checks:
   ```bash
+  # Formating
+  black .
+  
   # Import sorting
   isort .
 

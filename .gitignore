@@ -177,3 +177,6 @@ catboost_info/
 mlruns/
 mlartifacts/
 
+# Visual Studio Code
+.vscode/
+

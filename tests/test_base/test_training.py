@@ -18,9 +18,7 @@ from ai_toolkit.base.training import (
 class DummyTrainer(BaseMlTrainer):
     """Dummy trainer implementation for testing."""
 
-    def __init__(
-        self, base_model: BaseMlModel, config: MlTrainerConfig = MlTrainerConfig()
-    ):
+    def __init__(self, base_model: BaseMlModel, config: MlTrainerConfig = MlTrainerConfig()):
         """Initialize dummy trainer.
 
         Args:
@@ -30,9 +28,7 @@ class DummyTrainer(BaseMlTrainer):
         """
         super().__init__(base_model=base_model, config=config)
 
-    def _optimize_objective(
-        self, trial: optuna.Trial, X: np.ndarray, y: np.ndarray
-    ) -> float:
+    def _optimize_objective(self, trial: optuna.Trial, X: np.ndarray, y: np.ndarray) -> float:
         """Implement optimization objective.
 
         Args:
@@ -341,13 +337,9 @@ def test_default_metric_configs():
 
         # Test initial score
         if config.DIRECTION == "maximize":
-            assert config.INITIAL_SCORE == -float(
-                "inf"
-            ), f"Wrong initial score for {metric}"
+            assert config.INITIAL_SCORE == -float("inf"), f"Wrong initial score for {metric}"
         else:
-            assert config.INITIAL_SCORE == float(
-                "inf"
-            ), f"Wrong initial score for {metric}"
+            assert config.INITIAL_SCORE == float("inf"), f"Wrong initial score for {metric}"
 
         # Test better_score function
         if config.DIRECTION == "maximize":

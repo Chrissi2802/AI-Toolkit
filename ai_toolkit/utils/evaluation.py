@@ -50,9 +50,7 @@ class ClassificationMetrics:
                 "precision": metrics.precision_score(y_true, y_pred, average=average),
                 "recall": metrics.recall_score(y_true, y_pred, average=average),
                 "f1": metrics.f1_score(y_true, y_pred, average=average),
-                "matthews_correlation_coefficient": metrics.matthews_corrcoef(
-                    y_true, y_pred
-                ),
+                "matthews_correlation_coefficient": metrics.matthews_corrcoef(y_true, y_pred),
                 "jaccard": metrics.jaccard_score(y_true, y_pred, average=average),
                 "hamming_loss": metrics.hamming_loss(y_true, y_pred),
                 # "d2_log_loss": metrics.d2_log_loss_score(y_true, y_pred),
@@ -72,12 +70,8 @@ class ClassificationMetrics:
                     # Binary classification
                     result.update(
                         {
-                            "roc_auc": metrics.roc_auc_score(
-                                y_true, y_pred_proba[:, 1]
-                            ),
-                            "brier_score": metrics.brier_score_loss(
-                                y_true, y_pred_proba[:, 1]
-                            ),
+                            "roc_auc": metrics.roc_auc_score(y_true, y_pred_proba[:, 1]),
+                            "brier_score": metrics.brier_score_loss(y_true, y_pred_proba[:, 1]),
                         }
                     )
                 else:
@@ -98,9 +92,7 @@ class ClassificationMetrics:
                         }
                     )
 
-            ClassificationMetrics.logger.debug(
-                "Metrics calculated successfully", metrics=result
-            )
+            ClassificationMetrics.logger.debug("Metrics calculated successfully", metrics=result)
 
             return result
 
@@ -132,9 +124,7 @@ class RegressionMetrics:
     logger = get_logger("RegressionMetrics")
 
     @staticmethod
-    def calculate_basic_metrics(
-        y_true: np.ndarray, y_pred: np.ndarray
-    ) -> Dict[str, float]:
+    def calculate_basic_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> Dict[str, float]:
         """Calculate regression metrics.
 
         Args:
@@ -159,9 +149,7 @@ class RegressionMetrics:
                 "max_error": metrics.max_error(y_true, y_pred),
                 "mean_absolute_error": metrics.mean_absolute_error(y_true, y_pred),
                 "mean_squared_error": metrics.mean_squared_error(y_true, y_pred),
-                "root_mean_squared_error": metrics.root_mean_squared_error(
-                    y_true, y_pred
-                ),
+                "root_mean_squared_error": metrics.root_mean_squared_error(y_true, y_pred),
                 "median_absolute_error": metrics.median_absolute_error(y_true, y_pred),
                 "r2": metrics.r2_score(y_true, y_pred),
                 "mean_absolute_percentage_error": metrics.mean_absolute_percentage_error(
@@ -179,9 +167,7 @@ class RegressionMetrics:
                 # "mean_gamma_deviance": metrics.mean_gamma_deviance(y_true, y_pred),
             }
 
-            RegressionMetrics.logger.debug(
-                "Metrics calculated successfully", metrics=result
-            )
+            RegressionMetrics.logger.debug("Metrics calculated successfully", metrics=result)
 
             return result
 
@@ -228,9 +214,7 @@ class CrossValidationMetrics:
                 raise ValueError("fold_metrics must not be empty.")
 
             if not all(len(fold) == len(fold_metrics[0]) for fold in fold_metrics):
-                raise ValueError(
-                    "All fold metrics must have the same number of elements."
-                )
+                raise ValueError("All fold metrics must have the same number of elements.")
 
             all_metrics = {}
 

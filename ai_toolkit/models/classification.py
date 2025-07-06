@@ -2,6 +2,7 @@ from typing import Any, Dict, List, Tuple
 
 import lightgbm as lgb
 import optuna
+import tensorflow as tf
 import xgboost as xgb
 from sklearn.ensemble import (
     RandomForestClassifier,
@@ -13,6 +14,7 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
+from tensorflow.keras.applications import MobileNetV3Small
 
 from ai_toolkit.base.models import BaseMlEnsembleModel, BaseMlModel
 from ai_toolkit.utils.logging import get_logger
@@ -45,13 +47,9 @@ class LogisticRegressionModel(BaseMlModel):
             "penalty": penalty,
             "solver": trial.suggest_categorical("solver", ["saga"]),
             "C": trial.suggest_float("C", 1e-5, 100, log=True),
-            "max_iter": trial.suggest_int(
-                "max_iter", 100, 2000
-            ),  # Increased for convergence
+            "max_iter": trial.suggest_int("max_iter", 100, 2000),  # Increased for convergence
             "tol": trial.suggest_float("tol", 1e-6, 1e-3, log=True),
-            "class_weight": trial.suggest_categorical(
-                "class_weight", ["balanced", None]
-            ),
+            "class_weight": trial.suggest_categorical("class_weight", ["balanced", None]),
             "random_state": trial.suggest_categorical("random_state", [28]),
         }
 
@@ -106,9 +104,7 @@ class SVCModel(BaseMlModel):
             "kernel": kernel,
             "C": trial.suggest_float("C", 1e-3, 10, log=True),
             "tol": trial.suggest_float("tol", 1e-4, 1e-2, log=True),
-            "class_weight": trial.suggest_categorical(
-                "class_weight", ["balanced", None]
-            ),
+            "class_weight": trial.suggest_categorical("class_weight", ["balanced", None]),
             "probability": trial.suggest_categorical("probability", [True]),
             "random_state": trial.suggest_categorical("random_state", [28]),
         }
@@ -137,9 +133,7 @@ class SVCModel(BaseMlModel):
             self.model = SVC(**params)
             return self.model
         except Exception as e:
-            self.logger.error(
-                "Failed to create support vector classifier model", error=e
-            )
+            self.logger.error("Failed to create support vector classifier model", error=e)
             raise RuntimeError("Model creation failed") from e
 
 
@@ -170,9 +164,7 @@ class KNNModel(BaseMlModel):
                 "algorithm", ["auto", "ball_tree", "kd_tree", "brute"]
             ),
             "leaf_size": trial.suggest_int("leaf_size", 10, 50),
-            "p": trial.suggest_int(
-                "p", 1, 2
-            ),  # 1 for manhattan_distance, 2 for euclidean_distance
+            "p": trial.suggest_int("p", 1, 2),  # 1 for manhattan_distance, 2 for euclidean_distance
         }
 
         return params
@@ -217,9 +209,7 @@ class NaiveBayesModel(BaseMlModel):
         """
 
         params = {
-            "var_smoothing": trial.suggest_float(
-                "var_smoothing", 1e-10, 1e-8, log=True
-            ),
+            "var_smoothing": trial.suggest_float("var_smoothing", 1e-10, 1e-8, log=True),
         }
 
         return params
@@ -267,20 +257,12 @@ class DecisionTreeModel(BaseMlModel):
             "max_depth": trial.suggest_int("max_depth", 3, 20),
             "min_samples_split": trial.suggest_int("min_samples_split", 2, 20),
             "min_samples_leaf": trial.suggest_int("min_samples_leaf", 1, 10),
-            "max_features": trial.suggest_categorical(
-                "max_features", ["sqrt", "log2", None]
-            ),
-            "class_weight": trial.suggest_categorical(
-                "class_weight", ["balanced", None]
-            ),
+            "max_features": trial.suggest_categorical("max_features", ["sqrt", "log2", None]),
+            "class_weight": trial.suggest_categorical("class_weight", ["balanced", None]),
             "random_state": trial.suggest_categorical("random_state", [28]),
-            "criterion": trial.suggest_categorical(
-                "criterion", ["gini", "entropy", "log_loss"]
-            ),
+            "criterion": trial.suggest_categorical("criterion", ["gini", "entropy", "log_loss"]),
             "splitter": trial.suggest_categorical("splitter", ["best", "random"]),
-            "min_weight_fraction_leaf": trial.suggest_float(
-                "min_weight_fraction_leaf", 0.0, 0.5
-            ),
+            "min_weight_fraction_leaf": trial.suggest_float("min_weight_fraction_leaf", 0.0, 0.5),
             "ccp_alpha": trial.suggest_float("ccp_alpha", 0.0, 1.0),
         }
 
@@ -330,17 +312,13 @@ class RandomForestModel(BaseMlModel):
             "max_depth": trial.suggest_int("max_depth", 3, 20),
             "min_samples_split": trial.suggest_int("min_samples_split", 2, 20),
             "min_samples_leaf": trial.suggest_int("min_samples_leaf", 1, 10),
-            "max_features": trial.suggest_categorical(
-                "max_features", ["sqrt", "log2", None]
-            ),
+            "max_features": trial.suggest_categorical("max_features", ["sqrt", "log2", None]),
             "bootstrap": trial.suggest_categorical("bootstrap", [True, False]),
             "class_weight": trial.suggest_categorical(
                 "class_weight", ["balanced", "balanced_subsample", None]
             ),
             "random_state": trial.suggest_categorical("random_state", [28]),
-            "criterion": trial.suggest_categorical(
-                "criterion", ["gini", "entropy", "log_loss"]
-            ),
+            "criterion": trial.suggest_categorical("criterion", ["gini", "entropy", "log_loss"]),
         }
 
         return params
@@ -401,20 +379,14 @@ class XGBoostModel(BaseMlModel):
         if self.is_multiclass:
             params.update(
                 {
-                    "objective": trial.suggest_categorical(
-                        "objective", ["multi:softmax"]
-                    ),
-                    "num_class": trial.suggest_categorical(
-                        "num_class", [self.num_classes]
-                    ),
+                    "objective": trial.suggest_categorical("objective", ["multi:softmax"]),
+                    "num_class": trial.suggest_categorical("num_class", [self.num_classes]),
                 }
             )
         else:  # For binary classification
             params.update(
                 {
-                    "objective": trial.suggest_categorical(
-                        "objective", ["binary:logistic"]
-                    ),
+                    "objective": trial.suggest_categorical("objective", ["binary:logistic"]),
                 }
             )
 
@@ -461,9 +433,7 @@ class LightGBMModel(BaseMlModel):
 
         params = {
             # Core Parameters
-            "boosting_type": trial.suggest_categorical(
-                "boosting_type", ["gbdt", "dart"]
-            ),
+            "boosting_type": trial.suggest_categorical("boosting_type", ["gbdt", "dart"]),
             "num_leaves": trial.suggest_int("num_leaves", 20, 150),
             "max_depth": trial.suggest_int("max_depth", 3, 12),
             # Learning Parameters
@@ -501,9 +471,7 @@ class LightGBMModel(BaseMlModel):
             params.update(
                 {
                     "objective": trial.suggest_categorical("objective", ["multiclass"]),
-                    "num_class": trial.suggest_categorical(
-                        "num_class", [self.num_classes]
-                    ),
+                    "num_class": trial.suggest_categorical("num_class", [self.num_classes]),
                     "metric": trial.suggest_categorical("metric", ["multi_logloss"]),
                 }
             )
@@ -533,6 +501,115 @@ class LightGBMModel(BaseMlModel):
             return self.model
         except Exception as e:
             self.logger.error("Failed to create LightGBM model", error=e)
+            raise RuntimeError("Model creation failed") from e
+
+
+class MobileNetV3SmallModel(BaseMlModel):
+    """MobileNetV3Small Model.
+    https://www.tensorflow.org/api_docs/python/tf/keras/applications/MobileNetV3Small
+    """
+
+    def __init__(self):
+        """Initialize the MobileNetV3Small model."""
+
+        super().__init__("MobileNetV3 Small Classifier")
+
+    def get_param_space(self, trial: optuna.Trial) -> Dict[str, Any]:
+        """Get the hyperparameter space for the MobileNetV3Small model.
+
+        Args:
+            trial (optuna.Trial): An optuna trial object.
+
+        Returns:
+            Dict[str, Any]: A dictionary containing the hyperparameters.
+        """
+
+        params = {
+            # Model parameters
+            "input_shape": trial.suggest_categorical("input_shape", [(224, 224, 3)]),
+            "weights": trial.suggest_categorical("weights", ["imagenet"]),
+            "minimalistic": trial.suggest_categorical("minimalistic", [False, True]),
+            "include_top": trial.suggest_categorical("include_top", [False]),
+            "dropout_rate": trial.suggest_float("dropout_rate", 0.0, 0.5),
+            # Training parameters
+            "learning_rate": trial.suggest_float("learning_rate", 1e-5, 1e-2, log=True),
+            "batch_size": trial.suggest_categorical("batch_size", [16, 32, 64, 128]),
+            "epochs": trial.suggest_int("epochs", 10, 50),
+            "loss": trial.suggest_categorical("loss", ["sparse_categorical_crossentropy"]),
+            "metrics": trial.suggest_categorical("metrics", [["accuracy"]]),
+            "validation_split": trial.suggest_categorical("validation_split", [0.2]),
+        }
+
+        return params
+
+    def create_model(self, params: Dict[str, Any]) -> tf.keras.Model:
+        """Create a MobileNetV3Small model with the given parameters.
+
+        Args:
+            params (Dict[str, Any]): Parameters for the model.
+
+        Returns:
+            Model: A MobileNetV3Small model.
+        """
+
+        try:
+            self.logger.info("Creating MobileNetV3Small model", params=params)
+
+            base_model = MobileNetV3Small(
+                input_shape=params["input_shape"],
+                weights=params["weights"],
+                minimalistic=params["minimalistic"],
+                include_top=params["include_top"],
+                dropout_rate=params["dropout_rate"],
+            )
+            base_model.trainable = False  # Freeze the base model
+
+            # Add custom layers on top of the base model
+            model = tf.keras.Sequential(
+                [
+                    base_model,
+                    tf.keras.layers.GlobalAveragePooling2D(),
+                    tf.keras.layers.Dropout(params["dropout_rate"]),
+                    tf.keras.layers.Dense(self.num_classes, activation="softmax"),
+                ]
+            )
+
+            model.compile(
+                optimizer=tf.keras.optimizers.Adam(params["learning_rate"]),
+                loss=params["loss"],
+                metrics=params["metrics"],
+            )
+
+            # Override the models fit method
+            original_fit = model.fit
+            original_predict = model.predict
+
+            def custom_fit(x, y, **kwargs):
+                """Custom fit method to handle the training process."""
+
+                return original_fit(
+                    x,
+                    y,
+                    batch_size=params["batch_size"],
+                    epochs=params["epochs"],
+                    validation_split=params["validation_split"],
+                    **kwargs,
+                )
+
+            def custom_predict(x, **kwargs):
+                """Custom predict method to handle the prediction process."""
+
+                # Only return the class with the highest probability
+                return original_predict(x, **kwargs).argmax(axis=1)
+
+            model.fit = custom_fit
+            model.predict = custom_predict
+            model.predict_proba = original_predict
+
+            self.model = model
+            return self.model
+        except Exception as e:
+            self.logger.error("Failed to create MobileNetV3Small model", error=e)
             raise RuntimeError("Model creation failed") from e
 
 
@@ -601,8 +678,7 @@ class EnsembleVotingClassifierModel(BaseMlEnsembleModel):
             ),
             "voting": trial.suggest_categorical("voting", ["hard", "soft"]),
             "weights": [
-                trial.suggest_float(f"weight_{i}", 0.0, 1.0)
-                for i in range(self.num_models)
+                trial.suggest_float(f"weight_{i}", 0.0, 1.0) for i in range(self.num_models)
             ],
         }
 
@@ -624,9 +700,7 @@ class EnsembleVotingClassifierModel(BaseMlEnsembleModel):
             self.model = VotingClassifier(**params)
             return self.model
         except Exception as e:
-            self.logger.error(
-                "Failed to create ensemble voting classifier model", error=e
-            )
+            self.logger.error("Failed to create ensemble voting classifier model", error=e)
             raise RuntimeError("Model creation failed") from e
 
 
@@ -635,9 +709,7 @@ class EnsembleStackingClassifierModel(BaseMlEnsembleModel):
     https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.StackingClassifier.html
     """
 
-    def __init__(
-        self, models: List[Tuple[BaseMlModel, str]], meta_model: BaseMlModel
-    ) -> None:
+    def __init__(self, models: List[Tuple[BaseMlModel, str]], meta_model: BaseMlModel) -> None:
         """Initialize the ensemble stacking classifier model.
 
         Args:
@@ -664,9 +736,7 @@ class EnsembleStackingClassifierModel(BaseMlEnsembleModel):
                 "estimators",
                 [[(model.model_name, model.model) for model, _ in self.models]],
             ),
-            "final_estimator": self.meta_model.create_model(
-                self.meta_model.get_param_space(trial)
-            ),
+            "final_estimator": self.meta_model.create_model(self.meta_model.get_param_space(trial)),
             "stack_method": trial.suggest_categorical("stack_method", ["auto"]),
             "passthrough": trial.suggest_categorical("passthrough", [False, True]),
         }
@@ -684,9 +754,7 @@ class EnsembleStackingClassifierModel(BaseMlEnsembleModel):
         """
 
         try:
-            self.logger.info(
-                "Creating ensemble stacking classifier model", params=params
-            )
+            self.logger.info("Creating ensemble stacking classifier model", params=params)
             stacking_params, meta_params = self._extract_meta_params(params)
 
             # Create meta model
@@ -697,9 +765,7 @@ class EnsembleStackingClassifierModel(BaseMlEnsembleModel):
             self.model = StackingClassifier(**stacking_params)
             return self.model
         except Exception as e:
-            self.logger.error(
-                "Failed to create ensemble stacking classifier model", error=e
-            )
+            self.logger.error("Failed to create ensemble stacking classifier model", error=e)
             raise RuntimeError("Model creation failed") from e
 
     def set_num_classes(self, num_classes: int) -> None:

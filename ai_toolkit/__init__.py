@@ -2,11 +2,14 @@
 Comprehensive toolkit for AI.
 """
 
-__version__ = "0.1"
+import pyfiglet
+
+
+__version__ = "0.1.0"
 __author__ = "Chrissi"
 
 # base
-from ai_toolkit.base.data import BaseDataset, DatasetConfig
+from ai_toolkit.base.data import BaseDataset, DatasetConfig, extract_statistical_features_from_array
 from ai_toolkit.base.models import BaseMlEnsembleModel, BaseMlModel
 from ai_toolkit.base.training import (
     BaseMlTrainer,
@@ -23,6 +26,7 @@ from ai_toolkit.models.classification import (
     KNNModel,
     LightGBMModel,
     LogisticRegressionModel,
+    MobileNetV3SmallModel,
     NaiveBayesModel,
     RandomForestModel,
     SVCModel,
@@ -78,3 +82,21 @@ def get_version() -> str:
     """
 
     return __version__
+
+
+def get_author() -> str:
+    """Get the author of AI-Toolkit.
+
+    Returns:
+        str: The author of AI-Toolkit.
+    """
+
+    return __author__
+
+
+def display_banner() -> None:
+    """Display the banner for AI-Toolkit."""
+
+    print(pyfiglet.figlet_format("AI - TOOLKIT", font="standard"))
+    print(f"Version: {get_version()}")
+    print(f"Author:  {get_author()}")

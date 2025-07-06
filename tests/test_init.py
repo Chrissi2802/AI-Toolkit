@@ -28,6 +28,27 @@ def test_get_version():
     assert isinstance(version, str)
 
 
+def test_get_author():
+    """Test get_author function."""
+
+    # Test that function exists
+    assert hasattr(ai_toolkit, "get_author")
+    assert callable(ai_toolkit.get_author)
+
+    # Test function returns correct author
+    author = ai_toolkit.get_author()
+    assert author == ai_toolkit.__author__
+    assert isinstance(author, str)
+
+
+def test_display_banner():
+    """Test display_banner function."""
+
+    # Test that function exists
+    assert hasattr(ai_toolkit, "display_banner")
+    assert callable(ai_toolkit.display_banner)
+
+
 def test_version_consistency():
     """Test version consistency across different access methods."""
 

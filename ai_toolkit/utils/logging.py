@@ -11,28 +11,20 @@ from typing import Any, Dict, Optional
 class LoggerConfig:
     """Configurations for the logger."""
 
-    NAME: str = field(
-        default="logger", metadata={"description": "The name of the logger."}
-    )
+    NAME: str = field(default="logger", metadata={"description": "The name of the logger."})
     FORMAT: str = field(
         default="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         metadata={"description": "The format of the log message."},
     )
-    LEVEL: int = field(
-        default=logging.WARNING, metadata={"description": "The logging level."}
-    )
+    LEVEL: int = field(default=logging.WARNING, metadata={"description": "The logging level."})
     DIR: str = field(
         default="logs", metadata={"description": "The directory to save the log file."}
     )
-    FILE: str = field(
-        default=".log", metadata={"description": "The name of the log file."}
-    )
+    FILE: str = field(default=".log", metadata={"description": "The name of the log file."})
     ENABLE_CONSOLE: bool = field(
         default=True, metadata={"description": "Whether to log to the console."}
     )
-    ENABLE_FILE: bool = field(
-        default=True, metadata={"description": "Whether to log to the file."}
-    )
+    ENABLE_FILE: bool = field(default=True, metadata={"description": "Whether to log to the file."})
 
     def __post_init__(self) -> None:
         """Post initialization checks for logger configurations."""
@@ -217,9 +209,7 @@ class Logger:
 
         self._log(logging.WARNING, message, **kwargs)
 
-    def error(
-        self, message: str, error: Optional[Exception] = None, **kwargs: Any
-    ) -> None:
+    def error(self, message: str, error: Optional[Exception] = None, **kwargs: Any) -> None:
         """Log error message.
 
         Args:
@@ -230,9 +220,7 @@ class Logger:
 
         self._log(logging.ERROR, message, error, **kwargs)
 
-    def critical(
-        self, message: str, error: Optional[Exception] = None, **kwargs: Any
-    ) -> None:
+    def critical(self, message: str, error: Optional[Exception] = None, **kwargs: Any) -> None:
         """Log critical message.
 
         Args:

@@ -69,7 +69,6 @@ class ClassificationPlots:
     def plot_confusion_matrix(
         y_true: np.ndarray,
         y_pred: np.ndarray,
-        feature_names: List[str],
         title: str = "Confusion Matrix",
         figsize: Tuple[int, int] = (10, 6),
     ) -> plt.Figure:
@@ -78,7 +77,6 @@ class ClassificationPlots:
         Args:
             y_true (np.ndarray): True labels
             y_pred (np.ndarray): Predicted labels
-            feature_names (List[str]): Feature names
             title (str, optional): Plot title. Defaults to "Confusion Matrix".
             figsize (Tuple[int, int], optional): Figure size. Defaults to (10, 6).
 
@@ -90,7 +88,7 @@ class ClassificationPlots:
             ClassificationPlots.logger.debug(
                 "Creating confusion matrix plot",
                 data_shape=y_true.shape,
-                feature_names=feature_names,
+                classes=np.unique(y_true),
                 figsize=figsize,
             )
 
@@ -114,8 +112,8 @@ class ClassificationPlots:
                 ax=ax1,
                 cbar=True,
                 square=True,
-                xticklabels=feature_names,
-                yticklabels=feature_names,
+                xticklabels=np.unique(y_true),
+                yticklabels=np.unique(y_true),
                 linewidths=1,
                 linecolor="gray",
             )
@@ -132,8 +130,8 @@ class ClassificationPlots:
                 ax=ax2,
                 cbar=True,
                 square=True,
-                xticklabels=feature_names,
-                yticklabels=feature_names,
+                xticklabels=np.unique(y_true),
+                yticklabels=np.unique(y_true),
                 linewidths=1,
                 linecolor="gray",
             )
@@ -148,16 +146,12 @@ class ClassificationPlots:
             # Adjust layout
             plt.tight_layout()
 
-            ClassificationPlots.logger.debug(
-                "Confusion matrix plot created successfully"
-            )
+            ClassificationPlots.logger.debug("Confusion matrix plot created successfully")
 
             return fig
 
         except Exception as e:
-            ClassificationPlots.logger.error(
-                "Failed to create confusion matrix plot", error=e
-            )
+            ClassificationPlots.logger.error("Failed to create confusion matrix plot", error=e)
             raise RuntimeError("Plot creation failed") from e
 
 
@@ -260,9 +254,7 @@ class RegressionPlots:
             plt.title(title)
             plt.grid()
 
-            RegressionPlots.logger.debug(
-                "Actual vs predicted scatter plot created successfully"
-            )
+            RegressionPlots.logger.debug("Actual vs predicted scatter plot created successfully")
 
             return fig
 
@@ -283,7 +275,7 @@ class ModelAnalysisPlots:
         importance_scores: np.ndarray,
         feature_names: List[str],
         title: str = "Feature Importance",
-        figsize: Tuple[int, int] = (10, 6),
+        figsize: Tuple[int, int] = (12, 6),
     ) -> plt.Figure:
         """Plot feature importance scores.
 
@@ -328,16 +320,12 @@ class ModelAnalysisPlots:
             plt.title(title)
             plt.tight_layout()
 
-            ModelAnalysisPlots.logger.debug(
-                "Feature importance plot created successfully"
-            )
+            ModelAnalysisPlots.logger.debug("Feature importance plot created successfully")
 
             return fig
 
         except Exception as e:
-            ModelAnalysisPlots.logger.error(
-                "Failed to create feature importance plot", error=e
-            )
+            ModelAnalysisPlots.logger.error("Failed to create feature importance plot", error=e)
             raise RuntimeError("Plot creation failed") from e
 
     @staticmethod
@@ -370,9 +358,7 @@ class ModelAnalysisPlots:
 
             # Check number of features
             if X.shape[1] != len(feature_names):
-                raise ValueError(
-                    "Number of features in X and feature_names do not match."
-                )
+                raise ValueError("Number of features in X and feature_names do not match.")
 
             # Create explainer
             if hasattr(model, "apply"):
@@ -394,16 +380,12 @@ class ModelAnalysisPlots:
 
             # Create figure
             fig = plt.figure(figsize=figsize)
-            shap.summary_plot(
-                shap_values, feature_names, plot_type="violin", show=False
-            )
+            shap.summary_plot(shap_values, feature_names, plot_type="violin", show=False)
             plt.title("SHAP Feature Importance")
             plt.ylabel("Feature")
             plt.tight_layout()
 
-            ModelAnalysisPlots.logger.debug(
-                "SHAP feature importance plot created successfully"
-            )
+            ModelAnalysisPlots.logger.debug("SHAP feature importance plot created successfully")
 
             return fig
 

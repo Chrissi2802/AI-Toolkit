@@ -1,12 +1,14 @@
 # AI-Toolkit
-![Python Version](https://img.shields.io/badge/python-3.10+-blue.svg)
-![Version](https://img.shields.io/badge/version-0.1-blue.svg)
-![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)
+![Python Version](https://img.shields.io/badge/python-3.10+-blue.svg?logo=python)
+![Version](https://img.shields.io/badge/version-0.1.0-blue.svg?logo=semver)
+![License](https://img.shields.io/badge/license-Apache%202.0-D22128.svg?logo=apache)
+![Formatting](https://img.shields.io/badge/black-checked-blue.svg)
 ![Sort Imports](https://img.shields.io/badge/isort-checked-blue.svg)
-![Code Style](https://img.shields.io/badge/flake8-checked-blue.svg)
-![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)
+![Linting](https://img.shields.io/badge/flake8-checked-blue.svg)
+![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg?logo=pytest)
+![Documentation](https://img.shields.io/badge/docs-sphinx-blue.svg?logo=sphinx)
 
-<img src="ai_toolkit_logo.png" width="320" height="180" alt="Logo">
+<img src="./docs/ai_toolkit_logo.png" width="320" height="180" alt="Logo">
 
 A comprehensive Python toolkit for machine learning workflows with a focus on model development, training and evaluation.
 
@@ -51,6 +53,7 @@ A comprehensive Python toolkit for machine learning workflows with a focus on mo
 ### Code Style
 We use:
 - [Visual Studio Code](https://code.visualstudio.com/) for development
+- [black](https://black.readthedocs.io/en/stable/) for code formatting
 - [isort](https://pycqa.github.io/isort/) for import sorting
 - [flake8](https://flake8.pycqa.org/en/latest/) for linting
 - [pytest](https://docs.pytest.org/en/stable/) for testing
@@ -102,6 +105,9 @@ pip install -r requirements-dev.txt
 
 ### 🧪 Tests
 ```bash
+# Formatting
+black .
+
 # Import sorting
 isort .
 
@@ -123,6 +129,8 @@ pytest tests/test_utils/
 ### Classification
 [classification examples](examples/classification_examples.ipynb)
 
+[classification tensorflow examples](examples/classification_tf_examples.ipynb)
+
 ### Regression
 [regression examples](examples/regression_examples.ipynb)
 
@@ -131,6 +139,7 @@ pytest tests/test_utils/
 #### Data
 - DatasetConfig
 - BaseDataset
+- extract_statistical_features_from_array
 
 #### Models
 - BaseMlModel
@@ -152,6 +161,7 @@ pytest tests/test_utils/
 - [Decision Tree Classifier](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestClassifier.html)
 - [XGBoost Classifier](https://xgboost.readthedocs.io/en/stable/parameter.html)
 - [LightGBM Classifier](https://lightgbm.readthedocs.io/en/latest/Parameters.html)
+- [MobileNetV3Small Classifier](https://www.tensorflow.org/api_docs/python/tf/keras/applications/MobileNetV3Small)
 - get_all_classification_models
 
 Ensembles
@@ -197,7 +207,7 @@ Ensembles
 - RegressionPlots
 - ModelAnalysisPlots
 
-### Structure
+### 📁 Project Structure
 ```bash
 AI-Toolkit/
 ├── .git/
@@ -226,12 +236,21 @@ AI-Toolkit/
 │        ├── logging.py
 │        └── visualization.py
 ├── docs/
+│   ├── build/
+│   │   └── ...
+│   ├── source/
+│   │   └── ...
+│   ├── ai_toolkit_logo.png
 │   ├── classes.svg
+│   ├── make.bat
+│   ├── Makefile
 │   └── packages.svg
 ├── examples/
 │   ├── classification_example.ipynb
 │   └── regression_example.ipynb
 ├── logs/
+│   └── ...
+├── mlruns/
 │   └── ...
 ├── tests/
 │   ├── __init__.py
@@ -248,7 +267,7 @@ AI-Toolkit/
 ├── .env
 ├── .flake8
 ├── .gitignore
-├── ai_toolkit_logo.png
+├── CODE_OF_CONDUCT.md
 ├── CONTRIBUTING.md
 ├── LICENSE
 ├── pyproject.toml
@@ -266,6 +285,27 @@ The [docs](docs) contain diagrams that show the class structure and package depe
 pyreverse -o svg -d .\docs .\ai_toolkit\
 ```
 
+### Sphinx Documentation 
+The documentation is generated using Sphinx. To build the documentation, follow these steps:
+```bash
+# Navigate to the docs folder
+cd docs
+
+# If you want to create a clean new documentation
+sphinx-quickstart
+
+# Setup the documentation structure
+sphinx-apidoc -o source/ ../ai_toolkit/
+
+# Clean the documentation
+.\make.bat clean
+
+# Build the documentation
+.\make.bat html
+```
+
+You can view the generated documentation by opening the `docs/build/html/index.html` file in your web browser.
+
 ## 📝 License
 This project is licensed under the Apache 2.0 licence - see [LICENSE](LICENSE) file for details.
 
@@ -274,4 +314,4 @@ Chrissi - [GitHub](https://github.com/Chrissi2802)
 
 ### 🤝 Contributing
 Contributions are very welcome! 😊
-Please check out the [Contributing guidelines](CONTRIBUTING.md).
+Please check out the [Contributing guidelines](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md) for more information.

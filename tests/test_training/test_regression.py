@@ -89,9 +89,7 @@ class TestRegressionModelTrainer:
         assert mock_mlflow["log_metric"].called
         assert mock_mlflow["log_table"].called
 
-    def test_prediction(
-        self, regression_data_pd: Tuple[pd.DataFrame, pd.Series], simple_model
-    ):
+    def test_prediction(self, regression_data_pd: Tuple[pd.DataFrame, pd.Series], simple_model):
         """Test prediction functionality.
 
         Args:
@@ -215,9 +213,7 @@ class TestRegressionModelTrainer:
         assert isinstance(metrics[optimize_metric], float)
         assert metrics[optimize_metric] > 0
 
-    def test_error_handling(
-        self, regression_data_pd: Tuple[pd.DataFrame, pd.Series], simple_model
-    ):
+    def test_error_handling(self, regression_data_pd: Tuple[pd.DataFrame, pd.Series], simple_model):
         """Test error handling in trainer.
 
         Args:
@@ -280,9 +276,7 @@ def test_lazypredict_regression(regression_data_pd: Tuple[pd.DataFrame, pd.Serie
 
 
 @pytest.mark.integration
-def test_full_training_pipeline(
-    regression_data_pd: Tuple[pd.DataFrame, pd.Series], simple_model
-):
+def test_full_training_pipeline(regression_data_pd: Tuple[pd.DataFrame, pd.Series], simple_model):
     """Integration test for full regression pipeline.
 
     Args:

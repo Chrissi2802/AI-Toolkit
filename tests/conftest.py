@@ -102,7 +102,7 @@ def regression_data() -> Tuple[np.ndarray, np.ndarray]:
 
 @pytest.fixture
 def classification_data_pd(
-    classification_data: Tuple[np.ndarray, np.ndarray]
+    classification_data: Tuple[np.ndarray, np.ndarray],
 ) -> Tuple[pd.DataFrame, pd.Series]:
     """Create synthetic classification data as pandas DataFrame and Series.
 
@@ -122,7 +122,7 @@ def classification_data_pd(
 
 @pytest.fixture
 def regression_data_pd(
-    regression_data: Tuple[np.ndarray, np.ndarray]
+    regression_data: Tuple[np.ndarray, np.ndarray],
 ) -> Tuple[pd.DataFrame, pd.Series]:
     """Create synthetic regression data as pandas DataFrame and Series.
 
@@ -142,7 +142,7 @@ def regression_data_pd(
 
 @pytest.fixture
 def classification_predictions(
-    classification_data: Tuple[np.ndarray, np.ndarray]
+    classification_data: Tuple[np.ndarray, np.ndarray],
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Create synthetic classification predictions.
 
@@ -170,7 +170,7 @@ def classification_predictions(
 
 @pytest.fixture
 def regression_predictions(
-    regression_data: Tuple[np.ndarray, np.ndarray]
+    regression_data: Tuple[np.ndarray, np.ndarray],
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Create synthetic regression predictions.
 
@@ -244,9 +244,7 @@ def mock_mlflow_experiment():
     """Mock MLflow set_experiment function."""
 
     with patch("mlflow.set_experiment") as mock_set_experiment:
-        with patch(
-            "mlflow.get_experiment_by_name", return_value=Mock(experiment_id="0")
-        ):
+        with patch("mlflow.get_experiment_by_name", return_value=Mock(experiment_id="0")):
             with patch("mlflow.set_tracking_uri"):  # Prevents connection attempts
                 yield mock_set_experiment
 

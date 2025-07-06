@@ -1,13 +1,14 @@
 from abc import ABC
 from dataclasses import dataclass, field
 from operator import gt, lt
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable, Dict, List, Union
 
 import mlflow
 import numpy as np
 import pandas as pd
+import tensorflow as tf
 from mlflow.models.signature import ModelSignature
-from mlflow.types.schema import ColSpec, Schema
+from mlflow.types.schema import ColSpec, Schema, TensorSpec
 
 from ai_toolkit.base.models import BaseMlModel
 from ai_toolkit.utils.evaluation import CrossValidationMetrics
@@ -20,9 +21,7 @@ class MetricConfig:
 
     DIRECTION: str = field(
         default="maximize",
-        metadata={
-            "description": "Direction of optuna optimization: maximize or minimize."
-        },
+        metadata={"description": "Direction of optuna optimization: maximize or minimize."},
     )
     INITIAL_SCORE: float = field(
         default=float("-inf"),
@@ -39,9 +38,7 @@ class MetricConfig:
         if self.DIRECTION not in ["maximize", "minimize"]:
             raise ValueError("DIRECTION must be 'maximize' or 'minimize'")
 
-        if self.INITIAL_SCORE is not None and not isinstance(
-            self.INITIAL_SCORE, (int, float)
-        ):
+        if self.INITIAL_SCORE is not None and not isinstance(self.INITIAL_SCORE, (int, float)):
             raise ValueError("INITIAL_SCORE must be a number")
 
         if not callable(self.BETTER_SCORE):
@@ -207,24 +204,18 @@ def get_default_metric_configs() -> Dict[str, MetricConfig]:
 class MlTrainerConfig:
     """Configuration for ML training."""
 
-    N_SPLITS: int = field(
-        default=5, metadata={"description": "Number of cross-validation splits."}
-    )
+    N_SPLITS: int = field(default=5, metadata={"description": "Number of cross-validation splits."})
     RANDOM_STATE: int = field(
         default=28, metadata={"description": "Random state for reproducibility."}
     )
-    N_TRAILS: int = field(
-        default=100, metadata={"description": "Number of optimization trials."}
-    )
+    N_TRAILS: int = field(default=100, metadata={"description": "Number of optimization trials."})
     EXPERIMENT_NAME: str = field(
         default="ml_classification",
         metadata={"description": "Name of the MLflow experiment to log results."},
     )
     OPTIMIZE_METRIC: str = field(
         default="f1",
-        metadata={
-            "description": "Metric to optimize during hyperparameter optimization."
-        },
+        metadata={"description": "Metric to optimize during hyperparameter optimization."},
     )
     USE_SMOTE: bool = field(
         default=True,
@@ -351,9 +342,7 @@ class BaseMlTrainer(ABC):
             }
         )
 
-        mlflow.log_table(
-            data=pd.DataFrame(self.feature_names), artifact_file="feature_names.json"
-        )
+        mlflow.log_table(data=pd.DataFrame(self.feature_names), artifact_file="feature_names.json")
 
     def _log_final_metrics(self, metrics_stats: Dict[str, Dict[str, float]]) -> None:
         """Log stats of all metrics across all folds.
@@ -382,14 +371,14 @@ class BaseMlTrainer(ABC):
         self,
         all_metrics: List[Dict[str, float]],
         all_predictions: Dict[str, np.ndarray],
-        X_array: np.ndarray,
+        X_array: Union[np.ndarray, tf.Tensor],
     ) -> Dict[str, float]:
         """Log final results and save in MLflow.
 
         Args:
             all_metrics (List[Dict[str, float]]): All metrics across all folds.
             all_predictions (Dict[str, np.ndarray]): All predictions across all folds.
-            X_array (np.ndarray): Feature matrix.
+            X_array Union[np.ndarray, tf.Tensor]: Feature matrix.
 
         Returns:
             Dict[str, float]: Mean metrics across all folds.
@@ -397,9 +386,7 @@ class BaseMlTrainer(ABC):
 
         all_metrics_stats = CrossValidationMetrics.aggregate_cv_metrics(all_metrics)
 
-        mean_metrics = {
-            metric: values["mean"] for metric, values in all_metrics_stats.items()
-        }
+        mean_metrics = {metric: values["mean"] for metric, values in all_metrics_stats.items()}
 
         self._log_final_metrics(all_metrics_stats)
 
@@ -423,22 +410,52 @@ class BaseMlTrainer(ABC):
             artifact_file="predictions.json",
         )
 
-        # Create and log model signature
-        signature = ModelSignature(
-            inputs=Schema([ColSpec("double", name) for name in self.feature_names]),
-            outputs=Schema([ColSpec("double", "target")]),
-        )
+        output_schema = Schema([ColSpec("double", "target")])
 
         # Create input example
-        input_example = pd.DataFrame(X_array[:5], columns=self.feature_names)
+        if isinstance(X_array, np.ndarray):
+            # Create model signature
+            signature = ModelSignature(
+                inputs=Schema([ColSpec("double", name) for name in self.feature_names]),
+                outputs=output_schema,
+            )
 
-        # Log the best model
-        mlflow.sklearn.log_model(
-            self.best_model,
-            "model",
-            signature=signature,
-            input_example=input_example,
-        )
+            # Create input example
+            input_example = pd.DataFrame(X_array[:5], columns=self.feature_names)
+
+            # Log the best model
+            mlflow.sklearn.log_model(
+                self.best_model,
+                "model",
+                signature=signature,
+                input_example=input_example,
+            )
+        elif isinstance(X_array, tf.Tensor):
+            # Create model signature
+            signature = ModelSignature(
+                inputs=Schema(
+                    [
+                        TensorSpec(
+                            shape=(-1,) + tuple(X_array.shape[1:].as_list()),
+                            type=np.dtype(X_array.dtype.as_numpy_dtype),
+                            name=self.best_model.input_names[0],
+                        )
+                    ]
+                ),
+                outputs=output_schema,
+            )
+
+            # Create input example
+            input_example = X_array[:5].numpy()
+
+            # Log the best model
+            mlflow.tensorflow.log_model(
+                self.best_model,
+                "model",
+                signature=signature,
+                input_example=input_example,
+                keras_model_kwargs={"save_format": "tf", "save_traces": True},
+            )
 
         # Log best_params
         mlflow.log_table(
@@ -485,6 +502,32 @@ class BaseMlTrainer(ABC):
         # Models with no feature importance
         else:
             return None
+
+    def array_indexing(
+        self,
+        data: Union[np.ndarray, tf.Tensor],
+        indices: Union[np.ndarray, tf.Tensor, list],
+    ) -> Union[np.ndarray, tf.Tensor]:
+        """Flexibly indexing either NumPy arrays or TensorFlow tensors.
+
+        Args:
+            data (Union[np.ndarray, tf.Tensor]):
+                Input data as either NumPy array or TensorFlow tensor
+            indices (Union[np.ndarray, tf.Tensor, list]): Indices to use for indexing
+
+        Returns:
+            Union[np.ndarray, tf.Tensor]:  Indexed data in the same format as input
+        """
+
+        if isinstance(data, np.ndarray):
+            # Convert indices to numpy array if needed
+            return data[indices]
+
+        elif isinstance(data, tf.Tensor):
+            # Convert indices to tensorflow tensor if needed
+            if not isinstance(indices, tf.Tensor):
+                indices = tf.convert_to_tensor(indices, dtype=tf.int32)
+            return tf.gather(data, indices)
 
 
 if __name__ == "__main__":

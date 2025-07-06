@@ -88,9 +88,7 @@ class BaseMlModel(ABC):
 
             # Create a new study and trial to get the parameter space
             study = optuna.create_study(study_name="Get best parameters from MLflow")
-            trail = optuna.trial.Trial(
-                study, study._storage.create_new_trial(study._study_id)
-            )
+            trail = optuna.trial.Trial(study, study._storage.create_new_trial(study._study_id))
 
             # Get the parameter space for the model
             model_params = self.get_param_space(trail).keys()
@@ -103,16 +101,12 @@ class BaseMlModel(ABC):
                 if key in model_params
             }
 
-            self.logger.info(
-                "Loaded best parameters", run_id=run_id, params=best_params
-            )
+            self.logger.info("Loaded best parameters", run_id=run_id, params=best_params)
 
             return best_params
 
         except Exception as e:
-            self.logger.error(
-                "Failed to load MLflow parameters", error=e, run_id=run_id
-            )
+            self.logger.error("Failed to load MLflow parameters", error=e, run_id=run_id)
             raise RuntimeError("Failed to load parameters from MLflow") from e
 
     def set_num_classes(self, num_classes: int) -> None:
@@ -198,9 +192,7 @@ class BaseMlEnsembleModel(BaseMlModel):
 
         return params
 
-    def _extract_meta_params(
-        self, params: Dict[str, Any]
-    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    def _extract_meta_params(self, params: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         """Extract stacking and meta parameters from the whole parameter dictionary.
 
         Args:

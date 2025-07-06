@@ -107,9 +107,7 @@ class RegressionModelTrainer(BaseMlTrainer):
             mlflow.log_figure(fi_fig, f"fold_{fold}_feature_importance.png")
             plt.close(fi_fig)
 
-    def _optimize_objective(
-        self, trial: optuna.Trial, X: np.ndarray, y: np.ndarray
-    ) -> float:
+    def _optimize_objective(self, trial: optuna.Trial, X: np.ndarray, y: np.ndarray) -> float:
         """Optimize objective function for Optuna hyperparameter search.
 
         Args:
@@ -128,14 +126,14 @@ class RegressionModelTrainer(BaseMlTrainer):
             model = self.base_model.create_model(params)
 
             # Cross-validation evaluation
-            kf = KFold(
-                n_splits=self.n_splits, shuffle=True, random_state=self.random_state
-            )
+            kf = KFold(n_splits=self.n_splits, shuffle=True, random_state=self.random_state)
             scores = []
 
             for fold, (train_idx, val_idx) in enumerate(kf.split(X)):
-                X_train, X_val = X[train_idx], X[val_idx]
-                y_train, y_val = y[train_idx], y[val_idx]
+                X_train = self.array_indexing(X, train_idx)
+                X_val = self.array_indexing(X, val_idx)
+                y_train = self.array_indexing(y, train_idx)
+                y_val = self.array_indexing(y, val_idx)
 
                 model.fit(X_train, y_train)
                 y_pred = model.predict(X_val)
@@ -144,9 +142,7 @@ class RegressionModelTrainer(BaseMlTrainer):
                 metrics = RegressionMetrics.calculate_basic_metrics(y_val, y_pred)
                 scores.append(metrics[self.optimize_metric])
 
-                self.logger.debug(
-                    f"Fold {fold+1} score: {metrics[self.optimize_metric]:.4f}"
-                )
+                self.logger.debug(f"Fold {fold+1} score: {metrics[self.optimize_metric]:.4f}")
 
             mean_score = np.mean(scores)
 
@@ -161,6 +157,62 @@ class RegressionModelTrainer(BaseMlTrainer):
         except Exception as e:
             self.logger.error("Trial failed", trial_number=trial.number, error=e)
             raise RuntimeError("Optimization trial failed") from e
+
+    def _track_best_model(
+        self,
+        X_val: np.ndarray,
+        y_val: np.ndarray,
+        y_pred: np.ndarray,
+        fold: int,
+    ) -> None:
+        """Track the best model and log relevant information.
+
+        Args:
+            X_val (np.ndarray): Validation feature matrix
+            y_val (np.ndarray): Validation target vector
+            y_pred (np.ndarray): Predicted labels
+            fold (int): Fold number
+        """
+
+        # Log best model plots
+        mlflow.log_metric("best_score", self.best_score)
+
+        # Create and log plots for residuals
+        residuals_fig = RegressionPlots.plot_residuals(
+            y_val, y_pred, f"Residual Analysis - Best Model Fold: {fold}"
+        )
+        mlflow.log_figure(residuals_fig, "best_residuals.png")
+        plt.close(residuals_fig)
+
+        # Create and log plots for prediction scatter
+        scatter_fig = RegressionPlots.plot_prediction_scatter(
+            y_val, y_pred, f"Actual vs Predicted - Best Model Fold: {fold}"
+        )
+        mlflow.log_figure(scatter_fig, "best_scatter.png")
+        plt.close(scatter_fig)
+
+        # Calculate feature importance
+        importance_scores = self._calc_feature_importance(self.best_model)
+
+        if importance_scores is not None:
+            # Create and log plot for feature importance
+            fi_fig = ModelAnalysisPlots.plot_feature_importance(
+                importance_scores,
+                self.feature_names,
+                f"Feature Importance - Best Model Fold: {fold}",
+            )
+            mlflow.log_figure(fi_fig, "best_feature_importance.png")
+            plt.close(fi_fig)
+
+        if isinstance(X_val, np.ndarray):
+            # Create and log plot for SHAP values
+            shap_fig = ModelAnalysisPlots.plot_shapley_values(
+                self.best_model,
+                X_val,
+                self.feature_names,
+            )
+            mlflow.log_figure(shap_fig, "best_shap_values.png")
+            plt.close(shap_fig)
 
     def train_and_optimize(
         self,
@@ -179,13 +231,15 @@ class RegressionModelTrainer(BaseMlTrainer):
             Tuple[Any, Dict[str, float]]: Best model and mean metrics
         """
 
-        with mlflow.start_run(
-            run_name=f"{self.base_model.model_name}_{datetime.now()}"
-        ):
-
+        with mlflow.start_run(run_name=f"{self.base_model.model_name}_{datetime.now()}"):
             # Store feature names and convert to numpy arrays
-            self.feature_names = list(X.columns)
-            X_array = X.values
+            if isinstance(X, pd.DataFrame):
+                self.feature_names = list(X.columns)
+                X_array = X.values
+            else:
+                self.feature_names = [f"feature_{i}" for i in range(X.shape[1])]
+                X_array = X
+
             y_array = y.values
 
             # Log information
@@ -212,25 +266,34 @@ class RegressionModelTrainer(BaseMlTrainer):
             mlflow.log_params({k: v for k, v in study.best_params.items()})
 
             # Cross-validation evaluation
-            kf = KFold(
-                n_splits=self.n_splits, shuffle=True, random_state=self.random_state
-            )
+            kf = KFold(n_splits=self.n_splits, shuffle=True, random_state=self.random_state)
             all_metrics = []
             all_predictions = {}
 
             for fold, (train_idx, val_idx) in enumerate(
                 tqdm(kf.split(X_array), total=self.n_splits, desc="Cross-validation")
             ):
-                X_train, X_val = X_array[train_idx], X_array[val_idx]
-                y_train, y_val = y_array[train_idx], y_array[val_idx]
+                X_train = self.array_indexing(X_array, train_idx)
+                X_val = self.array_indexing(X_array, val_idx)
+                y_train = self.array_indexing(y_array, train_idx)
+                y_val = self.array_indexing(y_array, val_idx)
 
                 # Create and train model
                 model = self.base_model.create_model(self.base_model.best_params)
-                X_train_df = pd.DataFrame(X_train, columns=self.feature_names)
+
+                # Check and convert to DataFrame if necessary
+                if X_train.ndim == 2:
+                    X_train_df = pd.DataFrame(X_train, columns=self.feature_names)
+                    X_val_df = pd.DataFrame(X_val, columns=self.feature_names)
+                else:
+                    # X_train.ndim > 2
+                    X_train_df = X_train
+                    X_val_df = X_val
+
+                # Fit the model
                 model.fit(X_train_df, y_train)
 
                 # Make predictions
-                X_val_df = pd.DataFrame(X_val, columns=self.feature_names)
                 y_pred = model.predict(X_val_df)
 
                 # Store predictions
@@ -250,48 +313,14 @@ class RegressionModelTrainer(BaseMlTrainer):
                     self.best_score = metrics[self.optimize_metric]
                     self.best_model = model
 
-                    # Log best model plots
-                    mlflow.log_metric("best_score", self.best_score)
-
-                    # Create and log plots for residuals
-                    residuals_fig = RegressionPlots.plot_residuals(
-                        y_val, y_pred, f"Residual Analysis - Best Model Fold: {fold}"
+                    self._track_best_model(
+                        X_val=X_val,
+                        y_val=y_val,
+                        y_pred=y_pred,
+                        fold=fold,
                     )
-                    mlflow.log_figure(residuals_fig, "best_residuals.png")
-                    plt.close(residuals_fig)
 
-                    # Create and log plots for prediction scatter
-                    scatter_fig = RegressionPlots.plot_prediction_scatter(
-                        y_val, y_pred, f"Actual vs Predicted - Best Model Fold: {fold}"
-                    )
-                    mlflow.log_figure(scatter_fig, "best_scatter.png")
-                    plt.close(scatter_fig)
-
-                    # Calculate feature importance
-                    importance_scores = self._calc_feature_importance(self.best_model)
-
-                    if importance_scores is not None:
-                        # Create and log plot for feature importance
-                        fi_fig = ModelAnalysisPlots.plot_feature_importance(
-                            importance_scores,
-                            self.feature_names,
-                            f"Feature Importance - Best Model Fold: {fold}",
-                        )
-                        mlflow.log_figure(fi_fig, "best_feature_importance.png")
-                        plt.close(fi_fig)
-
-                    # Create and log plot for SHAP values
-                    shap_fig = ModelAnalysisPlots.plot_shapley_values(
-                        self.best_model,
-                        X_val,
-                        self.feature_names,
-                    )
-                    mlflow.log_figure(shap_fig, "best_shap_values.png")
-                    plt.close(shap_fig)
-
-            mean_metrics = self._log_final_results(
-                all_metrics, all_predictions, X_array
-            )
+            mean_metrics = self._log_final_results(all_metrics, all_predictions, X_array)
 
             return self.best_model, mean_metrics
 
@@ -309,9 +338,7 @@ class RegressionModelTrainer(BaseMlTrainer):
             self.logger.info("Making predictions", X_shape=X.shape)
 
             if self.best_model is None:
-                raise ValueError(
-                    "No model trained yet. Please call train_and_optimize first."
-                )
+                raise ValueError("No model trained yet. Please call train_and_optimize first.")
 
             y_pred = self.best_model.predict(X)
 
@@ -391,9 +418,7 @@ def lazypredict_regression(
         ).sort_values("Adjusted R-Squared", ascending=False)
 
         # Add standard deviation of R-Squared as additional information
-        ar2_std = (
-            all_results.groupby(all_results.index)["Adjusted R-Squared"].std().round(4)
-        )
+        ar2_std = all_results.groupby(all_results.index)["Adjusted R-Squared"].std().round(4)
         mean_results["Adjusted R-Squared Std"] = ar2_std
 
         logger.info(

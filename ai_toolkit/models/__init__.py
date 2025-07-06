@@ -9,6 +9,7 @@ from ai_toolkit.models.classification import (
     KNNModel,
     LightGBMModel,
     LogisticRegressionModel,
+    MobileNetV3SmallModel,
     NaiveBayesModel,
     RandomForestModel,
     SVCModel,

@@ -89,9 +89,7 @@ class TestLogger:
     def test_console_handler(self):
         """Test console handler setup."""
 
-        config = LoggerConfig(
-            NAME="test_logger", ENABLE_CONSOLE=True, ENABLE_FILE=False
-        )
+        config = LoggerConfig(NAME="test_logger", ENABLE_CONSOLE=True, ENABLE_FILE=False)
         logger = Logger(config)
 
         handlers = logger.logger.handlers
@@ -167,9 +165,7 @@ class TestLogger:
         assert data["context"] == {"test_key": "test_value"}
 
         # Test with extra
-        message = logger._format_message(
-            "test message", "INFO", {"extra_key": "extra_value"}
-        )
+        message = logger._format_message("test message", "INFO", {"extra_key": "extra_value"})
         data = json.loads(message)
         assert data["extra"] == {"extra_key": "extra_value"}
 
@@ -196,8 +192,7 @@ class TestLogger:
         with open(log_file, "r", encoding="utf-8") as f:
             content = f.read()
             assert all(
-                level in content
-                for level in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+                level in content for level in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
             )
 
     def test_error_logging(self):
@@ -207,9 +202,7 @@ class TestLogger:
         try:
             raise ValueError("Test error")
         except Exception as e:
-            message = logger._format_message(
-                "Error occurred", "ERROR", {"error": str(e)}
-            )
+            message = logger._format_message("Error occurred", "ERROR", {"error": str(e)})
             data = json.loads(message)
             assert "error" in data["extra"]
             assert data["extra"]["error"] == "Test error"
@@ -310,9 +303,7 @@ def test_get_logger():
     assert logger.logger.name == "test_logger"
 
     # Test with custom config
-    logger = get_logger(
-        "test_logger", LEVEL=logging.DEBUG, ENABLE_CONSOLE=False, ENABLE_FILE=False
-    )
+    logger = get_logger("test_logger", LEVEL=logging.DEBUG, ENABLE_CONSOLE=False, ENABLE_FILE=False)
     assert logger.logger.level == logging.DEBUG
     assert len(logger.logger.handlers) == 0
 

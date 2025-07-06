@@ -23,9 +23,7 @@ def mock_shap():
                 # Configure mocks with proper numpy arrays
                 mock_values = np.random.randn(100, 5).astype(np.float32)
                 mock_tree_explainer.return_value.shap_values.return_value = mock_values
-                mock_kernel_explainer.return_value.shap_values.return_value = (
-                    mock_values
-                )
+                mock_kernel_explainer.return_value.shap_values.return_value = mock_values
 
                 # Configure summary_plot to do nothing
                 mock_summary_plot.return_value = None
@@ -40,9 +38,7 @@ def mock_shap():
 class TestClassificationPlots:
     """Test suite for ClassificationPlots."""
 
-    def test_roc_curve(
-        self, classification_predictions: Tuple[np.ndarray, np.ndarray, np.ndarray]
-    ):
+    def test_roc_curve(self, classification_predictions: Tuple[np.ndarray, np.ndarray, np.ndarray]):
         """Test ROC curve plotting.
 
         Args:
@@ -52,9 +48,7 @@ class TestClassificationPlots:
 
         y_true, _, y_pred_proba = classification_predictions
 
-        fig = ClassificationPlots.plot_roc_curve(
-            y_true, y_pred_proba[:, 1], "Test ROC Curve"
-        )
+        fig = ClassificationPlots.plot_roc_curve(y_true, y_pred_proba[:, 1], "Test ROC Curve")
 
         # Test figure properties
         assert isinstance(fig, Figure)
@@ -83,19 +77,14 @@ class TestClassificationPlots:
         """
 
         y_true, y_pred, _ = classification_predictions
-        feature_names = [f"feature_{i}" for i in range(0, np.unique(y_true).size)]
 
-        fig = ClassificationPlots.plot_confusion_matrix(
-            y_true, y_pred, feature_names, "Test Confusion Matrix"
-        )
+        fig = ClassificationPlots.plot_confusion_matrix(y_true, y_pred, "Test Confusion Matrix")
 
         # Test figure properties
         assert isinstance(fig, Figure)
 
         # Count main subplot axes (excluding colorbars)
-        main_axes = [
-            ax for ax in fig.axes if not ax.get_label().startswith("<colorbar>")
-        ]
+        main_axes = [ax for ax in fig.axes if not ax.get_label().startswith("<colorbar>")]
         assert len(main_axes) == 2
 
         # Test titles and labels
@@ -111,7 +100,6 @@ class TestClassificationPlots:
         """Test different plot sizes."""
 
         y_true, y_pred, y_pred_proba = classification_predictions
-        feature_names = [f"feature_{i}" for i in range(0, np.unique(y_true).size)]
 
         # Test ROC curve
         fig = ClassificationPlots.plot_roc_curve(
@@ -124,7 +112,7 @@ class TestClassificationPlots:
 
         # Test confusion matrix
         fig = ClassificationPlots.plot_confusion_matrix(
-            y_true, y_pred, feature_names, "Test Confusion Matrix", figsize=figsize
+            y_true, y_pred, "Test Confusion Matrix", figsize=figsize
         )
         size_inches = fig.get_size_inches()
         assert np.allclose(size_inches, figsize)
@@ -158,9 +146,7 @@ class TestRegressionPlots:
         # Clean up
         plt.close(fig)
 
-    def test_prediction_scatter(
-        self, regression_predictions: Tuple[np.ndarray, np.ndarray]
-    ):
+    def test_prediction_scatter(self, regression_predictions: Tuple[np.ndarray, np.ndarray]):
         """Test prediction scatter plot.
 
         Args:
@@ -169,9 +155,7 @@ class TestRegressionPlots:
 
         y_true, y_pred = regression_predictions
 
-        fig = RegressionPlots.plot_prediction_scatter(
-            y_true, y_pred, "Test Scatter Plot"
-        )
+        fig = RegressionPlots.plot_prediction_scatter(y_true, y_pred, "Test Scatter Plot")
 
         # Test figure properties
         assert isinstance(fig, Figure)
@@ -196,9 +180,7 @@ class TestRegressionPlots:
         y_true, y_pred = regression_predictions
 
         # Test residual plot
-        fig = RegressionPlots.plot_residuals(
-            y_true, y_pred, "Test Residual Plot", figsize=figsize
-        )
+        fig = RegressionPlots.plot_residuals(y_true, y_pred, "Test Residual Plot", figsize=figsize)
         size_inches = fig.get_size_inches()
         assert np.allclose(size_inches, figsize)
         plt.close(fig)
@@ -243,9 +225,7 @@ class TestModelAnalysisPlots:
         # Clean up
         plt.close(fig)
 
-    def test_feature_importance_sorting(
-        self, feature_importance_data: Tuple[np.ndarray, list]
-    ):
+    def test_feature_importance_sorting(self, feature_importance_data: Tuple[np.ndarray, list]):
         """Test feature importance sorting.
 
         Args:
@@ -400,9 +380,7 @@ class TestModelAnalysisPlots:
         mock_model = TreeModel()
         X = np.random.randn(100, len(feature_names)).astype(np.float32)
 
-        fig = ModelAnalysisPlots.plot_shapley_values(
-            mock_model, X, feature_names, figsize=figsize
-        )
+        fig = ModelAnalysisPlots.plot_shapley_values(mock_model, X, feature_names, figsize=figsize)
         size_inches = fig.get_size_inches()
         assert np.allclose(size_inches, figsize)
         plt.close(fig)
@@ -440,9 +418,7 @@ def test_plot_style_consistency():
             # Create all types of plots
             plots = [
                 ClassificationPlots.plot_roc_curve(y_true, y_pred_proba, "ROC"),
-                ClassificationPlots.plot_confusion_matrix(
-                    y_true, y_pred, feature_names, "Confusion"
-                ),
+                ClassificationPlots.plot_confusion_matrix(y_true, y_pred, "Confusion"),
                 RegressionPlots.plot_residuals(y_true, y_pred, "Residuals"),
                 RegressionPlots.plot_prediction_scatter(y_true, y_pred, "Scatter"),
                 ModelAnalysisPlots.plot_feature_importance(
@@ -484,7 +460,7 @@ def test_plot_style_consistency():
         (ClassificationPlots.plot_roc_curve, (np.array([]), np.array([]), "Empty")),
         (
             ClassificationPlots.plot_confusion_matrix,
-            (np.array([]), np.array([]), [], "Empty"),
+            (np.array([]), np.array([]), "Empty"),
         ),
         (RegressionPlots.plot_residuals, (np.array([]), np.array([]), "Empty")),
         (

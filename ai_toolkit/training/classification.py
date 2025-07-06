@@ -72,11 +72,7 @@ class ClassificationModelTrainer(BaseMlTrainer):
 
         super()._log_dataset_info(X, y)
 
-        params = {
-            "class_distribution": str(
-                pd.Series(y).value_counts().sort_index().to_dict()
-            )
-        }
+        params = {"class_distribution": str(pd.Series(y).value_counts().sort_index().to_dict())}
 
         if len(np.unique(y)) == 2:
             params["class_ratio"] = f"{np.bincount(y)[0]}/{np.bincount(y)[1]}"
@@ -120,7 +116,6 @@ class ClassificationModelTrainer(BaseMlTrainer):
         cm_fig = ClassificationPlots.plot_confusion_matrix(
             y_true,
             y_pred,
-            self.feature_names,
             f"Confusion Matrix - Fold: {fold}",
         )
         mlflow.log_figure(cm_fig, f"fold_{fold}_confusion_matrix.png")
@@ -139,9 +134,7 @@ class ClassificationModelTrainer(BaseMlTrainer):
             mlflow.log_figure(fi_fig, f"fold_{fold}_feature_importance.png")
             plt.close(fi_fig)
 
-    def _optimize_objective(
-        self, trial: optuna.Trial, X: np.ndarray, y: np.ndarray
-    ) -> float:
+    def _optimize_objective(self, trial: optuna.Trial, X: np.ndarray, y: np.ndarray) -> float:
         """Optimize objective function for Optuna hyperparameter search.
 
         Args:
@@ -165,8 +158,10 @@ class ClassificationModelTrainer(BaseMlTrainer):
             scores = []
 
             for fold, (train_idx, val_idx) in enumerate(skf.split(X, y)):
-                X_train, X_val = X[train_idx], X[val_idx]
-                y_train, y_val = y[train_idx], y[val_idx]
+                X_train = self.array_indexing(X, train_idx)
+                X_val = self.array_indexing(X, val_idx)
+                y_train = self.array_indexing(y, train_idx)
+                y_val = self.array_indexing(y, val_idx)
 
                 # Apply SMOTE if enabled
                 if self.use_smote:
@@ -181,14 +176,10 @@ class ClassificationModelTrainer(BaseMlTrainer):
                     y_pred_proba = None
 
                 # Calculate metrics
-                metrics = ClassificationMetrics.calculate_basic_metrics(
-                    y_val, y_pred, y_pred_proba
-                )
+                metrics = ClassificationMetrics.calculate_basic_metrics(y_val, y_pred, y_pred_proba)
                 scores.append(metrics[self.optimize_metric])
 
-                self.logger.debug(
-                    f"Fold {fold+1} score: {metrics[self.optimize_metric]:.4f}"
-                )
+                self.logger.debug(f"Fold {fold+1} score: {metrics[self.optimize_metric]:.4f}")
 
             mean_score = np.mean(scores)
 
@@ -203,6 +194,92 @@ class ClassificationModelTrainer(BaseMlTrainer):
         except Exception as e:
             self.logger.error("Trial failed", trial_number=trial.number, error=e)
             raise RuntimeError("Optimization trial failed") from e
+
+    def _setup_smote(self, y: pd.Series) -> None:
+        """Setup SMOTE for handling class imbalance.
+
+        Args:
+            y (pd.Series): Target vector
+        """
+
+        max_count = max(y.value_counts())
+        sampling_strategy = {
+            cls: (
+                count
+                if int(max_count * self.smote_ratio) <= count
+                else int(max_count * self.smote_ratio)
+            )
+            for cls, count in y.value_counts().sort_index().items()
+        }
+
+        # Synthetic Minority Over-sampling Technique (SMOTE)
+        self.smote = SMOTE(sampling_strategy=sampling_strategy, random_state=self.random_state)
+
+    def _track_best_model(
+        self,
+        X_val: np.ndarray,
+        y_array: np.ndarray,
+        y_val: np.ndarray,
+        y_pred: np.ndarray,
+        fold: int,
+        y_pred_proba: Union[np.ndarray, None] = None,
+    ) -> None:
+        """Track the best model and log relevant information.
+
+        Args:
+            X_val (np.ndarray): Validation feature matrix
+            y_array (np.ndarray): Target vector
+            y_val (np.ndarray): Validation target vector
+            y_pred (np.ndarray): Predicted labels
+            fold (int): Fold number
+            y_pred_proba (Union[np.ndarray, None], optional): Predicted probabilities.
+                Defaults to None.
+        """
+
+        # Log best model plots
+        mlflow.log_metric("best_score", self.best_score)
+
+        if y_pred_proba is not None and np.unique(y_array).shape[0] == 2:
+            # Create and log plot for ROC curve
+            roc_fig = ClassificationPlots.plot_roc_curve(
+                y_val,
+                y_pred_proba[:, 1],
+                f"ROC Curve - Best Model Fold: {fold}",
+            )
+            mlflow.log_figure(roc_fig, "best_roc_curve.png")
+            plt.close(roc_fig)
+
+        # Create and log plot for confusion matrix
+        cm_fig = ClassificationPlots.plot_confusion_matrix(
+            y_val,
+            y_pred,
+            f"Confusion Matrix - Best Model Fold: {fold}",
+        )
+        mlflow.log_figure(cm_fig, "best_confusion_matrix.png")
+        plt.close(cm_fig)
+
+        # Calculate feature importance
+        importance_scores = self._calc_feature_importance(self.best_model)
+
+        if importance_scores is not None:
+            # Create and log plot for feature importance
+            fi_fig = ModelAnalysisPlots.plot_feature_importance(
+                importance_scores,
+                self.feature_names,
+                f"Feature Importance - Best Model Fold: {fold}",
+            )
+            mlflow.log_figure(fi_fig, "best_feature_importance.png")
+            plt.close(fi_fig)
+
+        if isinstance(X_val, np.ndarray):
+            # Create and log plot for SHAP values
+            shap_fig = ModelAnalysisPlots.plot_shapley_values(
+                self.best_model,
+                X_val,
+                self.feature_names,
+            )
+            mlflow.log_figure(shap_fig, "best_shap_values.png")
+            plt.close(shap_fig)
 
     def train_and_optimize(
         self,
@@ -222,30 +299,20 @@ class ClassificationModelTrainer(BaseMlTrainer):
         """
 
         if self.use_smote:
-            max_count = max(y.value_counts())
-            sampling_strategy = {
-                cls: (
-                    count
-                    if int(max_count * self.smote_ratio) <= count
-                    else int(max_count * self.smote_ratio)
-                )
-                for cls, count in y.value_counts().sort_index().items()
-            }
-
-            # Synthetic Minority Over-sampling Technique (SMOTE)
-            self.smote = SMOTE(
-                sampling_strategy=sampling_strategy, random_state=self.random_state
-            )
+            self._setup_smote(y)
 
         # Set number of classes for the model
         self.base_model.set_num_classes(y.nunique())
 
-        with mlflow.start_run(
-            run_name=f"{self.base_model.model_name}_{datetime.now()}"
-        ):
+        with mlflow.start_run(run_name=f"{self.base_model.model_name}_{datetime.now()}"):
             # Store feature names and convert to numpy arrays
-            self.feature_names = list(X.columns)
-            X_array = X.values
+            if isinstance(X, pd.DataFrame):
+                self.feature_names = list(X.columns)
+                X_array = X.values
+            else:
+                self.feature_names = [f"feature_{i}" for i in range(X.shape[1])]
+                X_array = X
+
             y_array = y.values
 
             # Log information
@@ -289,19 +356,30 @@ class ClassificationModelTrainer(BaseMlTrainer):
                     desc="Cross-validation",
                 )
             ):
-                X_train, X_val = X_array[train_idx], X_array[val_idx]
-                y_train, y_val = y_array[train_idx], y_array[val_idx]
+                X_train = self.array_indexing(X_array, train_idx)
+                X_val = self.array_indexing(X_array, val_idx)
+                y_train = self.array_indexing(y_array, train_idx)
+                y_val = self.array_indexing(y_array, val_idx)
 
                 if self.use_smote:
                     X_train, y_train = self.smote.fit_resample(X_train, y_train)
 
                 # Create and train model
                 model = self.base_model.create_model(self.base_model.best_params)
-                X_train_df = pd.DataFrame(X_train, columns=self.feature_names)
+
+                # Check and convert to DataFrame if necessary
+                if X_train.ndim == 2:
+                    X_train_df = pd.DataFrame(X_train, columns=self.feature_names)
+                    X_val_df = pd.DataFrame(X_val, columns=self.feature_names)
+                else:
+                    # X_train.ndim > 2
+                    X_train_df = X_train
+                    X_val_df = X_val
+
+                # Fit the model
                 model.fit(X_train_df, y_train)
 
                 # Make predictions
-                X_val_df = pd.DataFrame(X_val, columns=self.feature_names)
                 y_pred = model.predict(X_val_df)
 
                 if hasattr(model, "predict_proba"):
@@ -320,15 +398,11 @@ class ClassificationModelTrainer(BaseMlTrainer):
                     all_predictions[f"fold_{fold}_proba"] = y_pred_proba[:, 1]
 
                 # Calculate metrics
-                metrics = ClassificationMetrics.calculate_basic_metrics(
-                    y_val, y_pred, y_pred_proba
-                )
+                metrics = ClassificationMetrics.calculate_basic_metrics(y_val, y_pred, y_pred_proba)
                 all_metrics.append(metrics)
 
                 # Log fold results
-                self._log_fold_results(
-                    fold, metrics, y_val, y_pred, y_pred_proba, model
-                )
+                self._log_fold_results(fold, metrics, y_val, y_pred, y_pred_proba, model)
 
                 # Track best model based on specified metric
                 if self.metric_configs.BETTER_SCORE(
@@ -337,54 +411,16 @@ class ClassificationModelTrainer(BaseMlTrainer):
                     self.best_score = metrics[self.optimize_metric]
                     self.best_model = model
 
-                    # Log best model plots
-                    mlflow.log_metric("best_score", self.best_score)
-
-                    if y_pred_proba is not None and np.unique(y_array).shape[0] == 2:
-                        # Create and log plot for ROC curve
-                        roc_fig = ClassificationPlots.plot_roc_curve(
-                            y_val,
-                            y_pred_proba[:, 1],
-                            f"ROC Curve - Best Model Fold: {fold}",
-                        )
-                        mlflow.log_figure(roc_fig, "best_roc_curve.png")
-                        plt.close(roc_fig)
-
-                    # Create and log plot for confusion matrix
-                    cm_fig = ClassificationPlots.plot_confusion_matrix(
-                        y_val,
-                        y_pred,
-                        self.feature_names,
-                        f"Confusion Matrix - Best Model Fold: {fold}",
+                    self._track_best_model(
+                        X_val=X_val,
+                        y_array=y_array,
+                        y_val=y_val,
+                        y_pred=y_pred,
+                        fold=fold,
+                        y_pred_proba=y_pred_proba,
                     )
-                    mlflow.log_figure(cm_fig, "best_confusion_matrix.png")
-                    plt.close(cm_fig)
 
-                    # Calculate feature importance
-                    importance_scores = self._calc_feature_importance(self.best_model)
-
-                    if importance_scores is not None:
-                        # Create and log plot for feature importance
-                        fi_fig = ModelAnalysisPlots.plot_feature_importance(
-                            importance_scores,
-                            self.feature_names,
-                            f"Feature Importance - Best Model Fold: {fold}",
-                        )
-                        mlflow.log_figure(fi_fig, "best_feature_importance.png")
-                        plt.close(fi_fig)
-
-                    # Create and log plot for SHAP values
-                    shap_fig = ModelAnalysisPlots.plot_shapley_values(
-                        self.best_model,
-                        X_val,
-                        self.feature_names,
-                    )
-                    mlflow.log_figure(shap_fig, "best_shap_values.png")
-                    plt.close(shap_fig)
-
-            mean_metrics = self._log_final_results(
-                all_metrics, all_predictions, X_array
-            )
+            mean_metrics = self._log_final_results(all_metrics, all_predictions, X_array)
 
             return self.best_model, mean_metrics
 
@@ -402,9 +438,7 @@ class ClassificationModelTrainer(BaseMlTrainer):
             self.logger.info("Making predictions", X_shape=X.shape)
 
             if self.best_model is None:
-                raise ValueError(
-                    "No model trained yet. Please call train_and_optimize first."
-                )
+                raise ValueError("No model trained yet. Please call train_and_optimize first.")
 
             y_pred = self.best_model.predict(X)
 
@@ -453,9 +487,7 @@ def lazypredict_classification(
         y_array = y.values
 
         # Initialize StratifiedKFold
-        skf = StratifiedKFold(
-            n_splits=n_splits, shuffle=True, random_state=random_state
-        )
+        skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=random_state)
 
         # Store results for each fold
         fold_results = []

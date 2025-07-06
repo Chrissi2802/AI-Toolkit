@@ -49,9 +49,7 @@ class TestClassificationMetrics:
 
         y_true, y_pred, y_pred_proba = classification_predictions
 
-        metrics = ClassificationMetrics.calculate_basic_metrics(
-            y_true, y_pred, y_pred_proba
-        )
+        metrics = ClassificationMetrics.calculate_basic_metrics(y_true, y_pred, y_pred_proba)
 
         # Test presence of all metrics
         expected_metrics = {
@@ -72,18 +70,14 @@ class TestClassificationMetrics:
         assert all(metric in metrics for metric in expected_metrics)
 
         # Test metric values against sklearn implementations
-        np.testing.assert_almost_equal(
-            metrics["accuracy"], accuracy_score(y_true, y_pred)
-        )
+        np.testing.assert_almost_equal(metrics["accuracy"], accuracy_score(y_true, y_pred))
         np.testing.assert_almost_equal(
             metrics["precision"], precision_score(y_true, y_pred, average="weighted")
         )
         np.testing.assert_almost_equal(
             metrics["recall"], recall_score(y_true, y_pred, average="weighted")
         )
-        np.testing.assert_almost_equal(
-            metrics["f1"], f1_score(y_true, y_pred, average="weighted")
-        )
+        np.testing.assert_almost_equal(metrics["f1"], f1_score(y_true, y_pred, average="weighted"))
 
     def test_metrics_without_probabilities(
         self, classification_predictions: Tuple[np.ndarray, np.ndarray, np.ndarray]
@@ -121,9 +115,7 @@ class TestClassificationMetrics:
         assert isinstance(cm, np.ndarray)
         assert cm.shape == (2, 2)  # Binary classification
 
-        cm_normalized = ClassificationMetrics.get_confusion_matrix(
-            y_true, y_pred, normalize="true"
-        )
+        cm_normalized = ClassificationMetrics.get_confusion_matrix(y_true, y_pred, normalize="true")
         assert np.allclose(cm_normalized.sum(axis=1), 1)  # Row sums should be 1
 
     def test_edge_cases(self):
@@ -256,9 +248,7 @@ class TestCrossValidationMetrics:
 
         # Test structure
         assert isinstance(aggregated, dict)
-        assert all(
-            metric in aggregated for metric in ["accuracy", "precision", "recall"]
-        )
+        assert all(metric in aggregated for metric in ["accuracy", "precision", "recall"])
 
         # Test aggregated values
         for metric in aggregated:
@@ -302,15 +292,11 @@ class TestCrossValidationMetrics:
         ("roc_auc", (0, 1)),
     ],
 )
-def test_classification_metric_ranges(
-    classification_predictions, metric_name, expected_range
-):
+def test_classification_metric_ranges(classification_predictions, metric_name, expected_range):
     """Test that classification metrics stay within expected ranges."""
 
     y_true, y_pred, y_pred_proba = classification_predictions
-    metrics = ClassificationMetrics.calculate_basic_metrics(
-        y_true, y_pred, y_pred_proba
-    )
+    metrics = ClassificationMetrics.calculate_basic_metrics(y_true, y_pred, y_pred_proba)
 
     if metric_name in metrics:
         assert expected_range[0] <= metrics[metric_name] <= expected_range[1]
@@ -320,9 +306,7 @@ def test_classification_metric_ranges(
 def test_cv_metrics_with_different_folds(n_folds):
     """Test cross-validation metrics with different numbers of folds."""
 
-    metrics = [
-        {"accuracy": 0.9 + i / 100, "precision": 0.85 + i / 100} for i in range(n_folds)
-    ]
+    metrics = [{"accuracy": 0.9 + i / 100, "precision": 0.85 + i / 100} for i in range(n_folds)]
 
     aggregated = CrossValidationMetrics.aggregate_cv_metrics(metrics)
     assert isinstance(aggregated["accuracy"]["mean"], float)

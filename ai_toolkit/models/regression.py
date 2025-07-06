@@ -113,9 +113,7 @@ class BayesianRidgeRegressionModel(BaseMlModel):
             self.model = BayesianRidge(**params)
             return self.model
         except Exception as e:
-            self.logger.error(
-                "Failed to create bayesian ridge regression model", error=e
-            )
+            self.logger.error("Failed to create bayesian ridge regression model", error=e)
             raise RuntimeError("Model creation failed") from e
 
 
@@ -177,9 +175,7 @@ class SVRModel(BaseMlModel):
             self.model = SVR(**params)
             return self.model
         except Exception as e:
-            self.logger.error(
-                "Failed to create support vector regression model", error=e
-            )
+            self.logger.error("Failed to create support vector regression model", error=e)
             raise RuntimeError("Model creation failed") from e
 
 
@@ -211,9 +207,7 @@ class KNNRegressorModel(BaseMlModel):
             ),
             "leaf_size": trial.suggest_int("leaf_size", 10, 50),
             "p": trial.suggest_int("p", 1, 2),  # 1 for manhattan, 2 for euclidean
-            "metric": trial.suggest_categorical(
-                "metric", ["minkowski", "euclidean", "manhattan"]
-            ),
+            "metric": trial.suggest_categorical("metric", ["minkowski", "euclidean", "manhattan"]),
         }
 
         return params
@@ -229,15 +223,11 @@ class KNNRegressorModel(BaseMlModel):
         """
 
         try:
-            self.logger.info(
-                "Creating K-Nearest Neighbors regression model", params=params
-            )
+            self.logger.info("Creating K-Nearest Neighbors regression model", params=params)
             self.model = KNeighborsRegressor(**params)
             return self.model
         except Exception as e:
-            self.logger.error(
-                "Failed to create K-Nearest Neighbors regression model", error=e
-            )
+            self.logger.error("Failed to create K-Nearest Neighbors regression model", error=e)
             raise RuntimeError("Model creation failed") from e
 
 
@@ -321,9 +311,7 @@ class LightGBMRegressorModel(BaseMlModel):
         params = {
             "objective": trial.suggest_categorical("objective", ["regression"]),
             "metric": trial.suggest_categorical("metric", ["rmse"]),
-            "boosting_type": trial.suggest_categorical(
-                "boosting_type", ["gbdt", "dart"]
-            ),
+            "boosting_type": trial.suggest_categorical("boosting_type", ["gbdt", "dart"]),
             "num_leaves": trial.suggest_int("num_leaves", 20, 3000, log=True),
             "learning_rate": trial.suggest_float("learning_rate", 0.01, 0.3),
             "feature_fraction": trial.suggest_float("feature_fraction", 0.4, 1.0),
@@ -384,12 +372,8 @@ class CatBoostRegressorModel(BaseMlModel):
             "depth": trial.suggest_int("depth", 4, 10),
             "l2_leaf_reg": trial.suggest_float("l2_leaf_reg", 1e-8, 10.0, log=True),
             "bootstrap_type": trial.suggest_categorical("bootstrap_type", ["Bayesian"]),
-            "random_strength": trial.suggest_float(
-                "random_strength", 1e-8, 10.0, log=True
-            ),
-            "bagging_temperature": trial.suggest_float(
-                "bagging_temperature", 0.01, 10.0
-            ),
+            "random_strength": trial.suggest_float("random_strength", 1e-8, 10.0, log=True),
+            "bagging_temperature": trial.suggest_float("bagging_temperature", 0.01, 10.0),
             "od_type": trial.suggest_categorical("od_type", ["Iter"]),
             "od_wait": trial.suggest_int("od_wait", 10, 50),
             "verbose": trial.suggest_categorical("verbose", [False]),
@@ -481,8 +465,7 @@ class EnsembleVotingRegressorModel(BaseMlEnsembleModel):
                 [[(model.model_name, model.model) for model, _ in self.models]],
             ),
             "weights": [
-                trial.suggest_float(f"weight_{i}", 0.0, 1.0)
-                for i in range(self.num_models)
+                trial.suggest_float(f"weight_{i}", 0.0, 1.0) for i in range(self.num_models)
             ],
         }
 
@@ -504,9 +487,7 @@ class EnsembleVotingRegressorModel(BaseMlEnsembleModel):
             self.model = VotingRegressor(**params)
             return self.model
         except Exception as e:
-            self.logger.error(
-                "Failed to create ensemble voting regressor model", error=e
-            )
+            self.logger.error("Failed to create ensemble voting regressor model", error=e)
             raise RuntimeError("Model creation failed") from e
 
 
@@ -515,9 +496,7 @@ class EnsembleStackingRegressorModel(BaseMlEnsembleModel):
     https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.StackingRegressor.html
     """
 
-    def __init__(
-        self, models: List[Tuple[BaseMlModel, str]], meta_model: BaseMlModel
-    ) -> None:
+    def __init__(self, models: List[Tuple[BaseMlModel, str]], meta_model: BaseMlModel) -> None:
         """Initialize the ensemble stacking regressor model.
 
         Args:
@@ -544,9 +523,7 @@ class EnsembleStackingRegressorModel(BaseMlEnsembleModel):
                 "estimators",
                 [[(model.model_name, model.model) for model, _ in self.models]],
             ),
-            "final_estimator": self.meta_model.create_model(
-                self.meta_model.get_param_space(trial)
-            ),
+            "final_estimator": self.meta_model.create_model(self.meta_model.get_param_space(trial)),
             "passthrough": trial.suggest_categorical("passthrough", [False, True]),
         }
 
@@ -563,9 +540,7 @@ class EnsembleStackingRegressorModel(BaseMlEnsembleModel):
         """
 
         try:
-            self.logger.info(
-                "Creating ensemble stacking regressor model", params=params
-            )
+            self.logger.info("Creating ensemble stacking regressor model", params=params)
             stacking_params, meta_params = self._extract_meta_params(params)
 
             # Create meta model
@@ -576,9 +551,7 @@ class EnsembleStackingRegressorModel(BaseMlEnsembleModel):
             self.model = StackingRegressor(**stacking_params)
             return self.model
         except Exception as e:
-            self.logger.error(
-                "Failed to create ensemble stacking regressor model", error=e
-            )
+            self.logger.error("Failed to create ensemble stacking regressor model", error=e)
             raise RuntimeError("Model creation failed") from e
 
 

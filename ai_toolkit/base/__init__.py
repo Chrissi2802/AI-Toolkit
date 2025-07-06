@@ -2,7 +2,7 @@
 Base classes for AI Toolkit.
 """
 
-from ai_toolkit.base.data import BaseDataset, DatasetConfig
+from ai_toolkit.base.data import BaseDataset, DatasetConfig, extract_statistical_features_from_array
 from ai_toolkit.base.models import BaseMlEnsembleModel, BaseMlModel
 from ai_toolkit.base.training import (
     BaseMlTrainer,
@@ -15,6 +15,7 @@ from ai_toolkit.base.training import (
 __all__ = [
     "BaseDataset",
     "DatasetConfig",
+    "extract_statistical_features_from_array",
     "BaseMlEnsembleModel",
     "BaseMlModel",
     "MetricConfig",

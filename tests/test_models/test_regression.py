@@ -107,9 +107,7 @@ def test_model_integration(regression_data: Tuple[np.ndarray, np.ndarray]):
     for name, model in models.items():
         # Create trial and get parameters
         study = optuna.create_study()
-        trial = optuna.trial.Trial(
-            study, study._storage.create_new_trial(study._study_id)
-        )
+        trial = optuna.trial.Trial(study, study._storage.create_new_trial(study._study_id))
         params = model.get_param_space(trial)
 
         # Create and fit model
