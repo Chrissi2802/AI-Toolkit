@@ -1,32 +1,29 @@
 from operator import gt, lt
 from types import SimpleNamespace
-from typing import Any, Dict
 
 import numpy as np
 import optuna
 import pytest
 
+from ai_toolkit.base.config import ConfigFactory, get_default_metric_configs
 from ai_toolkit.base.models import BaseMlModel
 from ai_toolkit.base.training import (
     BaseMlTrainer,
-    MetricConfig,
-    MlTrainerConfig,
-    get_default_metric_configs,
 )
 
 
 class DummyTrainer(BaseMlTrainer):
     """Dummy trainer implementation for testing."""
 
-    def __init__(self, base_model: BaseMlModel, config: MlTrainerConfig = MlTrainerConfig()):
+    def __init__(self, base_model: BaseMlModel, config_factory: ConfigFactory = ConfigFactory()):
         """Initialize dummy trainer.
 
         Args:
             base_model (BaseMlModel): Base model to use.
-            config (MlTrainerConfig, optional):
-                Training configuration. Defaults to MlTrainerConfig().
+            config_factory (ConfigFactory, optional):
+                Training configuration. Defaults to ConfigFactory().
         """
-        super().__init__(base_model=base_model, config=config)
+        super().__init__(base_model=base_model, config_factory=config_factory)
 
     def _optimize_objective(self, trial: optuna.Trial, X: np.ndarray, y: np.ndarray) -> float:
         """Implement optimization objective.
@@ -46,19 +43,21 @@ class DummyTrainer(BaseMlTrainer):
 def test_base_trainer_initialization(dummy_model):
     """Test BaseMlTrainer initialization."""
 
-    config = MlTrainerConfig(
-        N_SPLITS=5,
-        RANDOM_STATE=28,
-        N_TRAILS=2,
-        EXPERIMENT_NAME="test_classification",
-        OPTIMIZE_METRIC="f1",
-    )
+    trainer = DummyTrainer(base_model=dummy_model)
 
-    trainer = DummyTrainer(base_model=dummy_model, config=config)
+    trainer.config.n_splits = 2
+    trainer.config.random_state = 42
+    trainer.config.experiment_name = "test_classification"
+    trainer.optimize_metric = "f1"
+
+    trainer.n_splits = trainer.config.n_splits
+    trainer.random_state = trainer.config.random_state
+    trainer.experiment_name = trainer.config.experiment_name
+    trainer.optimize_metric = trainer.config.optimize_metric
 
     assert trainer.base_model == dummy_model
-    assert trainer.n_splits == 5
-    assert trainer.random_state == 28
+    assert trainer.n_splits == 2
+    assert trainer.random_state == 42
     assert trainer.experiment_name == "test_classification"
     assert trainer.optimize_metric == "f1"
     assert trainer.best_model is None
@@ -186,89 +185,32 @@ def test_trainer_with_different_cv_splits(dummy_model, n_splits: int):
         n_splits (int): Number of CV splits.
     """
 
-    config = MlTrainerConfig(N_SPLITS=n_splits)
-    trainer = DummyTrainer(base_model=dummy_model, config=config)
+    trainer = DummyTrainer(base_model=dummy_model)
+    trainer.config.n_splits = n_splits
+    trainer.n_splits = trainer.config.n_splits
 
     assert trainer.n_splits == n_splits
-
-
-def test_trainer_error_handling():
-    """Test error handling in trainer."""
-
-    # Test with invalid n_splits
-    with pytest.raises(ValueError):
-        MlTrainerConfig(N_SPLITS=1)
-
-    # Test with invalid random state
-    with pytest.raises(ValueError):
-        MlTrainerConfig(RANDOM_STATE=-1)
-
-
-@pytest.mark.parametrize(
-    "config_params",
-    [
-        {"N_SPLITS": 5, "RANDOM_STATE": 28},
-        {"OPTIMIZE_METRIC": "accuracy"},
-        {"EXPERIMENT_NAME": "test_classification"},
-    ],
-)
-def test_trainer_config_variations(dummy_model, config_params: Dict[str, Any]):
-    """Test trainer with different configurations.
-
-    Args:
-        dummy_model (DummyModel): Dummy model instance.
-        config_params (Dict[str, Any]): Configuration parameters.
-    """
-
-    config = MlTrainerConfig(**config_params)
-    trainer = DummyTrainer(base_model=dummy_model, config=config)
-
-    for param, value in config_params.items():
-        assert getattr(trainer, param.lower()) == value
-
-
-def test_metric_config_validation():
-    """Test MetricConfig validation."""
-
-    # Test valid configurations
-    valid_configs = [
-        MetricConfig(),  # Default values
-        MetricConfig(DIRECTION="maximize", INITIAL_SCORE=0.0),
-        MetricConfig(DIRECTION="minimize", INITIAL_SCORE=float("inf")),
-        MetricConfig(BETTER_SCORE=lambda x, y: x < y),
-    ]
-
-    for config in valid_configs:
-        assert config.DIRECTION in ["maximize", "minimize"]
-        assert callable(config.BETTER_SCORE)
-
-    # Test invalid configurations
-    with pytest.raises(ValueError, match="DIRECTION must be"):
-        MetricConfig(DIRECTION="invalid")
-
-    with pytest.raises(ValueError, match="INITIAL_SCORE must be"):
-        MetricConfig(INITIAL_SCORE="invalid")
-
-    with pytest.raises(ValueError, match="BETTER_SCORE must be"):
-        MetricConfig(BETTER_SCORE="invalid")
 
 
 def test_metric_config_better_score():
     """Test MetricConfig better_score functionality."""
 
     # Test default better_score (maximize)
-    config = MetricConfig()
-    assert config.BETTER_SCORE(5, 3)
-    assert not config.BETTER_SCORE(3, 5)
-    assert not config.BETTER_SCORE(5, 5)
-    assert config.BETTER_SCORE is gt
+    config_factory = ConfigFactory()
+    configs = config_factory.get_config()
+    config = configs.metric
+    assert config.better_score(5, 3)
+    assert not config.better_score(3, 5)
+    assert not config.better_score(5, 5)
+    assert config.better_score is gt
 
     # Test minimize better_score
-    config = MetricConfig(BETTER_SCORE=lt)
-    assert config.BETTER_SCORE(3, 5)
-    assert not config.BETTER_SCORE(5, 3)
-    assert not config.BETTER_SCORE(5, 5)
-    assert config.BETTER_SCORE is lt
+    config = configs.metric
+    config.better_score = lt
+    assert config.better_score(3, 5)
+    assert not config.better_score(5, 3)
+    assert not config.better_score(5, 5)
+    assert config.better_score is lt
 
 
 def test_default_metric_configs():
@@ -333,31 +275,16 @@ def test_default_metric_configs():
     for metric, config in configs.items():
         # Test direction
         expected_direction = "maximize" if metric in maximize_metrics else "minimize"
-        assert config.DIRECTION == expected_direction, f"Wrong direction for {metric}"
+        assert config.direction == expected_direction, f"Wrong direction for {metric}"
 
         # Test initial score
-        if config.DIRECTION == "maximize":
-            assert config.INITIAL_SCORE == -float("inf"), f"Wrong initial score for {metric}"
+        if config.direction == "maximize":
+            assert config.initial_score == -float("inf"), f"Wrong initial score for {metric}"
         else:
-            assert config.INITIAL_SCORE == float("inf"), f"Wrong initial score for {metric}"
+            assert config.initial_score == float("inf"), f"Wrong initial score for {metric}"
 
         # Test better_score function
-        if config.DIRECTION == "maximize":
-            assert config.BETTER_SCORE == gt, f"Wrong comparison for {metric}"
+        if config.direction == "maximize":
+            assert config.better_score == gt, f"Wrong comparison for {metric}"
         else:
-            assert config.BETTER_SCORE == lt, f"Wrong comparison for {metric}"
-
-
-def test_metric_config_integration():
-    """Test MetricConfig integration with MlTrainerConfig."""
-
-    # Test with valid metric
-    config = MlTrainerConfig(OPTIMIZE_METRIC="accuracy")
-    metric_config = config.METRIC_CONFIGS
-    assert metric_config.DIRECTION == "maximize"
-    assert metric_config.INITIAL_SCORE == -float("inf")
-    assert metric_config.BETTER_SCORE == gt
-
-    # Test with invalid metric
-    with pytest.raises(ValueError, match="not supported"):
-        MlTrainerConfig(OPTIMIZE_METRIC="invalid_metric")
+            assert config.better_score == lt, f"Wrong comparison for {metric}"

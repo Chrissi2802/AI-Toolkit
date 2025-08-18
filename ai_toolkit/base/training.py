@@ -1,7 +1,5 @@
 from abc import ABC
-from dataclasses import dataclass, field
-from operator import gt, lt
-from typing import Any, Callable, Dict, List, Union
+from typing import Any, Dict, List, Union
 
 import mlflow
 import numpy as np
@@ -10,293 +8,40 @@ import tensorflow as tf
 from mlflow.models.signature import ModelSignature
 from mlflow.types.schema import ColSpec, Schema, TensorSpec
 
+from ai_toolkit.base.config import ConfigFactory
 from ai_toolkit.base.models import BaseMlModel
 from ai_toolkit.utils.evaluation import CrossValidationMetrics
 from ai_toolkit.utils.logging import get_logger
-
-
-@dataclass
-class MetricConfig:
-    """Configuration for optimization metrics."""
-
-    DIRECTION: str = field(
-        default="maximize",
-        metadata={"description": "Direction of optuna optimization: maximize or minimize."},
-    )
-    INITIAL_SCORE: float = field(
-        default=float("-inf"),
-        metadata={"description": "Initial score for optuna optimization."},
-    )
-    BETTER_SCORE: Callable[[float, float], bool] = field(
-        default=gt,
-        metadata={"description": "Function to compare new and old scores."},
-    )
-
-    def __post_init__(self):
-        """Post initialization checks for configuration."""
-
-        if self.DIRECTION not in ["maximize", "minimize"]:
-            raise ValueError("DIRECTION must be 'maximize' or 'minimize'")
-
-        if self.INITIAL_SCORE is not None and not isinstance(self.INITIAL_SCORE, (int, float)):
-            raise ValueError("INITIAL_SCORE must be a number")
-
-        if not callable(self.BETTER_SCORE):
-            raise ValueError("BETTER_SCORE must be a callable function")
-
-
-def get_default_metric_configs() -> Dict[str, MetricConfig]:
-    """Get default metric configurations.
-
-    Returns:
-        Dict[str, MetricConfig]: Dictionary of metric configurations.
-    """
-
-    dict_metric_configs = {
-        # Classification metrics
-        "accuracy": MetricConfig(
-            DIRECTION="maximize",
-            INITIAL_SCORE=float("-inf"),
-            BETTER_SCORE=gt,
-        ),
-        "balanced_accuracy": MetricConfig(
-            DIRECTION="maximize",
-            INITIAL_SCORE=float("-inf"),
-            BETTER_SCORE=gt,
-        ),
-        "precision": MetricConfig(
-            DIRECTION="maximize",
-            INITIAL_SCORE=float("-inf"),
-            BETTER_SCORE=gt,
-        ),
-        "recall": MetricConfig(
-            DIRECTION="maximize",
-            INITIAL_SCORE=float("-inf"),
-            BETTER_SCORE=gt,
-        ),
-        "f1": MetricConfig(
-            DIRECTION="maximize",
-            INITIAL_SCORE=float("-inf"),
-            BETTER_SCORE=gt,
-        ),
-        "matthews_correlation_coefficient": MetricConfig(
-            DIRECTION="maximize",
-            INITIAL_SCORE=float("-inf"),
-            BETTER_SCORE=gt,
-        ),
-        "jaccard": MetricConfig(
-            DIRECTION="maximize",
-            INITIAL_SCORE=float("-inf"),
-            BETTER_SCORE=gt,
-        ),
-        "hamming_loss": MetricConfig(
-            DIRECTION="minimize",
-            INITIAL_SCORE=float("inf"),
-            BETTER_SCORE=lt,
-        ),
-        # "d2_log_loss": MetricConfig(
-        #     DIRECTION="maximize",
-        #     INITIAL_SCORE=float("-inf"),
-        #     BETTER_SCORE=gt,
-        # ),
-        "zero_one_loss": MetricConfig(
-            DIRECTION="minimize",
-            INITIAL_SCORE=float("inf"),
-            BETTER_SCORE=lt,
-        ),
-        "log_loss": MetricConfig(
-            DIRECTION="minimize",
-            INITIAL_SCORE=float("inf"),
-            BETTER_SCORE=lt,
-        ),
-        "roc_auc": MetricConfig(
-            DIRECTION="maximize",
-            INITIAL_SCORE=float("-inf"),
-            BETTER_SCORE=gt,
-        ),
-        "brier_score": MetricConfig(
-            DIRECTION="minimize",
-            INITIAL_SCORE=float("inf"),
-            BETTER_SCORE=lt,
-        ),
-        # Regression metrics
-        "explained_variance": MetricConfig(
-            DIRECTION="maximize",
-            INITIAL_SCORE=float("-inf"),
-            BETTER_SCORE=gt,
-        ),
-        "max_error": MetricConfig(
-            DIRECTION="minimize",
-            INITIAL_SCORE=float("inf"),
-            BETTER_SCORE=lt,
-        ),
-        "mean_absolute_error": MetricConfig(
-            DIRECTION="minimize",
-            INITIAL_SCORE=float("inf"),
-            BETTER_SCORE=lt,
-        ),
-        "mean_squared_error": MetricConfig(
-            DIRECTION="minimize",
-            INITIAL_SCORE=float("inf"),
-            BETTER_SCORE=lt,
-        ),
-        "root_mean_squared_error": MetricConfig(
-            DIRECTION="minimize",
-            INITIAL_SCORE=float("inf"),
-            BETTER_SCORE=lt,
-        ),
-        "median_absolute_error": MetricConfig(
-            DIRECTION="minimize",
-            INITIAL_SCORE=float("inf"),
-            BETTER_SCORE=lt,
-        ),
-        "r2": MetricConfig(
-            DIRECTION="maximize",
-            INITIAL_SCORE=float("-inf"),
-            BETTER_SCORE=gt,
-        ),
-        "mean_absolute_percentage_error": MetricConfig(
-            DIRECTION="minimize",
-            INITIAL_SCORE=float("inf"),
-            BETTER_SCORE=lt,
-        ),
-        "d2_absolute_error": MetricConfig(
-            DIRECTION="maximize",
-            INITIAL_SCORE=float("-inf"),
-            BETTER_SCORE=gt,
-        ),
-        "d2_pinball": MetricConfig(
-            DIRECTION="maximize",
-            INITIAL_SCORE=float("-inf"),
-            BETTER_SCORE=gt,
-        ),
-        "d2_tweedie": MetricConfig(
-            DIRECTION="maximize",
-            INITIAL_SCORE=float("-inf"),
-            BETTER_SCORE=gt,
-        ),
-        # "mean_squared_log_error": MetricConfig(
-        #     DIRECTION="minimize",
-        #     INITIAL_SCORE=float("inf"),
-        #     BETTER_SCORE=lt,
-        # ),
-        # "root_mean_squared_log_error": MetricConfig(
-        #     DIRECTION="minimize",
-        #     INITIAL_SCORE=float("inf"),
-        #     BETTER_SCORE=lt,
-        # ),
-        # "mean_poisson_deviance": MetricConfig(
-        #     DIRECTION="minimize",
-        #     INITIAL_SCORE=float("inf"),
-        #     BETTER_SCORE=lt,
-        # ),
-        # "mean_gamma_deviance": MetricConfig(
-        #     DIRECTION="minimize",
-        #     INITIAL_SCORE=float("inf"),
-        #     BETTER_SCORE=lt,
-        # ),
-    }
-
-    return dict_metric_configs
-
-
-@dataclass
-class MlTrainerConfig:
-    """Configuration for ML training."""
-
-    N_SPLITS: int = field(default=5, metadata={"description": "Number of cross-validation splits."})
-    RANDOM_STATE: int = field(
-        default=28, metadata={"description": "Random state for reproducibility."}
-    )
-    N_TRAILS: int = field(default=100, metadata={"description": "Number of optimization trials."})
-    EXPERIMENT_NAME: str = field(
-        default="ml_classification",
-        metadata={"description": "Name of the MLflow experiment to log results."},
-    )
-    OPTIMIZE_METRIC: str = field(
-        default="f1",
-        metadata={"description": "Metric to optimize during hyperparameter optimization."},
-    )
-    USE_SMOTE: bool = field(
-        default=True,
-        metadata={
-            "description": "Whether to use SMOTE for imbalanced datasets. Only for classification."
-        },
-    )
-    SMOTE_RATIO: float = field(
-        default=1.0,
-        metadata={"description": "Ratio of minority to majority class after SMOTE."},
-    )
-
-    METRIC_CONFIGS: MetricConfig = field(
-        init=False,
-        metadata={"description": "Configuration for the chosen optimization metric."},
-    )
-
-    def __post_init__(self):
-        """Post initialization checks for configuration."""
-
-        if self.N_SPLITS < 2:
-            raise ValueError("N_SPLITS must be >= 2")
-
-        if self.RANDOM_STATE < 0:
-            raise ValueError("RANDOM_STATE must be >= 0")
-
-        if self.N_TRAILS < 1:
-            raise ValueError("N_TRAILS must be >= 1")
-
-        if not self.EXPERIMENT_NAME:
-            raise ValueError("EXPERIMENT_NAME cannot be empty")
-
-        if not self.OPTIMIZE_METRIC:
-            raise ValueError("OPTIMIZE_METRIC cannot be empty")
-
-        if not isinstance(self.USE_SMOTE, bool):
-            raise ValueError("USE_SMOTE must be boolean")
-
-        if not self.SMOTE_RATIO:
-            raise ValueError("SMOTE_RATIO cannot be empty")
-
-        default_metric_configs = get_default_metric_configs()
-
-        if self.OPTIMIZE_METRIC not in default_metric_configs:
-            raise ValueError(
-                f"OPTIMIZE_METRIC '{self.OPTIMIZE_METRIC}' not supported. "
-                f"Supported metrics: {list(default_metric_configs.keys())}"
-            )
-
-        self.METRIC_CONFIGS = default_metric_configs[self.OPTIMIZE_METRIC]
 
 
 class BaseMlTrainer(ABC):
     """Abstract base class for all ml trainers."""
 
     def __init__(
-        self,
-        base_model: BaseMlModel,
-        config: MlTrainerConfig = MlTrainerConfig(),
+        self, base_model: BaseMlModel, config_factory: ConfigFactory = ConfigFactory()
     ) -> None:
         """Initialize the base ml trainer.
 
         Args:
             base_model (BaseMlModel): Base model class to be trained.
-            config (MlTrainerConfig, optional):
-                Configuration for ML training. Defaults to MlTrainerConfig.
+            config_factory (ConfigFactory, optional):
+                Configuration for ML training. Defaults to ConfigFactory.
         """
 
         self.base_model = base_model
-        self.config = config
-        self.n_splits = self.config.N_SPLITS
-        self.random_state = self.config.RANDOM_STATE
-        self.experiment_name = self.config.EXPERIMENT_NAME
-        self.optimize_metric = self.config.OPTIMIZE_METRIC
-        self.metric_configs = self.config.METRIC_CONFIGS
+        self.config_factory = config_factory
+        self.config = self.config_factory.get_config().training
+        self.n_splits = self.config.n_splits
+        self.random_state = self.config.random_state
+        self.experiment_name = self.config.experiment_name
+        self.optimize_metric = self.config.optimize_metric
+        self.metric_configs = self.config.get_metric_configs()
 
         self.best_model = None
         self.feature_names = None
 
         # Depends on the metric to optimize
-        self.best_score = self.metric_configs.INITIAL_SCORE
+        self.best_score = self.metric_configs.initial_score
 
         mlflow.set_experiment(self.experiment_name)
 
@@ -305,7 +50,7 @@ class BaseMlTrainer(ABC):
         self.logger.info(
             "Initializing trainer",
             model_name=base_model.model_name,
-            config=config.__dict__,
+            config=self.config.__dict__,
         )
 
     def _log_training_info(self, n_trials: int) -> None:

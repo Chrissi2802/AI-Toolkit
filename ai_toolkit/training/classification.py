@@ -12,8 +12,9 @@ from sklearn.model_selection import StratifiedKFold
 from sklearn.preprocessing import LabelEncoder
 from tqdm import tqdm
 
+from ai_toolkit.base.config import ConfigFactory
 from ai_toolkit.base.models import BaseMlEnsembleModel, BaseMlModel
-from ai_toolkit.base.training import BaseMlTrainer, MlTrainerConfig
+from ai_toolkit.base.training import BaseMlTrainer
 from ai_toolkit.utils.evaluation import ClassificationMetrics
 from ai_toolkit.utils.logging import get_logger
 from ai_toolkit.utils.visualization import ClassificationPlots, ModelAnalysisPlots
@@ -25,24 +26,24 @@ class ClassificationModelTrainer(BaseMlTrainer):
     def __init__(
         self,
         base_model: Union[BaseMlModel, BaseMlEnsembleModel],
-        config: MlTrainerConfig = MlTrainerConfig(),
+        config_factory: ConfigFactory = ConfigFactory(),
     ) -> None:
         """Initialize the ModelTrainer.
 
         Args:
             base_model (Union[BaseMlModel, BaseMlEnsembleModel]):
                 Base model or ensemble model class to be trained.
-            config (MlTrainerConfig, optional):
-                Configuration for ML training. Defaults to MlTrainerConfig.
+            config_factory (ConfigFactory, optional):
+                Configuration for ML training. Defaults to ConfigFactory().
         """
 
         super().__init__(
             base_model=base_model,
-            config=config,
+            config_factory=config_factory,
         )
 
-        self.use_smote = self.config.USE_SMOTE
-        self.smote_ratio = self.config.SMOTE_RATIO
+        self.use_smote = self.config.use_smote
+        self.smote_ratio = self.config.smote_ratio
         self.smote = None
 
     def _log_training_info(self, n_trials: int) -> None:
@@ -285,18 +286,21 @@ class ClassificationModelTrainer(BaseMlTrainer):
         self,
         X: pd.DataFrame,
         y: pd.Series,
-        n_trials: int = 100,
+        n_trials: int = None,
     ) -> Tuple[Any, Dict[str, float]]:
         """Train and optimize a ml model for classification.
 
         Args:
             X (pd.DataFrame): Feature matrix
             y (pd.Series): Target vector
-            n_trials (int, optional): Number of optimization trials. Defaults to 100.
+            n_trials (int, optional): Number of optimization trials. Defaults to None.
 
         Returns:
             Tuple[Any, Dict[str, float]]: Best model and mean metrics
         """
+
+        if n_trials is None:
+            n_trials = self.config.n_trials
 
         if self.use_smote:
             self._setup_smote(y)
@@ -325,7 +329,7 @@ class ClassificationModelTrainer(BaseMlTrainer):
 
             # Optimize hyperparameters
             study = optuna.create_study(
-                direction=self.metric_configs.DIRECTION,  # Depends on the metric to be optimized
+                direction=self.metric_configs.direction,  # Depends on the metric to be optimized
                 study_name=self.base_model.model_name + " optimization",
             )
             study.optimize(
@@ -405,7 +409,7 @@ class ClassificationModelTrainer(BaseMlTrainer):
                 self._log_fold_results(fold, metrics, y_val, y_pred, y_pred_proba, model)
 
                 # Track best model based on specified metric
-                if self.metric_configs.BETTER_SCORE(
+                if self.metric_configs.better_score(
                     metrics[self.optimize_metric], self.best_score
                 ):  # Depends on the metric to be optimized
                     self.best_score = metrics[self.optimize_metric]

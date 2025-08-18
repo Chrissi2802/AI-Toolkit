@@ -7,7 +7,8 @@ from unittest.mock import Mock
 
 import pytest
 
-from ai_toolkit.utils.logging import Logger, LoggerConfig, get_logger
+from ai_toolkit.base import LoggingConfig
+from ai_toolkit.utils.logging import Logger, get_logger
 
 
 @pytest.fixture
@@ -32,45 +33,45 @@ class TestLoggerConfig:
     def test_default_values(self):
         """Test default configuration values."""
 
-        config = LoggerConfig()
+        config = LoggingConfig()
 
-        assert config.NAME == "logger"
-        assert config.LEVEL == logging.WARNING
-        assert isinstance(config.DIR, Path)
-        assert config.ENABLE_CONSOLE is True
-        assert config.ENABLE_FILE is True
+        assert config.name == "logger"
+        assert config.level == logging.WARNING
+        assert isinstance(config.dir, Path)
+        assert config.enable_console is True
+        assert config.enable_file is True
 
     def test_custom_values(self):
         """Test custom configuration values."""
 
-        config = LoggerConfig(
-            NAME="test_logger",
-            LEVEL=logging.DEBUG,
-            DIR="custom_logs",
-            ENABLE_CONSOLE=False,
-            ENABLE_FILE=False,
+        config = LoggingConfig(
+            name="test_logger",
+            level=logging.DEBUG,
+            dir="custom_logs",
+            enable_console=False,
+            enable_file=False,
         )
 
-        assert config.NAME == "test_logger"
-        assert config.LEVEL == logging.DEBUG
-        assert isinstance(config.DIR, Path)
-        assert str(config.DIR) == "custom_logs"
-        assert config.ENABLE_CONSOLE is False
-        assert config.ENABLE_FILE is False
+        assert config.name == "test_logger"
+        assert config.level == logging.DEBUG
+        assert isinstance(config.dir, Path)
+        assert str(config.dir) == "custom_logs"
+        assert config.enable_console is False
+        assert config.enable_file is False
 
     def test_dir_conversion(self):
         """Test DIR string to Path conversion."""
 
         # Test with string
-        config = LoggerConfig(DIR="test_logs")
-        assert isinstance(config.DIR, Path)
-        assert str(config.DIR) == "test_logs"
+        config = LoggingConfig(dir="test_logs")
+        assert isinstance(config.dir, Path)
+        assert str(config.dir) == "test_logs"
 
         # Test with Path
         path = Path("test_logs")
-        config = LoggerConfig(DIR=path)
-        assert isinstance(config.DIR, Path)
-        assert config.DIR == path
+        config = LoggingConfig(dir=path)
+        assert isinstance(config.dir, Path)
+        assert config.dir == path
 
 
 class TestLogger:
@@ -78,7 +79,8 @@ class TestLogger:
 
     def test_initialization(self):
         """Test logger initialization."""
-        config = LoggerConfig(NAME="test_logger")
+
+        config = LoggingConfig(name="test_logger")
         logger = Logger(config)
 
         assert logger.logger.name == "test_logger"
@@ -89,7 +91,7 @@ class TestLogger:
     def test_console_handler(self):
         """Test console handler setup."""
 
-        config = LoggerConfig(NAME="test_logger", ENABLE_CONSOLE=True, ENABLE_FILE=False)
+        config = LoggingConfig(name="test_logger", enable_console=True, enable_file=False)
         logger = Logger(config)
 
         handlers = logger.logger.handlers
@@ -99,8 +101,8 @@ class TestLogger:
     def test_file_handler(self, temp_log_dir):
         """Test file handler setup."""
 
-        config = LoggerConfig(
-            NAME="test_logger", DIR=temp_log_dir, ENABLE_CONSOLE=False, ENABLE_FILE=True
+        config = LoggingConfig(
+            name="test_logger", dir=temp_log_dir, enable_console=False, enable_file=True
         )
         logger = Logger(config)
 
@@ -115,8 +117,8 @@ class TestLogger:
     def test_both_handlers(self, temp_log_dir):
         """Test both console and file handlers."""
 
-        config = LoggerConfig(
-            NAME="test_logger", DIR=temp_log_dir, ENABLE_CONSOLE=True, ENABLE_FILE=True
+        config = LoggingConfig(
+            name="test_logger", dir=temp_log_dir, enable_console=True, enable_file=True
         )
         logger = Logger(config)
 
@@ -128,7 +130,7 @@ class TestLogger:
     def test_context_management(self):
         """Test context management."""
 
-        logger = Logger(LoggerConfig(NAME="test_logger"))
+        logger = Logger(LoggingConfig(name="test_logger"))
 
         # Set context
         logger.set_context(test_key="test_value")
@@ -148,7 +150,7 @@ class TestLogger:
     def test_message_formatting(self):
         """Test message formatting."""
 
-        logger = Logger(LoggerConfig(NAME="test_logger"))
+        logger = Logger(LoggingConfig(name="test_logger"))
 
         # Test without context or extra
         message = logger._format_message("test message", "INFO")
@@ -171,12 +173,13 @@ class TestLogger:
 
     def test_log_levels(self, temp_log_dir):
         """Test different log levels."""
-        config = LoggerConfig(
-            NAME="test_logger",
-            DIR=temp_log_dir,
-            ENABLE_CONSOLE=False,
-            ENABLE_FILE=True,
-            LEVEL=logging.DEBUG,
+
+        config = LoggingConfig(
+            name="test_logger",
+            dir=temp_log_dir,
+            enable_console=False,
+            enable_file=True,
+            level=logging.DEBUG,
         )
         logger = Logger(config)
 
@@ -197,7 +200,8 @@ class TestLogger:
 
     def test_error_logging(self):
         """Test error logging with exception."""
-        logger = Logger(LoggerConfig(NAME="test_logger"))
+
+        logger = Logger(LoggingConfig(name="test_logger"))
 
         try:
             raise ValueError("Test error")
@@ -210,7 +214,7 @@ class TestLogger:
     def test_serialize_dict_basic_types(self):
         """Test serialization of basic Python types."""
 
-        logger = Logger(LoggerConfig())
+        logger = Logger(LoggingConfig())
 
         test_dict = {
             "int": 28,
@@ -228,8 +232,8 @@ class TestLogger:
     def test_serialize_dict_custom_objects(self):
         """Test serialization of custom objects."""
 
-        logger = Logger(LoggerConfig())
-        config = LoggerConfig(NAME="test", LEVEL=logging.DEBUG)
+        logger = Logger(LoggingConfig())
+        config = LoggingConfig(name="test", level=logging.DEBUG)
         now = datetime.now()
 
         class CustomString:
@@ -251,8 +255,8 @@ class TestLogger:
 
         # Config should be serialized to dict
         assert isinstance(result["config"], dict)
-        assert result["config"]["NAME"] == "test"
-        assert result["config"]["LEVEL"] == logging.DEBUG
+        assert result["config"]["name"] == "test"
+        assert result["config"]["level"] == logging.DEBUG
 
         # Datetime should be serialized to ISO format string
         assert isinstance(result["datetime"], str)
@@ -277,7 +281,7 @@ class TestLogger:
     def test_serialize_dict_non_serializable(self):
         """Test handling of non-serializable objects."""
 
-        logger = Logger(LoggerConfig())
+        logger = Logger(LoggingConfig())
 
         # Object that raises an exception when converted to string
         class NonSerializable:
@@ -303,7 +307,13 @@ def test_get_logger():
     assert logger.logger.name == "test_logger"
 
     # Test with custom config
-    logger = get_logger("test_logger", LEVEL=logging.DEBUG, ENABLE_CONSOLE=False, ENABLE_FILE=False)
+    logger = get_logger(
+        "test_logger",
+        level=logging.DEBUG,
+        enable_console=False,
+        enable_file=False,
+    )
+
     assert logger.logger.level == logging.DEBUG
     assert len(logger.logger.handlers) == 0
 

@@ -42,6 +42,16 @@ A comprehensive Python toolkit for machine learning workflows with a focus on mo
 - Cross-validation metrics
 
 **Visualisation**
+Data
+- Histograms
+- Correlation matrix
+- Predictive Power Score (PPS)
+- Maximal Information Coefficient (MIC)
+- Target distribution
+- Feature importance correlation
+- Outlier boxplot
+
+Models
 - ROC curve
 - Confusion matrix
 - Residual plots
@@ -135,20 +145,31 @@ pytest tests/test_utils/
 [regression examples](examples/regression_examples.ipynb)
 
 ## 📚 Detailed documentation
+### AI Toolkit `ai_toolkit`
+- get_version
+- get_author
+- display_banner
+
 ### Base `ai_toolkit.base`
+#### Config
+- DataConfig
+- MetricConfig
+- TrainingConfig
+- LoggingConfig
+- AIToolkitConfig
+- ConfigFactory
+- get_default_metric_configs
+
 #### Data
-- DatasetConfig
 - BaseDataset
 - extract_statistical_features_from_array
+- extract_statistical_features_from_array_tsfresh
 
 #### Models
 - BaseMlModel
 - BaseMlEnsembleModel
 
 #### Training
-- MetricConfig
-- get_default_metric_configs
-- MlTrainerConfig
 - BaseMlTrainer
 
 ### Models `ai_toolkit.models`
@@ -198,7 +219,6 @@ Ensembles
 - CrossValidationMetrics
 
 #### Logging
-- LoggerConfig
 - Logger
 - get_logger
 
@@ -215,10 +235,14 @@ AI-Toolkit/
 ├── .github/
 │   └── workflows/
 │       └── ...
+├── .idea/
+│   └── ...
 ├── ai_toolkit/
 │   ├── __init__.py
+│   ├── _meta.py
 │   ├── base/
 │   │   ├── __init__.py
+│   │   ├── config.py
 │   │   ├── data.py
 │   │   ├── models.py
 │   │   └── training.py
@@ -246,8 +270,9 @@ AI-Toolkit/
 │   ├── Makefile
 │   └── packages.svg
 ├── examples/
-│   ├── classification_example.ipynb
-│   └── regression_example.ipynb
+│   ├── classification_examples.ipynb
+│   ├── classification_tf_examples.ipynb
+│   └── regression_examples.ipynb
 ├── logs/
 │   └── ...
 ├── mlruns/
@@ -302,9 +327,18 @@ sphinx-apidoc -o source/ ../ai_toolkit/
 
 # Build the documentation
 .\make.bat html
+
+# Navigate back to the root folder
+cd ..
 ```
 
 You can view the generated documentation by opening the `docs/build/html/index.html` file in your web browser.
+
+### Project2md
+Use [project2md](https://pypi.org/project/project2md/) to create a comprehensive markdown summary of the project:
+```bash
+project2md process --output=.idea/summary.md
+```
 
 ## 📝 License
 This project is licensed under the Apache 2.0 licence - see [LICENSE](LICENSE) file for details.

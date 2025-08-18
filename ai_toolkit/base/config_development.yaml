@@ -1,0 +1,31 @@
+created_at: '2025-08-01T00:00:28.000000'
+data:
+  array_length_strategy: zero
+  categorical_fill_strategy: mode
+  categorical_preprocessing_strategy: OneHotEncoder
+  numerical_fill_strategy: median
+  numerical_preprocessing_strategy: StandardScaler
+  statistical_feature_set: minimal
+environment: development
+logging:
+  dir: logs
+  enable_console: true
+  enable_file: true
+  file: .log
+  format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+  level: 20
+  name: Logger
+metric:
+  better_score: gt
+  direction: maximize
+  initial_score: -.inf
+project_root: ../AI-Toolkit/examples
+training:
+  experiment_name: ai_toolkit_classification_experiment
+  n_splits: 5
+  n_trials: 2
+  optimize_metric: f1
+  random_state: 28
+  smote_ratio: 1.0
+  use_smote: true
+version: 0.1.0

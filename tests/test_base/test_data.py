@@ -1,8 +1,14 @@
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pytest
 
-from ai_toolkit.base.data import BaseDataset, DatasetConfig, extract_statistical_features_from_array
+from ai_toolkit.base.config import ConfigFactory
+from ai_toolkit.base.data import (
+    BaseDataset,
+    extract_statistical_features_from_array,
+    extract_statistical_features_from_array_tsfresh,
+)
 
 
 class DummyDataset(BaseDataset):
@@ -36,6 +42,12 @@ class DummyDataset(BaseDataset):
 
 class DummyDatasetWithArrays(BaseDataset):
     """Dummy dataset with array columns for statistical feature testing."""
+
+    def __init__(self, config_factory: ConfigFactory = ConfigFactory()):
+        """Initialize dataset with configuration."""
+
+        super().__init__(config_factory=config_factory)
+        self.config.statistical_feature_set = "custom"
 
     def load_data(self) -> None:
         """Load dummy data with array columns."""
@@ -104,26 +116,28 @@ class DummyDatasetWithArrays(BaseDataset):
 def test_dataset_config_defaults():
     """Test DatasetConfig default values."""
 
-    config = DatasetConfig()
+    config_factory = ConfigFactory()
+    configs = config_factory.get_config()
+    config = configs.data
 
-    assert config.CATEGORICAL_FILL_STRATEGY == "mode"
-    assert config.NUMERICAL_FILL_STRATEGY == "median"
-    assert config.CATEGORICAL_PREPROCESSING_STRATEGY == "OneHotEncoder"
-    assert config.NUMERICAL_PREPROCESSING_STRATEGY == "StandardScaler"
+    assert config.categorical_fill_strategy == "mode"
+    assert config.numerical_fill_strategy == "median"
+    assert config.categorical_preprocessing_strategy == "OneHotEncoder"
+    assert config.numerical_preprocessing_strategy == "StandardScaler"
 
 
 @pytest.mark.parametrize(
     "config_params",
     [
-        {"CATEGORICAL_FILL_STRATEGY": "missing"},
-        {"NUMERICAL_FILL_STRATEGY": "mean"},
-        {"CATEGORICAL_PREPROCESSING_STRATEGY": "LabelEncoder"},
-        {"NUMERICAL_PREPROCESSING_STRATEGY": "MinMaxScaler"},
+        {"categorical_fill_strategy": "missing"},
+        {"numerical_fill_strategy": "mean"},
+        {"categorical_preprocessing_strategy": "LabelEncoder"},
+        {"numerical_preprocessing_strategy": "MinMaxScaler"},
         {
-            "CATEGORICAL_FILL_STRATEGY": "missing",
-            "NUMERICAL_FILL_STRATEGY": "mean",
-            "CATEGORICAL_PREPROCESSING_STRATEGY": "all",
-            "NUMERICAL_PREPROCESSING_STRATEGY": "RobustScaler",
+            "categorical_fill_strategy": "missing",
+            "numerical_fill_strategy": "mean",
+            "categorical_preprocessing_strategy": "all",
+            "numerical_preprocessing_strategy": "RobustScaler",
         },
     ],
 )
@@ -134,7 +148,10 @@ def test_dataset_config_custom(config_params):
         config_params: Custom configuration parameters.
     """
 
-    config = DatasetConfig(**config_params)
+    config_factory = ConfigFactory()
+    config = config_factory.get_config().data
+    for param, value in config_params.items():
+        setattr(config, param, value)
 
     for param, value in config_params.items():
         assert getattr(config, param) == value
@@ -143,8 +160,9 @@ def test_dataset_config_custom(config_params):
 def test_base_dataset_initialization():
     """Test BaseDataset initialization."""
 
-    config = DatasetConfig()
-    dataset = DummyDataset(config)
+    config_factory = ConfigFactory()
+    config = config_factory.get_config().data
+    dataset = DummyDataset(config_factory)
 
     assert dataset.config == config
     assert dataset.X is None
@@ -155,7 +173,7 @@ def test_base_dataset_initialization():
 def test_data_loading():
     """Test data loading functionality."""
 
-    dataset = DummyDataset(DatasetConfig())
+    dataset = DummyDataset(ConfigFactory())
     dataset.load_data()
 
     assert isinstance(dataset.X, pd.DataFrame)
@@ -169,7 +187,7 @@ def test_data_loading():
 def test_column_type_detection():
     """Test automatic column type detection."""
 
-    dataset = DummyDataset(DatasetConfig())
+    dataset = DummyDataset(ConfigFactory())
     dataset.load_data()
     dataset._detect_column_types()
 
@@ -181,8 +199,9 @@ def test_column_type_detection():
 def test_categorical_missing_value_handling(fill_strategy):
     """Test handling of missing values in categorical columns."""
 
-    config = DatasetConfig(CATEGORICAL_FILL_STRATEGY=fill_strategy)
-    dataset = DummyDataset(config)
+    dataset = DummyDataset()
+    dataset.config.categorical_fill_strategy = fill_strategy
+
     dataset.load_data()
     dataset._detect_column_types()
     dataset._handle_missing_categorical_values()
@@ -204,8 +223,9 @@ def test_categorical_missing_value_handling(fill_strategy):
 def test_numerical_missing_value_handling(fill_strategy):
     """Test handling of missing values in numerical columns."""
 
-    config = DatasetConfig(NUMERICAL_FILL_STRATEGY=fill_strategy)
-    dataset = DummyDataset(config)
+    dataset = DummyDataset()
+    dataset.config.numerical_fill_strategy = fill_strategy
+
     dataset.load_data()
     dataset._detect_column_types()
     dataset._handle_missing_numerical_values()
@@ -226,8 +246,9 @@ def test_numerical_missing_value_handling(fill_strategy):
 def test_label_encoding():
     """Test label encoding of categorical variables."""
 
-    config = DatasetConfig(CATEGORICAL_PREPROCESSING_STRATEGY="LabelEncoder")
-    dataset = DummyDataset(config)
+    dataset = DummyDataset()
+    dataset.config.categorical_preprocessing_strategy = "LabelEncoder"
+
     dataset.load_data()
     dataset._detect_column_types()
     dataset._handle_missing_categorical_values()
@@ -246,8 +267,9 @@ def test_label_encoding():
 def test_one_hot_encoding():
     """Test one-hot encoding of categorical variables."""
 
-    config = DatasetConfig(CATEGORICAL_PREPROCESSING_STRATEGY="OneHotEncoder")
-    dataset = DummyDataset(config)
+    dataset = DummyDataset()
+    dataset.config.categorical_preprocessing_strategy = "OneHotEncoder"
+
     dataset.load_data()
     dataset._detect_column_types()
     dataset._handle_missing_categorical_values()
@@ -271,8 +293,9 @@ def test_one_hot_encoding():
 def test_all_encoding():
     """Test combined label and one-hot encoding."""
 
-    config = DatasetConfig(CATEGORICAL_PREPROCESSING_STRATEGY="all")
-    dataset = DummyDataset(config)
+    dataset = DummyDataset()
+    dataset.config.categorical_preprocessing_strategy = "all"
+
     dataset.load_data()
     dataset._detect_column_types()
     dataset._handle_missing_categorical_values()
@@ -292,8 +315,9 @@ def test_all_encoding():
 def test_numerical_preprocessing(scaler_type):
     """Test numerical feature scaling."""
 
-    config = DatasetConfig(NUMERICAL_PREPROCESSING_STRATEGY=scaler_type)
-    dataset = DummyDataset(config)
+    dataset = DummyDataset()
+    dataset.config.numerical_preprocessing_strategy = scaler_type
+
     dataset.load_data()
 
     dataset._check_data()
@@ -319,7 +343,7 @@ def test_numerical_preprocessing(scaler_type):
 def test_complete_preprocessing_pipeline():
     """Test the complete preprocessing pipeline."""
 
-    dataset = DummyDataset(DatasetConfig())
+    dataset = DummyDataset()
     dataset.load_data()
     dataset.preprocess()
 
@@ -345,7 +369,7 @@ def test_complete_preprocessing_pipeline():
 def test_get_feature_types():
     """Test getting feature types."""
 
-    dataset = DummyDataset(DatasetConfig())
+    dataset = DummyDataset()
     dataset.load_data()
     dataset._detect_column_types()
 
@@ -357,7 +381,7 @@ def test_get_feature_types():
 def test_error_handling():
     """Test error handling in dataset processing."""
 
-    dataset = DummyDataset(DatasetConfig())
+    dataset = DummyDataset()
     dataset.load_data()
 
     # Test data checks
@@ -373,35 +397,35 @@ def test_error_handling():
     with pytest.raises(ValueError, match="Data validation failed"):
         dataset._check_data()
 
-    dataset = DummyDataset(DatasetConfig())
+    dataset = DummyDataset()
 
     # Test preprocessing without loading
     with pytest.raises(RuntimeError, match="Data preprocessing failed"):
         dataset.preprocess()
 
     # Test with invalid fill strategy
+    dataset = DummyDataset()
+    dataset.config.categorical_fill_strategy = "invalid"
     with pytest.raises(RuntimeError, match="Data preprocessing failed"):
-        config = DatasetConfig(CATEGORICAL_FILL_STRATEGY="invalid")
-        dataset = DummyDataset(config)
         dataset.load_data()
         dataset.preprocess()
 
+    dataset = DummyDataset()
+    dataset.config.numerical_fill_strategy = "invalid"
     with pytest.raises(RuntimeError, match="Data preprocessing failed"):
-        config = DatasetConfig(NUMERICAL_FILL_STRATEGY="invalid")
-        dataset = DummyDataset(config)
         dataset.load_data()
         dataset.preprocess()
 
     # Test with invalid preprocessing strategy
+    dataset = DummyDataset()
+    dataset.config.categorical_preprocessing_strategy = "invalid"
     with pytest.raises(RuntimeError, match="Data preprocessing failed"):
-        config = DatasetConfig(CATEGORICAL_PREPROCESSING_STRATEGY="invalid")
-        dataset = DummyDataset(config)
         dataset.load_data()
         dataset.preprocess()
 
+    dataset = DummyDataset()
+    dataset.config.numerical_preprocessing_strategy = "invalid"
     with pytest.raises(RuntimeError, match="Data preprocessing failed"):
-        config = DatasetConfig(NUMERICAL_PREPROCESSING_STRATEGY="invalid")
-        dataset = DummyDataset(config)
         dataset.load_data()
         dataset.preprocess()
 
@@ -409,8 +433,7 @@ def test_error_handling():
 def test_dataset_load_and_preprocess():
     """Test data loading and preprocessing pipeline."""
 
-    config = DatasetConfig()
-    dataset = DummyDataset(config)
+    dataset = DummyDataset()
 
     # Load data
     dataset.load_data()
@@ -434,7 +457,7 @@ def test_dataset_load_and_preprocess():
 def test_get_data():
     """Test getting processed data."""
 
-    dataset = DummyDataset(DatasetConfig())
+    dataset = DummyDataset()
     dataset.load_data()
     dataset.preprocess()
 
@@ -449,8 +472,10 @@ def test_get_data():
 def test_missing_indicator_creation():
     """Test creation of missing value indicators."""
 
-    dataset = DummyDataset(DatasetConfig())
+    dataset = DummyDataset()
     dataset.load_data()
+    dataset._check_data()
+    dataset._check_columns()
     dataset._detect_column_types()
 
     # Process categorical columns
@@ -579,8 +604,8 @@ def test_extract_statistical_features_edge_cases():
     """Test statistical feature extraction with edge cases."""
 
     # Use the edge_case column from DummyDatasetWithArrays
-    config = DatasetConfig(ARRAY_LENGTH_STRATEGY="zero")
-    dataset = DummyDatasetWithArrays(config)
+    dataset = DummyDatasetWithArrays()
+    dataset.config.array_length_strategy = "zero"
     dataset.load_data()
 
     # Should complete without errors
@@ -811,8 +836,9 @@ def test_get_feature_statistics_with_arrays():
 def test_array_length_strategies_with_dummy_dataset(strategy):
     """Test all array length strategies using DummyDatasetWithArrays edge_case column."""
 
-    config = DatasetConfig(ARRAY_LENGTH_STRATEGY=strategy)
-    dataset = DummyDatasetWithArrays(config)
+    dataset = DummyDatasetWithArrays()
+    dataset.config.array_length_strategy = strategy
+
     dataset.load_data()
 
     # Extract statistical features using edge_case column which has different lengths
@@ -845,8 +871,9 @@ def test_array_length_strategies_with_dummy_dataset(strategy):
 def test_zero_strategy_with_edge_cases():
     """Test zero padding strategy with edge case arrays."""
 
-    config = DatasetConfig(ARRAY_LENGTH_STRATEGY="zero")
-    dataset = DummyDatasetWithArrays(config)
+    dataset = DummyDatasetWithArrays()
+    dataset.config.array_length_strategy = "zero"
+
     dataset.load_data()
 
     dataset._extract_statistical_features("edge_case")
@@ -867,8 +894,9 @@ def test_zero_strategy_with_edge_cases():
 def test_mean_strategy_with_edge_cases():
     """Test mean padding strategy with edge case arrays."""
 
-    config = DatasetConfig(ARRAY_LENGTH_STRATEGY="mean")
-    dataset = DummyDatasetWithArrays(config)
+    dataset = DummyDatasetWithArrays()
+    dataset.config.array_length_strategy = "mean"
+
     dataset.load_data()
 
     dataset._extract_statistical_features("edge_case")
@@ -886,8 +914,9 @@ def test_mean_strategy_with_edge_cases():
 def test_truncate_strategy_with_edge_cases():
     """Test truncate strategy with edge case arrays."""
 
-    config = DatasetConfig(ARRAY_LENGTH_STRATEGY="truncate")
-    dataset = DummyDatasetWithArrays(config)
+    dataset = DummyDatasetWithArrays()
+    dataset.config.array_length_strategy = "truncate"
+
     dataset.load_data()
 
     dataset._extract_statistical_features("edge_case")
@@ -913,8 +942,9 @@ def test_truncate_strategy_with_edge_cases():
 def test_last_strategy_with_edge_cases():
     """Test last value padding strategy with edge case arrays."""
 
-    config = DatasetConfig(ARRAY_LENGTH_STRATEGY="last")
-    dataset = DummyDatasetWithArrays(config)
+    dataset = DummyDatasetWithArrays()
+    dataset.config.array_length_strategy = "last"
+
     dataset.load_data()
 
     dataset._extract_statistical_features("edge_case")
@@ -932,8 +962,9 @@ def test_last_strategy_with_edge_cases():
 def test_global_mean_strategy_with_edge_cases():
     """Test global mean padding strategy with edge case arrays."""
 
-    config = DatasetConfig(ARRAY_LENGTH_STRATEGY="global_mean")
-    dataset = DummyDatasetWithArrays(config)
+    dataset = DummyDatasetWithArrays()
+    dataset.config.array_length_strategy = "global_mean"
+
     dataset.load_data()
 
     dataset._extract_statistical_features("edge_case")
@@ -955,8 +986,9 @@ def test_global_mean_strategy_with_edge_cases():
 def test_median_strategy_with_edge_cases():
     """Test median padding strategy with edge case arrays."""
 
-    config = DatasetConfig(ARRAY_LENGTH_STRATEGY="median")
-    dataset = DummyDatasetWithArrays(config)
+    dataset = DummyDatasetWithArrays()
+    dataset.config.array_length_strategy = "median"
+
     dataset.load_data()
 
     dataset._extract_statistical_features("edge_case")
@@ -1013,13 +1045,13 @@ def test_error_handling_with_dummy_dataset():
     dataset.load_data()
 
     # Test invalid strategy
-    dataset.config.ARRAY_LENGTH_STRATEGY = "invalid_strategy"
+    dataset.config.array_length_strategy = "invalid_strategy"
 
     with pytest.raises(ValueError, match="Invalid array length strategy."):
         dataset._extract_statistical_features("edge_case")
 
     # Test invalid column
-    dataset.config.ARRAY_LENGTH_STRATEGY = "zero"  # Reset to valid
+    dataset.config.array_length_strategy = "zero"  # Reset to valid
 
     with pytest.raises(ValueError, match="Column 'nonexistent' not found in dataset."):
         dataset._extract_statistical_features("nonexistent")
@@ -1028,7 +1060,7 @@ def test_error_handling_with_dummy_dataset():
 def test_check_columns_missing_in_test():
     """Test _check_columns when X_test is missing columns."""
 
-    dataset = DummyDataset(DatasetConfig())
+    dataset = DummyDataset()
     dataset.load_data()
 
     # Remove a column from X_test to create mismatch
@@ -1041,7 +1073,7 @@ def test_check_columns_missing_in_test():
 def test_check_columns_extra_in_test():
     """Test _check_columns when X_test has extra columns."""
 
-    dataset = DummyDataset(DatasetConfig())
+    dataset = DummyDataset()
     dataset.load_data()
 
     # Add extra column to X_test
@@ -1054,7 +1086,7 @@ def test_check_columns_extra_in_test():
 def test_check_columns_success():
     """Test _check_columns when columns match."""
 
-    dataset = DummyDataset(DatasetConfig())
+    dataset = DummyDataset()
     dataset.load_data()
 
     # Should not raise any exception
@@ -1064,7 +1096,7 @@ def test_check_columns_success():
 def test_handle_missing_categorical_values_empty_columns():
     """Test handling missing categorical values when no categorical columns exist."""
 
-    dataset = DummyDataset(DatasetConfig())
+    dataset = DummyDataset()
     dataset.load_data()
 
     # Remove all categorical columns
@@ -1084,7 +1116,7 @@ def test_handle_missing_categorical_values_empty_columns():
 def test_handle_missing_numerical_values_empty_columns():
     """Test handling missing numerical values when no numerical columns exist."""
 
-    dataset = DummyDataset(DatasetConfig())
+    dataset = DummyDataset()
     dataset.load_data()
 
     # Remove all numerical columns
@@ -1399,8 +1431,8 @@ def test_handle_array_lengths_with_different_strategies():
     strategies_to_test = ["zero", "mean", "median", "last", "truncate", "global_mean"]
 
     for strategy in strategies_to_test:
-        config = DatasetConfig(ARRAY_LENGTH_STRATEGY=strategy)
-        dataset = DummyDatasetWithArrays(config)
+        dataset = DummyDatasetWithArrays()
+        dataset.config.array_length_strategy = strategy
         dataset.load_data()
 
         # Use a simple test case
@@ -1431,8 +1463,9 @@ def test_execute_array_length_strategy_invalid():
     """Test _execute_array_length_strategy with invalid strategy."""
 
     dataset = DummyDatasetWithArrays()
+    dataset.config.array_length_strategy = "invalid_strategy"
+
     dataset.load_data()
-    dataset.config.ARRAY_LENGTH_STRATEGY = "invalid_strategy"
 
     arrays = [np.array([1.0, 2.0]), np.array([3.0])]
 
@@ -1443,7 +1476,9 @@ def test_execute_array_length_strategy_invalid():
 def test_categorical_fill_strategy_with_all_unique():
     """Test categorical fill strategy when all values are unique (no clear mode)."""
 
-    dataset = DummyDataset(DatasetConfig(CATEGORICAL_FILL_STRATEGY="mode"))
+    dataset = DummyDataset()
+    dataset.config.categorical_fill_strategy = "mode"
+
     dataset.load_data()
 
     # Create dataset where each categorical value is unique
@@ -1463,7 +1498,9 @@ def test_categorical_fill_strategy_with_all_unique():
 def test_numerical_fill_strategies_with_all_nan():
     """Test numerical fill strategies when column has all NaN values."""
 
-    dataset = DummyDataset(DatasetConfig(NUMERICAL_FILL_STRATEGY="zero"))
+    dataset = DummyDataset()
+    dataset.config.numerical_fill_strategy = "zero"
+
     dataset.load_data()
 
     # Make all values NaN
@@ -1512,8 +1549,9 @@ def test_preprocess_with_no_columns_of_type():
 def test_invalid_array_length_strategy_config():
     """Test DatasetConfig with invalid array length strategy."""
 
-    config = DatasetConfig(ARRAY_LENGTH_STRATEGY="invalid")
-    dataset = DummyDatasetWithArrays(config)
+    dataset = DummyDatasetWithArrays()
+    dataset.config.array_length_strategy = "invalid"
+
     dataset.load_data()
 
     # Should raise error when trying to use invalid strategy
@@ -1541,8 +1579,9 @@ def test_extract_date_features_week_number():
 def test_statistical_features_with_constant_arrays():
     """Test statistical features with arrays containing only constant values."""
 
-    config = DatasetConfig(ARRAY_LENGTH_STRATEGY="zero")
-    dataset = DummyDatasetWithArrays(config)
+    dataset = DummyDatasetWithArrays()
+    dataset.config.array_length_strategy = "zero"
+
     dataset.load_data()
 
     # Create arrays with constant values to test edge cases in statistical calculations
@@ -1603,3 +1642,618 @@ def test_extract_date_features_with_missing_week():
 
     for feature in common_features:
         assert feature in dataset.X.columns
+
+
+def test_extract_statistical_features_from_array_tsfresh():
+    """Test extracting statistical features from array using tsfresh."""
+
+    dataset = DummyDatasetWithArrays()
+    dataset.load_data()
+
+    # Extract statistical features using tsfresh
+    df_features = extract_statistical_features_from_array_tsfresh(dataset.X, "sensor_data")
+    df_features_test = extract_statistical_features_from_array_tsfresh(
+        dataset.X_test, "sensor_data"
+    )
+
+    expected_features = [
+        "sensor_data__sum_values",
+        "sensor_data__median",
+        "sensor_data__mean",
+        "sensor_data__length",
+        "sensor_data__standard_deviation",
+        "sensor_data__variance",
+        "sensor_data__root_mean_square",
+        "sensor_data__maximum",
+        "sensor_data__absolute_maximum",
+        "sensor_data__minimum",
+    ]
+
+    for feature in expected_features:
+        assert feature in df_features.columns
+        assert feature in df_features_test.columns
+
+
+def test_invalid_statistical_feature_set_config():
+    """Test DatasetConfig with invalid statistical feature set."""
+
+    dataset = DummyDatasetWithArrays()
+    dataset.config.statistical_feature_set = "invalid_feature_set"
+    dataset.load_data()
+
+    # Should raise error when trying to use invalid feature set
+    with pytest.raises(ValueError, match="Invalid statistical feature set."):
+        dataset._extract_statistical_features("edge_case")
+
+
+def test_plot_histograms():
+    """Test plotting histograms for numerical features."""
+
+    dataset = DummyDataset()
+    dataset.load_data()
+    dataset.preprocess()
+
+    # Create histogram plot
+    fig = dataset.plot_histograms()
+
+    # Check that figure was returned
+    assert isinstance(fig, plt.Figure)
+
+    # Check that figure has axes
+    assert len(fig.get_axes()) > 0
+
+    # Clean up
+    plt.close(fig)
+
+
+def test_plot_histograms_no_numerical_columns():
+    """Test plotting histograms when no numerical columns exist."""
+
+    dataset = DummyDataset()
+    dataset.load_data()
+
+    # Remove all numerical columns
+    dataset.X = dataset.X.select_dtypes(exclude=[np.number])
+
+    # Should return None when no numerical columns
+    fig = dataset.plot_histograms()
+    assert fig is None
+
+
+def test_plot_histograms_custom_figsize():
+    """Test plotting histograms with custom figure size."""
+
+    dataset = DummyDataset()
+    dataset.load_data()
+    dataset.preprocess()
+
+    # Create histogram plot with custom size
+    fig = dataset.plot_histograms(figsize=(20, 15))
+
+    assert isinstance(fig, plt.Figure)
+    assert fig.get_size_inches()[0] == 20
+    assert fig.get_size_inches()[1] == 15
+
+    plt.close(fig)
+
+
+@pytest.mark.parametrize("method", ["pearson", "spearman", "kendall"])
+def test_plot_correlation_matrix(method):
+    """Test plotting correlation matrix with different methods."""
+
+    dataset = DummyDataset()
+    dataset.load_data()
+    dataset.preprocess()
+
+    # Create correlation matrix plot
+    fig = dataset.plot_correlation_matrix(method=method)
+
+    assert isinstance(fig, plt.Figure)
+    assert len(fig.get_axes()) > 0
+
+    # Check title contains the method
+    title = fig.get_axes()[0].get_title()
+    assert method.capitalize() in title
+
+    plt.close(fig)
+
+
+def test_plot_correlation_matrix_insufficient_columns():
+    """Test correlation matrix with insufficient numerical columns."""
+
+    dataset = DummyDataset()
+    dataset.load_data()
+    dataset.preprocess()
+
+    # Keep only one numerical column
+    numerical_cols = dataset.X.select_dtypes(include=[np.number]).columns
+    dataset.X = dataset.X[[numerical_cols[0]]]  # Keep only first numerical column
+
+    # Should return None when less than 2 numerical columns
+    fig = dataset.plot_correlation_matrix()
+    assert fig is None
+
+
+def test_plot_pps_matrix():
+    """Test plotting Predictive Power Score matrix."""
+
+    dataset = DummyDataset()
+    dataset.load_data()
+    dataset.preprocess()
+
+    # Create PPS matrix plot
+    fig = dataset.plot_pps_matrix()
+
+    assert isinstance(fig, plt.Figure)
+    assert len(fig.get_axes()) > 0
+
+    # Check title
+    title = fig.get_axes()[0].get_title()
+    assert "Predictive Power Score" in title
+
+    plt.close(fig)
+
+
+def test_plot_pps_matrix_custom_figsize():
+    """Test PPS matrix with custom figure size."""
+
+    dataset = DummyDataset()
+    dataset.load_data()
+    dataset.preprocess()
+
+    fig = dataset.plot_pps_matrix(figsize=(15, 12))
+
+    assert isinstance(fig, plt.Figure)
+    assert fig.get_size_inches()[0] == 15
+    assert fig.get_size_inches()[1] == 12
+
+    plt.close(fig)
+
+
+def test_plot_mic_matrix():
+    """Test plotting Maximal Information Coefficient matrix."""
+
+    dataset = DummyDataset()
+    dataset.load_data()
+    dataset.preprocess()
+
+    # Create MIC matrix plot
+    fig = dataset.plot_mic_matrix()
+
+    assert isinstance(fig, plt.Figure)
+    assert len(fig.get_axes()) > 0
+
+    # Check title
+    title = fig.get_axes()[0].get_title()
+    assert "Maximal Information Coefficient" in title
+
+    plt.close(fig)
+
+
+def test_plot_mic_matrix_insufficient_columns():
+    """Test MIC matrix with insufficient numerical columns."""
+
+    dataset = DummyDataset()
+    dataset.load_data()
+
+    # Remove all numerical columns
+    dataset.X = dataset.X.select_dtypes(exclude=[np.number])
+
+    # Should return None when less than 2 numerical columns
+    fig = dataset.plot_mic_matrix()
+    assert fig is None
+
+
+def test_plot_target_distribution_categorical():
+    """Test plotting target distribution for categorical target."""
+
+    dataset = DummyDataset()
+    dataset.load_data()
+
+    # Ensure target is categorical
+    dataset.y = dataset.y.astype("object")
+
+    fig = dataset.plot_target_distribution()
+
+    assert isinstance(fig, plt.Figure)
+    assert len(fig.get_axes()) == 2  # Should have 2 subplots
+
+    plt.close(fig)
+
+
+def test_plot_target_distribution_numerical():
+    """Test plotting target distribution for numerical target."""
+
+    dataset = DummyDataset()
+    dataset.load_data()
+
+    # Make target numerical with many unique values
+    dataset.y = pd.Series(np.random.normal(0, 1, len(dataset.y)))
+
+    fig = dataset.plot_target_distribution()
+
+    assert isinstance(fig, plt.Figure)
+    assert len(fig.get_axes()) == 2  # Should have 2 subplots
+
+    plt.close(fig)
+
+
+def test_plot_target_distribution_custom_figsize():
+    """Test target distribution plot with custom figure size."""
+
+    dataset = DummyDataset()
+    dataset.load_data()
+
+    fig = dataset.plot_target_distribution(figsize=(12, 8))
+
+    assert isinstance(fig, plt.Figure)
+    assert fig.get_size_inches()[0] == 12
+    assert fig.get_size_inches()[1] == 8
+
+    plt.close(fig)
+
+
+def test_plot_feature_importance_correlation():
+    """Test plotting feature-target correlation."""
+
+    dataset = DummyDataset()
+    dataset.load_data()
+    dataset.preprocess()
+
+    # Ensure target is numerical
+    dataset.y = pd.Series([1.0, 2.0, 3.0, 4.0, 5.0])
+
+    fig = dataset.plot_feature_importance_correlation()
+
+    assert isinstance(fig, plt.Figure)
+    assert len(fig.get_axes()) > 0
+
+    # Check title
+    title = fig.get_axes()[0].get_title()
+    assert "Feature-Target Correlation" in title
+
+    plt.close(fig)
+
+
+def test_plot_feature_importance_correlation_no_numerical():
+    """Test feature correlation plot with no numerical columns."""
+
+    dataset = DummyDataset()
+    dataset.load_data()
+
+    # Remove all numerical columns
+    dataset.X = dataset.X.select_dtypes(exclude=[np.number])
+
+    # Should return None when no numerical columns
+    fig = dataset.plot_feature_importance_correlation()
+    assert fig is None
+
+
+def test_plot_feature_importance_correlation_categorical_target():
+    """Test feature correlation plot with categorical target."""
+
+    dataset = DummyDataset()
+    dataset.load_data()
+    dataset.preprocess()
+
+    # Ensure target is categorical
+    dataset.y = dataset.y.astype("object")
+
+    # Should return None for categorical target
+    fig = dataset.plot_feature_importance_correlation()
+    assert fig is None
+
+
+def test_plot_outliers_boxplot():
+    """Test plotting box plots for outlier detection."""
+
+    dataset = DummyDataset()
+    dataset.load_data()
+    dataset.preprocess()
+
+    fig = dataset.plot_outliers_boxplot()
+
+    assert isinstance(fig, plt.Figure)
+    assert len(fig.get_axes()) > 0
+
+    plt.close(fig)
+
+
+def test_plot_outliers_boxplot_no_numerical():
+    """Test outlier boxplot with no numerical columns."""
+
+    dataset = DummyDataset()
+    dataset.load_data()
+
+    # Remove all numerical columns
+    dataset.X = dataset.X.select_dtypes(exclude=[np.number])
+
+    # Should return None when no numerical columns
+    fig = dataset.plot_outliers_boxplot()
+    assert fig is None
+
+
+def test_plot_outliers_boxplot_custom_figsize():
+    """Test outlier boxplot with custom figure size."""
+
+    dataset = DummyDataset()
+    dataset.load_data()
+    dataset.preprocess()
+
+    fig = dataset.plot_outliers_boxplot(figsize=(20, 12))
+
+    assert isinstance(fig, plt.Figure)
+    assert fig.get_size_inches()[0] == 20
+    assert fig.get_size_inches()[1] == 12
+
+    plt.close(fig)
+
+
+def test_create_all_plots():
+    """Test creating all plots at once."""
+
+    dataset = DummyDataset()
+    dataset.load_data()
+    dataset.preprocess()
+
+    plots = dataset.create_all_plots()
+
+    # Should return a dictionary of plots
+    assert isinstance(plots, dict)
+    assert len(plots) > 0
+
+    # Check that plots are matplotlib figures
+    for plot_name, fig in plots.items():
+        assert isinstance(fig, plt.Figure), f"Plot {plot_name} is not a matplotlib Figure"
+
+    # Clean up all plots
+    for fig in plots.values():
+        plt.close(fig)
+
+
+def test_create_all_plots_with_save_path(tmp_path):
+    """Test creating all plots with saving to file."""
+
+    dataset = DummyDataset()
+    dataset.load_data()
+    dataset.preprocess()
+
+    # Create plots with save path
+    save_dir = tmp_path / "plots"
+    save_dir.mkdir()
+
+    plots = dataset.create_all_plots(save_path=str(save_dir))
+
+    # Check that plots were created
+    assert isinstance(plots, dict)
+    assert len(plots) > 0
+
+    # Check that files were saved
+    saved_files = list(save_dir.glob("*.png"))
+    assert len(saved_files) == len(plots)
+
+    # Check that each plot corresponds to a saved file
+    for plot_name in plots.keys():
+        expected_file = save_dir / f"{plot_name}.png"
+        assert expected_file.exists()
+
+    # Clean up
+    for fig in plots.values():
+        plt.close(fig)
+
+
+def test_create_all_plots_error_handling():
+    """Test that create_all_plots handles individual plot failures gracefully."""
+
+    dataset = DummyDataset()
+    dataset.load_data()
+
+    # Remove all numerical data to cause some plots to fail
+    dataset.X = pd.DataFrame({"text_col": ["A", "B", "C", "D", "E"]})
+    dataset.X_test = pd.DataFrame({"text_col": ["F", "G", "H"]})
+
+    plots = dataset.create_all_plots()
+
+    # Should still return a dictionary, but with fewer plots
+    assert isinstance(plots, dict)
+
+    # Should have at least target distribution plot
+    assert len(plots) >= 1
+
+    # Clean up
+    for fig in plots.values():
+        plt.close(fig)
+
+
+def test_plot_target_distribution_few_unique_values():
+    """Test target distribution plot with few unique values."""
+
+    dataset = DummyDataset()
+    dataset.load_data()
+
+    # Create target with few unique numerical values (should be treated as categorical)
+    dataset.y = pd.Series([1, 2, 1, 2, 1])  # Only 2 unique values
+
+    fig = dataset.plot_target_distribution()
+
+    assert isinstance(fig, plt.Figure)
+    assert len(fig.get_axes()) == 2
+
+    plt.close(fig)
+
+
+def test_plot_correlation_matrix_with_nan_values():
+    """Test correlation matrix with NaN values in data."""
+
+    dataset = DummyDataset()
+    dataset.load_data()
+
+    # Add some NaN values after preprocessing
+    dataset.preprocess()
+    dataset.X.iloc[0, 0] = np.nan
+
+    # Should still create plot (correlation handles NaN)
+    fig = dataset.plot_correlation_matrix()
+
+    assert isinstance(fig, plt.Figure)
+    plt.close(fig)
+
+
+def test_plot_mic_matrix_with_nan_values():
+    """Test MIC matrix with NaN values in data."""
+
+    dataset = DummyDataset()
+    dataset.load_data()
+    dataset.preprocess()
+
+    # Add some NaN values
+    dataset.X.iloc[0, 0] = np.nan
+    dataset.X.iloc[1, 1] = np.nan
+
+    # Should handle NaN values gracefully
+    fig = dataset.plot_mic_matrix()
+
+    assert isinstance(fig, plt.Figure)
+    plt.close(fig)
+
+
+def test_plotting_with_large_dataset():
+    """Test plotting functions with larger dataset."""
+
+    # Create larger dummy dataset
+    np.random.seed(28)
+    large_X = pd.DataFrame(
+        {
+            "num1": np.random.normal(0, 1, 100),
+            "num2": np.random.normal(5, 2, 100),
+            "num3": np.random.uniform(0, 10, 100),
+            "cat1": np.random.choice(["A", "B", "C"], 100),
+        }
+    )
+    large_y = pd.Series(np.random.choice([0, 1], 100))
+    large_X_test = large_X.iloc[:20].copy()
+
+    dataset = DummyDataset()
+    dataset.X = large_X
+    dataset.y = large_y
+    dataset.X_test = large_X_test
+    dataset.preprocess()
+
+    # Test that all plotting functions work with larger dataset
+    plots = dataset.create_all_plots()
+
+    # Should create multiple plots successfully
+    assert len(plots) >= 5
+
+    # Clean up
+    for fig in plots.values():
+        plt.close(fig)
+
+
+def test_plot_with_single_feature():
+    """Test plotting functions with dataset containing only one feature."""
+
+    dataset = DummyDataset()
+    dataset.load_data()
+    dataset.preprocess()
+
+    # Keep only one numerical column
+    numerical_cols = dataset.X.select_dtypes(include=[np.number]).columns
+    dataset.X = dataset.X[[numerical_cols[0]]]
+    dataset.X_test = dataset.X_test[[numerical_cols[0]]]
+
+    # Some plots should still work
+    hist_fig = dataset.plot_histograms()
+    assert isinstance(hist_fig, plt.Figure)
+
+    target_fig = dataset.plot_target_distribution()
+    assert isinstance(target_fig, plt.Figure)
+
+    outlier_fig = dataset.plot_outliers_boxplot()
+    assert isinstance(outlier_fig, plt.Figure)
+
+    # These should return None due to insufficient columns
+    corr_fig = dataset.plot_correlation_matrix()
+    assert corr_fig is None
+
+    mic_fig = dataset.plot_mic_matrix()
+    assert mic_fig is None
+
+    # Clean up
+    plt.close(hist_fig)
+    plt.close(target_fig)
+    plt.close(outlier_fig)
+
+
+@pytest.mark.parametrize(
+    "plot_method_name",
+    [
+        "plot_histograms",
+        "plot_correlation_matrix",
+        "plot_pps_matrix",
+        "plot_mic_matrix",
+        "plot_target_distribution",
+        "plot_feature_importance_correlation",
+        "plot_outliers_boxplot",
+    ],
+)
+def test_plotting_methods_exist(plot_method_name):
+    """Test that all plotting methods exist and are callable."""
+
+    dataset = DummyDataset()
+
+    # Check method exists and is callable
+    assert hasattr(dataset, plot_method_name)
+    assert callable(getattr(dataset, plot_method_name))
+
+
+def test_plotting_with_preprocessed_statistical_features():
+    """Test plotting functions work with statistical features."""
+
+    dataset = DummyDatasetWithArrays()
+    dataset.load_data()
+
+    # Extract statistical features
+    dataset._extract_statistical_features("sensor_data")
+
+    # Remove array columns to avoid pandas issues
+    dataset.X = dataset.X.drop(columns=["sensor_data", "edge_case"])
+    dataset.X_test = dataset.X_test.drop(columns=["sensor_data", "edge_case"])
+
+    # Run standard preprocessing
+    dataset._check_data()
+    dataset._check_columns()
+    dataset._detect_column_types()
+    dataset._handle_missing_categorical_values()
+    dataset._handle_missing_numerical_values()
+    dataset._preprocess_categorical()
+    dataset._preprocess_numerical()
+
+    # Test plotting functions
+    plots = dataset.create_all_plots()
+
+    # Should create plots successfully
+    assert isinstance(plots, dict)
+    assert len(plots) > 0
+
+    # Clean up
+    for fig in plots.values():
+        plt.close(fig)
+
+
+def test_plot_feature_importance_with_zero_correlation():
+    """Test feature importance plot when all correlations are zero."""
+
+    dataset = DummyDataset()
+    dataset.load_data()
+    dataset.preprocess()
+
+    # Create target that has no correlation with features
+    dataset.y = pd.Series(np.random.choice([0, 1], len(dataset.y)))
+
+    # Should still create plot even with low correlations
+    fig = dataset.plot_feature_importance_correlation()
+
+    if fig is not None:  # Only if target is numerical
+        assert isinstance(fig, plt.Figure)
+        plt.close(fig)

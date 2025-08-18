@@ -2,21 +2,26 @@
 Comprehensive toolkit for AI.
 """
 
-import pyfiglet
-
-
-__version__ = "0.1.0"
-__author__ = "Chrissi"
+# meta
+from ai_toolkit._meta import __author__, __version__, display_banner, get_author, get_version
 
 # base
-from ai_toolkit.base.data import BaseDataset, DatasetConfig, extract_statistical_features_from_array
-from ai_toolkit.base.models import BaseMlEnsembleModel, BaseMlModel
-from ai_toolkit.base.training import (
-    BaseMlTrainer,
+from ai_toolkit.base.config import (
+    AIToolkitConfig,
+    ConfigFactory,
+    DataConfig,
+    LoggingConfig,
     MetricConfig,
-    MlTrainerConfig,
+    TrainingConfig,
     get_default_metric_configs,
 )
+from ai_toolkit.base.data import (
+    BaseDataset,
+    extract_statistical_features_from_array,
+    extract_statistical_features_from_array_tsfresh,
+)
+from ai_toolkit.base.models import BaseMlEnsembleModel, BaseMlModel
+from ai_toolkit.base.training import BaseMlTrainer
 
 # models
 from ai_toolkit.models.classification import (
@@ -64,7 +69,6 @@ from ai_toolkit.utils.evaluation import (
 )
 from ai_toolkit.utils.logging import (
     Logger,
-    LoggerConfig,
     get_logger,
 )
 from ai_toolkit.utils.visualization import (
@@ -72,31 +76,3 @@ from ai_toolkit.utils.visualization import (
     ModelAnalysisPlots,
     RegressionPlots,
 )
-
-
-def get_version() -> str:
-    """Get the current version of AI-Toolkit.
-
-    Returns:
-        str: The current version of AI-Toolkit.
-    """
-
-    return __version__
-
-
-def get_author() -> str:
-    """Get the author of AI-Toolkit.
-
-    Returns:
-        str: The author of AI-Toolkit.
-    """
-
-    return __author__
-
-
-def display_banner() -> None:
-    """Display the banner for AI-Toolkit."""
-
-    print(pyfiglet.figlet_format("AI - TOOLKIT", font="standard"))
-    print(f"Version: {get_version()}")
-    print(f"Author:  {get_author()}")

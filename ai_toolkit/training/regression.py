@@ -10,8 +10,9 @@ from lazypredict.Supervised import LazyRegressor
 from sklearn.model_selection import KFold
 from tqdm import tqdm
 
+from ai_toolkit.base.config import ConfigFactory
 from ai_toolkit.base.models import BaseMlEnsembleModel, BaseMlModel
-from ai_toolkit.base.training import BaseMlTrainer, MlTrainerConfig
+from ai_toolkit.base.training import BaseMlTrainer
 from ai_toolkit.utils.evaluation import RegressionMetrics
 from ai_toolkit.utils.logging import get_logger
 from ai_toolkit.utils.visualization import ModelAnalysisPlots, RegressionPlots
@@ -23,20 +24,20 @@ class RegressionModelTrainer(BaseMlTrainer):
     def __init__(
         self,
         base_model: Union[BaseMlModel, BaseMlEnsembleModel],
-        config: MlTrainerConfig = MlTrainerConfig(),
+        config_factory: ConfigFactory = ConfigFactory(),
     ) -> None:
         """Initialize the RegressionModelTrainer.
 
         Args:
             base_model (Union[BaseMlModel, BaseMlEnsembleModel]):
                 Base model or ensemble model class to be trained.
-            config (MlTrainerConfig, optional):
-                Configuration for ML training. Defaults to MlTrainerConfig.
+            config_factory (ConfigFactory, optional):
+                Configuration for ML training. Defaults to ConfigFactory.
         """
 
         super().__init__(
             base_model=base_model,
-            config=config,
+            config_factory=config_factory,
         )
 
     def _log_dataset_info(self, X: np.ndarray, y: np.ndarray) -> None:
@@ -218,18 +219,21 @@ class RegressionModelTrainer(BaseMlTrainer):
         self,
         X: pd.DataFrame,
         y: pd.Series,
-        n_trials: int = 100,
+        n_trials: int = None,
     ) -> Tuple[Any, Dict[str, float]]:
         """Train and optimize a ml model for regression.
 
         Args:
             X (pd.DataFrame): Feature matrix
             y (pd.Series): Target vector
-            n_trials (int, optional): Number of optimization trials. Defaults to 100.
+            n_trials (int, optional): Number of optimization trials. Defaults to None.
 
         Returns:
             Tuple[Any, Dict[str, float]]: Best model and mean metrics
         """
+
+        if n_trials is None:
+            n_trials = self.config.n_trials
 
         with mlflow.start_run(run_name=f"{self.base_model.model_name}_{datetime.now()}"):
             # Store feature names and convert to numpy arrays
@@ -248,7 +252,7 @@ class RegressionModelTrainer(BaseMlTrainer):
 
             # Optimize hyperparameters
             study = optuna.create_study(
-                direction=self.metric_configs.DIRECTION,  # Depends on the metric to be optimized
+                direction=self.metric_configs.direction,  # Depends on the metric to be optimized
                 study_name=self.base_model.model_name + " optimization",
             )
             study.optimize(
@@ -307,7 +311,7 @@ class RegressionModelTrainer(BaseMlTrainer):
                 self._log_fold_results(fold, metrics, y_val, y_pred, model)
 
                 # Track best model based on specified metric
-                if self.metric_configs.BETTER_SCORE(
+                if self.metric_configs.better_score(
                     metrics[self.optimize_metric], self.best_score
                 ):  # Depends on the metric to be optimized
                     self.best_score = metrics[self.optimize_metric]

@@ -10,6 +10,7 @@ import pandas as pd
 import pytest
 from sklearn.datasets import make_classification, make_regression
 
+from ai_toolkit.base.config import ConfigFactory
 from ai_toolkit.base.models import BaseMlModel
 
 
@@ -272,3 +273,11 @@ def cleanup():
 
     yield  # Run the tests
     gc.collect()
+
+
+@pytest.fixture(autouse=True)
+def reset_config_factory():
+    """Reset ConfigFactory after each test."""
+
+    yield  # Test runs
+    ConfigFactory._instance = None  # Fresh reload

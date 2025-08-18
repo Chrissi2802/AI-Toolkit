@@ -1,52 +1,26 @@
 import json
 import logging
 import sys
-from dataclasses import dataclass, field
 from datetime import date, datetime
-from pathlib import Path
 from typing import Any, Dict, Optional
 
-
-@dataclass
-class LoggerConfig:
-    """Configurations for the logger."""
-
-    NAME: str = field(default="logger", metadata={"description": "The name of the logger."})
-    FORMAT: str = field(
-        default="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        metadata={"description": "The format of the log message."},
-    )
-    LEVEL: int = field(default=logging.WARNING, metadata={"description": "The logging level."})
-    DIR: str = field(
-        default="logs", metadata={"description": "The directory to save the log file."}
-    )
-    FILE: str = field(default=".log", metadata={"description": "The name of the log file."})
-    ENABLE_CONSOLE: bool = field(
-        default=True, metadata={"description": "Whether to log to the console."}
-    )
-    ENABLE_FILE: bool = field(default=True, metadata={"description": "Whether to log to the file."})
-
-    def __post_init__(self) -> None:
-        """Post initialization checks for logger configurations."""
-
-        if isinstance(self.DIR, str):
-            self.DIR = Path(self.DIR)
+from ai_toolkit.base.config import ConfigFactory, LoggingConfig
 
 
 class Logger:
     """Logger class for logging messages to a file."""
 
-    def __init__(self, config: LoggerConfig) -> None:
+    def __init__(self, config: LoggingConfig) -> None:
         """Initialize the logger.
 
         Args:
-            config (LoggerConfig): Logger configurations.
+            config (LoggingConfig): Logger configurations.
         """
 
         self.config = config
-        self.logger = logging.getLogger(self.config.NAME)
-        self.logger.setLevel(self.config.LEVEL)
-        self.formatter = logging.Formatter(self.config.FORMAT)
+        self.logger = logging.getLogger(self.config.name)
+        self.logger.setLevel(self.config.level)
+        self.formatter = logging.Formatter(self.config.format)
         self.context: Dict[str, Any] = {}
 
         # Remove existing handlers
@@ -54,11 +28,11 @@ class Logger:
             self.logger.removeHandler(handler)
 
         # Console handler
-        if self.config.ENABLE_CONSOLE:
+        if self.config.enable_console:
             self._setup_console_handler()
 
         # File handler
-        if self.config.ENABLE_FILE:
+        if self.config.enable_file:
             self._setup_file_handler()
 
     def _setup_console_handler(self) -> None:
@@ -71,15 +45,15 @@ class Logger:
     def _setup_file_handler(self) -> None:
         """Setup the file handler."""
 
-        self.config.DIR.mkdir(parents=True, exist_ok=True)
+        self.config.dir.mkdir(parents=True, exist_ok=True)
 
         # Date and time format
         # log_file = (
-        #     self.config.DIR / f"{datetime.now():%Y-%m-%d_%H-%M-%S}{self.config.FILE}"
+        #     self.config.dir / f"{datetime.now():%Y-%m-%d_%H-%M-%S}{self.config.file}"
         # )
 
         # Date format
-        log_file = self.config.DIR / f"{datetime.now():%Y-%m-%d}{self.config.FILE}"
+        log_file = self.config.dir / f"{datetime.now():%Y-%m-%d}{self.config.file}"
 
         self.file_handler = logging.FileHandler(log_file)
         self.file_handler.setFormatter(self.formatter)
@@ -243,7 +217,13 @@ def get_logger(name: str, **config_kwargs: Any) -> Logger:
         Logger: Configured logger instance.
     """
 
-    config = LoggerConfig(NAME=name, **config_kwargs)
+    config_factory = ConfigFactory()
+    configs = config_factory.get_config()
+    config = configs.logging
+    config.name = name
+
+    config_updates = {"name": name, **config_kwargs}
+    config = config.model_copy(update=config_updates)
 
     return Logger(config)
 
