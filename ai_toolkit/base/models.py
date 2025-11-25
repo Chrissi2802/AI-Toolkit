@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from ast import literal_eval
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Union
 
 import mlflow
 import optuna
@@ -67,6 +67,29 @@ class BaseMlModel(ABC):
             "is_multiclass": self.is_multiclass,
         }
 
+    def load_best_params(self, params_source: Union[str, Dict[str, Any]]) -> Dict[str, Any]:
+        """Load best parameters from either MLflow run_id or manual dictionary.
+
+        Args:
+            params_source (Union[str, Dict[str, Any]]):
+                Either MLflow run_id (str) or manual parameters (dict)
+
+        Returns:
+            Dict[str, Any]: Dictionary containing the best parameters.
+        """
+
+        if isinstance(params_source, str):
+            self.logger.info("Loading parameters from MLflow", rund_id=params_source)
+            return self.get_mlflow_best_params(params_source)
+        elif isinstance(params_source, dict):
+            self.logger.info("Using manual parameters", params=params_source)
+            return self.set_manual_params(params_source)
+        else:
+            raise ValueError(
+                f"params_source must be either str (MLflow run_id) or dict (manual params), "
+                f"got {type(params_source)}"
+            )
+
     def get_mlflow_best_params(self, run_id: str) -> Dict[str, Any]:
         """Load best parameters from MLflow runs based on models parameter space.
 
@@ -109,6 +132,47 @@ class BaseMlModel(ABC):
             self.logger.error("Failed to load MLflow parameters", error=e, run_id=run_id)
             raise RuntimeError("Failed to load parameters from MLflow") from e
 
+    def set_manual_params(self, manual_params: Dict[str, Any]) -> Dict[str, Any]:
+        """Validate and set manual parameters based on models parameter space.
+
+        Args:
+            manual_params (Dict[str, Any]): Manual parameters dictionary
+
+        Returns:
+            Dict[str, Any]: Validated parameters dictionary
+        """
+
+        try:
+            self.logger.debug("Processing manual parameters", params=manual_params)
+
+            # Create a new study and trial to get the parameter space
+            study = optuna.create_study(study_name="Validate manual parameters")
+            trail = optuna.trial.Trial(study, study._storage.create_new_trial(study._study_id))
+
+            # Get the parameter space for the model
+            model_params = self.get_param_space(trail).keys()
+
+            # Validate that all provided parameters are in the parameter space
+            invalid_params = set(manual_params.keys()) - set(model_params)
+            if invalid_params:
+                self.logger.warning(
+                    "Some parameters are not in model parameter space",
+                    invalid_params=list(invalid_params),
+                    valid_params=list(model_params),
+                )
+
+            # Filter to only valid parameters
+            validated_params = {
+                key: value for key, value in manual_params.items() if key in model_params
+            }
+
+            self.logger.info("Validated manual parameters", params=validated_params)
+            return validated_params
+
+        except Exception as e:
+            self.logger.error("Failed to process manual parameters", error=e, params=manual_params)
+            raise RuntimeError("Failed to validate manual parameters") from e
+
     def set_num_classes(self, num_classes: int) -> None:
         """Set the number of classes for classification.
 
@@ -141,12 +205,14 @@ def safe_convert(value: str) -> Any:
 class BaseMlEnsembleModel(BaseMlModel):
     """Abstract base class for all ml ensemble models."""
 
-    def __init__(self, model_name: str, models: List[Tuple[BaseMlModel, str]]) -> None:
+    def __init__(
+        self, model_name: str, models: List[Tuple[BaseMlModel, Union[str, Dict[str, Any]]]]
+    ) -> None:
         """Initialize the base ml ensemble model.
 
         Args:
             model_name (str): Name of the ensemble model.
-            models (List[Tuple[BaseMlModel, str]]):
+            models (List[Tuple[BaseMlModel, Union[str, Dict[str, Any]]]]):
                 List of ml models for ensemble and MLflow run ids for best parameters.
         """
 
@@ -154,14 +220,26 @@ class BaseMlEnsembleModel(BaseMlModel):
         self.models = models
         self.num_models = len(self.models)
 
-        self._load_mlflow_best_params()
+        self._load_best_params()
 
-    def _load_mlflow_best_params(self) -> None:
-        """Load best parameters from MLflow runs based on models parameter space."""
+    def _load_best_params(self) -> None:
+        """Load best parameters from parameter sources (MLflow runs or manual)
+        based on models parameter space."""
 
-        for model, run_id in self.models:
-            params = model.get_mlflow_best_params(run_id)
-            model = model.create_model(params)
+        for model, params_source in self.models:
+            try:
+                # Automatic detection and loading
+                params = model.load_best_params(params_source)
+                model = model.create_model(params)
+                model.best_params = params
+
+            except Exception as e:
+                self.logger.error(
+                    "Failed to load best parameters for the model",
+                    model_name=model.model_name,
+                    error=e,
+                )
+                raise
 
     def _del_weight_keys(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Delete weight keys from the dictionary and add weights key.

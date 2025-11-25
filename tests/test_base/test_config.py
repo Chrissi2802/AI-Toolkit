@@ -34,6 +34,7 @@ class TestDataConfig:
         assert config.numerical_preprocessing_strategy == "StandardScaler"
         assert config.array_length_strategy == "zero"
         assert config.statistical_feature_set == "minimal"
+        assert config.feature_selection is False
 
     @pytest.mark.parametrize(
         "config_params",
@@ -146,7 +147,7 @@ class TestTrainingConfig:
 
         assert config.n_splits == 5
         assert config.random_state == 28
-        assert config.n_trials == 100
+        assert config.n_trials == 2
         assert config.experiment_name == "ai_toolkit_classification_experiment"
         assert config.optimize_metric == "f1"
         assert config.use_smote is True
@@ -242,7 +243,7 @@ class TestLoggingConfig:
 
         assert config.name == "logger"
         assert config.format == "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-        assert config.level == logging.WARNING
+        assert config.level == logging.INFO
         assert config.dir == Path("logs")
         assert config.file == ".log"
         assert config.enable_console is True

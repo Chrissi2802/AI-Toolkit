@@ -180,3 +180,7 @@ mlartifacts/
 # Visual Studio Code
 .vscode/
 
+# Claude Code
+.claude/
+CLAUDE.md
+

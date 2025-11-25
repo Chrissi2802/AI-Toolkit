@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from ai_toolkit.base.training import MlTrainerConfig
+from ai_toolkit.base.config import ConfigFactory
 from ai_toolkit.models.classification import LogisticRegressionModel
 from ai_toolkit.training.classification import (
     ClassificationModelTrainer,
@@ -34,9 +34,12 @@ class TestClassificationModelTrainer:
             simple_model (LogisticRegressionModel): A simple model instance.
         """
 
+        config_factory = ConfigFactory()
+        config_factory.training.experiment_name = "test_classification"
+
         trainer = ClassificationModelTrainer(
             base_model=simple_model,
-            config=MlTrainerConfig(EXPERIMENT_NAME="test_classification"),
+            config_factory=config_factory,
         )
 
         assert trainer.base_model is not None
@@ -55,9 +58,12 @@ class TestClassificationModelTrainer:
 
         X, y = classification_data_pd
 
+        config_factory = ConfigFactory()
+        config_factory.training.experiment_name = "test_classification"
+
         trainer = ClassificationModelTrainer(
             base_model=simple_model,
-            config=MlTrainerConfig(EXPERIMENT_NAME="test_classification"),
+            config_factory=config_factory,
         )
 
         # Train model
@@ -88,9 +94,13 @@ class TestClassificationModelTrainer:
         """
 
         X, y = classification_data_pd
+
+        config_factory = ConfigFactory()
+        config_factory.training.experiment_name = "test_classification"
+
         trainer = ClassificationModelTrainer(
             base_model=simple_model,
-            config=MlTrainerConfig(EXPERIMENT_NAME="test_classification"),
+            config_factory=config_factory,
         )
 
         # Train model first
@@ -120,11 +130,14 @@ class TestClassificationModelTrainer:
         """
 
         X, y = classification_data_pd
+        config_factory = ConfigFactory()
+        config_factory.training.experiment_name = "test_classification"
+        config_factory.training.use_smote = False
+
         trainer = ClassificationModelTrainer(
             base_model=simple_model,
-            config=MlTrainerConfig(EXPERIMENT_NAME="test_classification"),
+            config_factory=config_factory,
         )
-        trainer.use_smote = False
 
         # Create mock trial with correct return values
         mock_trial = Mock()
@@ -150,17 +163,19 @@ class TestClassificationModelTrainer:
         assert 0 <= score <= 1  # F1 score range
 
     @pytest.mark.parametrize("use_smote,smote_ratio", [(True, 1.0), (False, 1.0), (True, 0.7)])
-    def test_smote_integration(self, classification_data_pd, use_smote, smote_ratio):
+    def test_smote_integration(self, classification_data_pd, use_smote, smote_ratio, simple_model):
         """Test SMOTE integration with different configurations."""
 
         X, y = classification_data_pd
+
+        config_factory = ConfigFactory()
+        config_factory.training.experiment_name = "test_classification"
+        config_factory.training.use_smote = use_smote
+        config_factory.training.smote_ratio = smote_ratio
+
         trainer = ClassificationModelTrainer(
-            base_model=LogisticRegressionModel(),
-            config=MlTrainerConfig(
-                EXPERIMENT_NAME="test_classification",
-                USE_SMOTE=use_smote,
-                SMOTE_RATIO=smote_ratio,
-            ),
+            base_model=simple_model,
+            config_factory=config_factory,
         )
 
         # Train model
@@ -183,12 +198,13 @@ class TestClassificationModelTrainer:
         n_splits_list = [3, 5, 10]
 
         for n_splits in n_splits_list:
+            config_factory = ConfigFactory()
+            config_factory.training.experiment_name = "test_classification"
+            config_factory.training.n_splits = n_splits
+
             trainer = ClassificationModelTrainer(
                 base_model=simple_model,
-                config=MlTrainerConfig(
-                    EXPERIMENT_NAME="test_classification",
-                    N_SPLITS=n_splits,
-                ),
+                config_factory=config_factory,
             )
 
             best_model, metrics = trainer.train_and_optimize(X, y, n_trials=2)
@@ -203,12 +219,13 @@ class TestClassificationModelTrainer:
 
         X, y = classification_data_pd
 
+        config_factory = ConfigFactory()
+        config_factory.training.experiment_name = "test_classification"
+        config_factory.training.optimize_metric = optimize_metric
+
         trainer = ClassificationModelTrainer(
             base_model=simple_model,
-            config=MlTrainerConfig(
-                EXPERIMENT_NAME="test_classification",
-                OPTIMIZE_METRIC=optimize_metric,
-            ),
+            config_factory=config_factory,
         )
 
         best_model, metrics = trainer.train_and_optimize(X, y, n_trials=2)
@@ -232,9 +249,13 @@ class TestClassificationModelTrainer:
         """
 
         X, y = classification_data_pd
+
+        config_factory = ConfigFactory()
+        config_factory.training.experiment_name = "test_classification"
+
         trainer = ClassificationModelTrainer(
             base_model=simple_model,
-            config=MlTrainerConfig(EXPERIMENT_NAME="test_classification"),
+            config_factory=config_factory,
         )
 
         # Test prediction without training
@@ -243,10 +264,15 @@ class TestClassificationModelTrainer:
 
         # Test with invalid optimization metric
         with pytest.raises(ValueError):
+            config_factory = ConfigFactory()
+            config_factory.training.experiment_name = "test_classification"
+            config_factory.training.optimize_metric = "invalid_metric"
+
             trainer_invalid = ClassificationModelTrainer(
                 base_model=simple_model,
-                config=MlTrainerConfig(OPTIMIZE_METRIC="invalid_metric"),
+                config_factory=config_factory,
             )
+
             trainer_invalid.train_and_optimize(X, y, n_trials=2)
 
 
@@ -295,20 +321,21 @@ def test_full_training_pipeline(
 
     X, y = classification_data_pd
 
+    config_factory = ConfigFactory()
+    config_factory.training.experiment_name = "test_classification"
+    config_factory.training.n_splits = 5
+    config_factory.training.optimize_metric = "f1"
+    config_factory.training.use_smote = True
+    config_factory.training.smote_ratio = 1.0
+
     # Create trainer with all features enabled
     trainer = ClassificationModelTrainer(
         base_model=simple_model,
-        config=MlTrainerConfig(
-            EXPERIMENT_NAME="test_classification",
-            N_SPLITS=5,
-            OPTIMIZE_METRIC="f1",
-            USE_SMOTE=True,
-            SMOTE_RATIO=1.0,
-        ),
+        config_factory=config_factory,
     )
 
     # Train model
-    best_model, metrics = trainer.train_and_optimize(X, y, n_trials=3)
+    best_model, metrics = trainer.train_and_optimize(X, y, n_trials=2)
 
     # Make predictions
     y_pred, y_pred_proba = trainer.predict(X)

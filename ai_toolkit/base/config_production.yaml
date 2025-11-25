@@ -6,6 +6,7 @@ data:
   numerical_fill_strategy: median
   numerical_preprocessing_strategy: StandardScaler
   statistical_feature_set: custom
+  feature_selection: true
 environment: production
 logging:
   dir: logs

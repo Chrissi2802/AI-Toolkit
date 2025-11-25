@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from ai_toolkit.base.training import MlTrainerConfig
+from ai_toolkit.base.config import ConfigFactory
 from ai_toolkit.models.regression import RidgeRegressionModel
 from ai_toolkit.training.regression import (
     RegressionModelTrainer,
@@ -34,12 +34,13 @@ class TestRegressionModelTrainer:
             simple_model (RidgeRegressionModel): A simple Ridge regression model.
         """
 
+        config_factory = ConfigFactory()
+        config_factory.training.experiment_name = "test_regression"
+        config_factory.training.optimize_metric = "root_mean_squared_error"
+
         trainer = RegressionModelTrainer(
             base_model=simple_model,
-            config=MlTrainerConfig(
-                EXPERIMENT_NAME="test_regression",
-                OPTIMIZE_METRIC="root_mean_squared_error",
-            ),
+            config_factory=config_factory,
         )
 
         assert trainer.base_model is not None
@@ -56,12 +57,13 @@ class TestRegressionModelTrainer:
 
         X, y = regression_data_pd
 
+        config_factory = ConfigFactory()
+        config_factory.training.experiment_name = "test_regression"
+        config_factory.training.optimize_metric = "root_mean_squared_error"
+
         trainer = RegressionModelTrainer(
             base_model=simple_model,
-            config=MlTrainerConfig(
-                EXPERIMENT_NAME="test_regression",
-                OPTIMIZE_METRIC="root_mean_squared_error",
-            ),
+            config_factory=config_factory,
         )
 
         # Train model
@@ -99,12 +101,14 @@ class TestRegressionModelTrainer:
         """
 
         X, y = regression_data_pd
+
+        config_factory = ConfigFactory()
+        config_factory.training.experiment_name = "test_regression"
+        config_factory.training.optimize_metric = "root_mean_squared_error"
+
         trainer = RegressionModelTrainer(
             base_model=simple_model,
-            config=MlTrainerConfig(
-                EXPERIMENT_NAME="test_regression",
-                OPTIMIZE_METRIC="root_mean_squared_error",
-            ),
+            config_factory=config_factory,
         )
 
         # Train model first
@@ -129,12 +133,14 @@ class TestRegressionModelTrainer:
         """
 
         X, y = regression_data_pd
+
+        config_factory = ConfigFactory()
+        config_factory.training.experiment_name = "test_regression"
+        config_factory.training.optimize_metric = "root_mean_squared_error"
+
         trainer = RegressionModelTrainer(
             base_model=simple_model,
-            config=MlTrainerConfig(
-                EXPERIMENT_NAME="test_regression",
-                OPTIMIZE_METRIC="root_mean_squared_error",
-            ),
+            config_factory=config_factory,
         )
 
         # Create mock trial with correct return values
@@ -175,13 +181,15 @@ class TestRegressionModelTrainer:
         n_splits_list = [3, 5, 10]
 
         for n_splits in n_splits_list:
+
+            config_factory = ConfigFactory()
+            config_factory.training.experiment_name = "test_regression"
+            config_factory.training.optimize_metric = "root_mean_squared_error"
+            config_factory.training.n_splits = n_splits
+
             trainer = RegressionModelTrainer(
                 base_model=simple_model,
-                config=MlTrainerConfig(
-                    EXPERIMENT_NAME="test_regression",
-                    OPTIMIZE_METRIC="root_mean_squared_error",
-                    N_SPLITS=n_splits,
-                ),
+                config_factory=config_factory,
             )
 
             best_model, metrics = trainer.train_and_optimize(X, y, n_trials=2)
@@ -198,12 +206,14 @@ class TestRegressionModelTrainer:
         """Test optimization with different metrics."""
 
         X, y = regression_data_pd
+
+        config_factory = ConfigFactory()
+        config_factory.training.experiment_name = "test_regression"
+        config_factory.training.optimize_metric = optimize_metric
+
         trainer = RegressionModelTrainer(
             base_model=simple_model,
-            config=MlTrainerConfig(
-                EXPERIMENT_NAME="test_regression",
-                OPTIMIZE_METRIC=optimize_metric,
-            ),
+            config_factory=config_factory,
         )
 
         best_model, metrics = trainer.train_and_optimize(X, y, n_trials=2)
@@ -223,12 +233,14 @@ class TestRegressionModelTrainer:
         """
 
         X, y = regression_data_pd
+
+        config_factory = ConfigFactory()
+        config_factory.training.experiment_name = "test_regression"
+        config_factory.training.optimize_metric = "root_mean_squared_error"
+
         trainer = RegressionModelTrainer(
             base_model=simple_model,
-            config=MlTrainerConfig(
-                EXPERIMENT_NAME="test_regression",
-                OPTIMIZE_METRIC="root_mean_squared_error",
-            ),
+            config_factory=config_factory,
         )
 
         # Test prediction without training
@@ -237,13 +249,15 @@ class TestRegressionModelTrainer:
 
         # Test with invalid optimization metric
         with pytest.raises(ValueError):
+            config_factory = ConfigFactory()
+            config_factory.training.experiment_name = "test_regression"
+            config_factory.training.optimize_metric = "invalid_metric"
+
             trainer_invalid = RegressionModelTrainer(
                 base_model=simple_model,
-                config=MlTrainerConfig(
-                    EXPERIMENT_NAME="test_regression",
-                    OPTIMIZE_METRIC="invalid_metric",
-                ),
+                config_factory=config_factory,
             )
+
             trainer_invalid.train_and_optimize(X, y, n_trials=2)
 
 
@@ -287,17 +301,18 @@ def test_full_training_pipeline(regression_data_pd: Tuple[pd.DataFrame, pd.Serie
 
     X, y = regression_data_pd
 
+    config_factory = ConfigFactory()
+    config_factory.training.experiment_name = "test_regression"
+    config_factory.training.optimize_metric = "root_mean_squared_error"
+    config_factory.training.n_splits = 5
+
     trainer = RegressionModelTrainer(
         base_model=simple_model,
-        config=MlTrainerConfig(
-            EXPERIMENT_NAME="test_regression",
-            N_SPLITS=5,
-            OPTIMIZE_METRIC="root_mean_squared_error",
-        ),
+        config_factory=config_factory,
     )
 
     # Train model
-    best_model, metrics = trainer.train_and_optimize(X, y, n_trials=3)
+    best_model, metrics = trainer.train_and_optimize(X, y, n_trials=2)
 
     # Make predictions
     y_pred = trainer.predict(X)

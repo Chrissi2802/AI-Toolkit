@@ -2257,3 +2257,18 @@ def test_plot_feature_importance_with_zero_correlation():
     if fig is not None:  # Only if target is numerical
         assert isinstance(fig, plt.Figure)
         plt.close(fig)
+
+
+def test_select_features_tsfresh():
+    """Test feature selection."""
+
+    dataset = DummyDataset()
+    dataset.config.feature_selection = True
+    dataset.load_data()
+
+    X = dataset.X
+
+    dataset.preprocess()
+
+    assert X.shape[0] == dataset.X.shape[0]
+    assert dataset.X.shape[1] == 0  # all columns are removed

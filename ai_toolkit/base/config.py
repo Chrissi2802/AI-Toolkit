@@ -82,6 +82,15 @@ class DataConfig(BaseModel):
         ),
     )
 
+    feature_selection: bool = Field(
+        default=False,
+        description=(
+            "Whether to apply feature selection. Options: "
+            "'True' (apply feature selection), "
+            "'False' (do not apply feature selection)"
+        ),
+    )
+
     class Config:
         env_prefix = "DATA_"
         case_sensitive = False
@@ -336,7 +345,10 @@ class TrainingConfig(BaseModel):
 
     use_smote: bool = Field(
         default=True,
-        description="Whether to use SMOTE for imbalanced datasets. Only for classification.",
+        description="Whether to use SMOTE for imbalanced datasets. "
+        "Only for classification. Options: "
+        "'True' (use SMOTE), "
+        "'False' (do not use SMOTE)",
     )
 
     smote_ratio: float = Field(
@@ -381,6 +393,12 @@ class TrainingConfig(BaseModel):
         """
 
         default_metric_configs = get_default_metric_configs()
+
+        if self.optimize_metric not in default_metric_configs:
+            raise ValueError(
+                f"optimize_metric '{self.optimize_metric}' not supported. "
+                f"Supported metrics: {list(default_metric_configs.keys())}"
+            )
 
         return default_metric_configs[self.optimize_metric]
 

@@ -324,8 +324,8 @@ class ClassificationModelTrainer(BaseMlTrainer):
             self._log_dataset_info(X_array, y_array)
 
             # Encode target labels
-            encoder = LabelEncoder()
-            y_array = encoder.fit_transform(y_array)
+            self.encoder = LabelEncoder()
+            y_array = self.encoder.fit_transform(y_array)
 
             # Optimize hyperparameters
             study = optuna.create_study(
@@ -392,8 +392,8 @@ class ClassificationModelTrainer(BaseMlTrainer):
                     y_pred_proba = None
 
                 # Inverse transform target labels
-                y_val = encoder.inverse_transform(y_val)
-                y_pred = encoder.inverse_transform(y_pred)
+                y_val = self.encoder.inverse_transform(y_val)
+                y_pred = self.encoder.inverse_transform(y_pred)
 
                 # Store predictions
                 all_predictions[f"fold_{fold}"] = y_pred
@@ -450,6 +450,9 @@ class ClassificationModelTrainer(BaseMlTrainer):
                 y_pred_proba = self.best_model.predict_proba(X)
             else:
                 y_pred_proba = None
+
+            # Inverse transform target labels
+            y_pred = self.encoder.inverse_transform(y_pred)
 
             self.logger.info("Predictions completed", predictions_shape=y_pred.shape)
 

@@ -6,6 +6,7 @@ data:
   numerical_fill_strategy: median
   numerical_preprocessing_strategy: StandardScaler
   statistical_feature_set: minimal
+  feature_selection: false
 environment: development
 logging:
   dir: logs

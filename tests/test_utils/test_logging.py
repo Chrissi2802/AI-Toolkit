@@ -36,7 +36,7 @@ class TestLoggerConfig:
         config = LoggingConfig()
 
         assert config.name == "logger"
-        assert config.level == logging.WARNING
+        assert config.level == logging.INFO
         assert isinstance(config.dir, Path)
         assert config.enable_console is True
         assert config.enable_file is True
@@ -84,7 +84,7 @@ class TestLogger:
         logger = Logger(config)
 
         assert logger.logger.name == "test_logger"
-        assert logger.logger.level == logging.WARNING
+        assert logger.logger.level == logging.INFO
         assert isinstance(logger.context, dict)
         assert len(logger.context) == 0
 

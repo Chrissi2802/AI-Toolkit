@@ -74,40 +74,42 @@
 <!-- ai_toolkit.base.models.BaseMlEnsembleModel -->
 <g id="node3" class="node">
 <title>ai_toolkit.base.models.BaseMlEnsembleModel</title>
-<polygon fill="none" stroke="black" points="5573.25,-1468.5 5573.25,-1558.5 5816.5,-1558.5 5816.5,-1468.5 5573.25,-1468.5"/>
+<polygon fill="none" stroke="black" points="5514,-1468.5 5514,-1558.5 5875.75,-1558.5 5875.75,-1468.5 5514,-1468.5"/>
 <text text-anchor="start" x="5628.5" y="-1541.2" font-family="Times New Roman,serif" font-size="14.00">BaseMlEnsembleModel</text>
-<polyline fill="none" stroke="black" points="5573.25,-1534 5816.5,-1534"/>
-<text text-anchor="start" x="5584.25" y="-1516.7" font-family="Times New Roman,serif" font-size="14.00">models : List[Tuple[BaseMlModel, str]]</text>
-<text text-anchor="start" x="5584.25" y="-1500.2" font-family="Times New Roman,serif" font-size="14.00">num_models</text>
-<polyline fill="none" stroke="black" points="5573.25,-1493 5816.5,-1493"/>
+<polyline fill="none" stroke="black" points="5514,-1534 5875.75,-1534"/>
+<text text-anchor="start" x="5522" y="-1516.7" font-family="Times New Roman,serif" font-size="14.00">models : List[Tuple[BaseMlModel, Union[str, Dict[str, Any]]]]</text>
+<text text-anchor="start" x="5522" y="-1500.2" font-family="Times New Roman,serif" font-size="14.00">num_models</text>
+<polyline fill="none" stroke="black" points="5514,-1493 5875.75,-1493"/>
 <text text-anchor="start" x="5581.25" y="-1475.7" font-family="Times New Roman,serif" font-size="14.00">set_num_classes(num_classes: int): None</text>
 </g>
 <!-- ai_toolkit.base.models.BaseMlModel -->
 <g id="node4" class="node">
 <title>ai_toolkit.base.models.BaseMlModel</title>
-<polygon fill="none" stroke="black" points="5716,-773.25 5716,-982.75 6017.75,-982.75 6017.75,-773.25 5716,-773.25"/>
-<text text-anchor="start" x="5827.5" y="-965.45" font-family="Times New Roman,serif" font-size="14.00">BaseMlModel</text>
-<polyline fill="none" stroke="black" points="5716,-958.25 6017.75,-958.25"/>
-<text text-anchor="start" x="5787.75" y="-940.95" font-family="Times New Roman,serif" font-size="14.00">best_params : NoneType</text>
-<text text-anchor="start" x="5787.75" y="-924.45" font-family="Times New Roman,serif" font-size="14.00">is_multiclass : NoneType</text>
-<text text-anchor="start" x="5787.75" y="-907.95" font-family="Times New Roman,serif" font-size="14.00">logger</text>
-<text text-anchor="start" x="5787.75" y="-891.45" font-family="Times New Roman,serif" font-size="14.00">model : NoneType</text>
-<text text-anchor="start" x="5787.75" y="-874.95" font-family="Times New Roman,serif" font-size="14.00">model_name : str</text>
-<text text-anchor="start" x="5787.75" y="-858.45" font-family="Times New Roman,serif" font-size="14.00">num_classes : NoneType, int</text>
-<polyline fill="none" stroke="black" points="5716,-851.25 6017.75,-851.25"/>
-<text text-anchor="start" x="5724" y="-834.95" font-family="Times New Roman,serif" font-style="italic" font-size="14.00">create_model</text>
-<text text-anchor="start" x="5797.5" y="-834.95" font-family="Times New Roman,serif" font-size="14.00">(params: Dict[str, Any]): Any</text>
-<text text-anchor="start" x="5724" y="-820.95" font-family="Times New Roman,serif" font-size="14.00">get_mlflow_best_params(run_id: str): Dict[str, Any]</text>
-<text text-anchor="start" x="5724" y="-806.95" font-family="Times New Roman,serif" font-size="14.00">get_model_info(): Dict[str, Any]</text>
-<text text-anchor="start" x="5724" y="-792.95" font-family="Times New Roman,serif" font-style="italic" font-size="14.00">get_param_space</text>
-<text text-anchor="start" x="5820" y="-792.95" font-family="Times New Roman,serif" font-size="14.00">(trial: optuna.Trial): Dict[str, Any]</text>
-<text text-anchor="start" x="5724" y="-778.95" font-family="Times New Roman,serif" font-size="14.00">set_num_classes(num_classes: int): None</text>
+<polygon fill="none" stroke="black" points="5650.38,-759.25 5650.38,-996.75 6083.38,-996.75 6083.38,-759.25 5650.38,-759.25"/>
+<text text-anchor="start" x="5827.5" y="-979.45" font-family="Times New Roman,serif" font-size="14.00">BaseMlModel</text>
+<polyline fill="none" stroke="black" points="5650.38,-972.25 6083.38,-972.25"/>
+<text text-anchor="start" x="5787.75" y="-954.95" font-family="Times New Roman,serif" font-size="14.00">best_params : NoneType</text>
+<text text-anchor="start" x="5787.75" y="-938.45" font-family="Times New Roman,serif" font-size="14.00">is_multiclass : NoneType</text>
+<text text-anchor="start" x="5787.75" y="-921.95" font-family="Times New Roman,serif" font-size="14.00">logger</text>
+<text text-anchor="start" x="5787.75" y="-905.45" font-family="Times New Roman,serif" font-size="14.00">model : NoneType</text>
+<text text-anchor="start" x="5787.75" y="-888.95" font-family="Times New Roman,serif" font-size="14.00">model_name : str</text>
+<text text-anchor="start" x="5787.75" y="-872.45" font-family="Times New Roman,serif" font-size="14.00">num_classes : NoneType, int</text>
+<polyline fill="none" stroke="black" points="5650.38,-865.25 6083.38,-865.25"/>
+<text text-anchor="start" x="5658.38" y="-848.95" font-family="Times New Roman,serif" font-style="italic" font-size="14.00">create_model</text>
+<text text-anchor="start" x="5731.88" y="-848.95" font-family="Times New Roman,serif" font-size="14.00">(params: Dict[str, Any]): Any</text>
+<text text-anchor="start" x="5658.38" y="-834.95" font-family="Times New Roman,serif" font-size="14.00">get_mlflow_best_params(run_id: str): Dict[str, Any]</text>
+<text text-anchor="start" x="5658.38" y="-820.95" font-family="Times New Roman,serif" font-size="14.00">get_model_info(): Dict[str, Any]</text>
+<text text-anchor="start" x="5658.38" y="-806.95" font-family="Times New Roman,serif" font-style="italic" font-size="14.00">get_param_space</text>
+<text text-anchor="start" x="5754.38" y="-806.95" font-family="Times New Roman,serif" font-size="14.00">(trial: optuna.Trial): Dict[str, Any]</text>
+<text text-anchor="start" x="5658.38" y="-792.95" font-family="Times New Roman,serif" font-size="14.00">load_best_params(params_source: Union[str, Dict[str, Any]]): Dict[str, Any]</text>
+<text text-anchor="start" x="5658.38" y="-778.95" font-family="Times New Roman,serif" font-size="14.00">set_manual_params(manual_params: Dict[str, Any]): Dict[str, Any]</text>
+<text text-anchor="start" x="5658.38" y="-764.95" font-family="Times New Roman,serif" font-size="14.00">set_num_classes(num_classes: int): None</text>
 </g>
 <!-- ai_toolkit.base.models.BaseMlEnsembleModel&#45;&gt;ai_toolkit.base.models.BaseMlModel -->
 <g id="edge1" class="edge">
 <title>ai_toolkit.base.models.BaseMlEnsembleModel&#45;&gt;ai_toolkit.base.models.BaseMlModel</title>
-<path fill="none" stroke="black" d="M5691.56,-1468.14C5687.96,-1402.71 5686,-1277.04 5713.88,-1175 5731.2,-1111.57 5763.31,-1046.1 5793.65,-992.92"/>
-<polygon fill="none" stroke="black" points="5796.58,-994.86 5798.54,-984.45 5790.51,-991.36 5796.58,-994.86"/>
+<path fill="none" stroke="black" d="M5691.56,-1468.14C5687.96,-1402.71 5686,-1277.04 5713.88,-1175 5729.7,-1117.06 5757.86,-1057.43 5785.74,-1007.01"/>
+<polygon fill="none" stroke="black" points="5788.74,-1008.81 5790.57,-998.37 5782.63,-1005.39 5788.74,-1008.81"/>
 </g>
 <!-- ai_toolkit.base.training.BaseMlTrainer -->
 <g id="node5" class="node">
@@ -133,7 +135,7 @@
 <!-- ai_toolkit.base.models.BaseMlModel&#45;&gt;ai_toolkit.base.training.BaseMlTrainer -->
 <g id="edge36" class="edge">
 <title>ai_toolkit.base.models.BaseMlModel&#45;&gt;ai_toolkit.base.training.BaseMlTrainer</title>
-<path fill="none" stroke="black" d="M5736.08,-983.09C5665.22,-1033.81 5573.75,-1090.61 5482.88,-1122.5 5285.97,-1191.6 5216.95,-1129.59 5011.2,-1174.13"/>
+<path fill="none" stroke="black" d="M5716.43,-996.94C5648.73,-1043.85 5565.56,-1093.49 5482.88,-1122.5 5285.97,-1191.6 5216.95,-1129.59 5011.2,-1174.13"/>
 <polygon fill="none" stroke="black" points="5011.33,-1174.1 5006.35,-1179.31 4999.62,-1176.72 5004.6,-1171.51 5011.33,-1174.1"/>
 <text text-anchor="middle" x="5448.48" y="-1143.7" font-family="Times New Roman,serif" font-size="14.00" fill="green">base_model</text>
 </g>
@@ -153,8 +155,8 @@
 <!-- ai_toolkit.base.models.BaseMlModel&#45;&gt;ai_toolkit.models.classification.EnsembleStackingClassifierModel -->
 <g id="edge37" class="edge">
 <title>ai_toolkit.base.models.BaseMlModel&#45;&gt;ai_toolkit.models.classification.EnsembleStackingClassifierModel</title>
-<path fill="none" stroke="black" d="M5871.79,-983.02C5875.4,-1059.2 5880.2,-1160.72 5883.4,-1228.57"/>
-<polygon fill="none" stroke="black" points="5883.39,-1228.37 5887.67,-1234.17 5883.96,-1240.35 5879.68,-1234.55 5883.39,-1228.37"/>
+<path fill="none" stroke="black" d="M5872.46,-997.11C5875.97,-1071.32 5880.38,-1164.72 5883.4,-1228.46"/>
+<polygon fill="none" stroke="black" points="5883.39,-1228.31 5887.67,-1234.11 5883.96,-1240.29 5879.68,-1234.49 5883.39,-1228.31"/>
 <text text-anchor="middle" x="5913.96" y="-1143.7" font-family="Times New Roman,serif" font-size="14.00" fill="green">meta_model</text>
 </g>
 <!-- ai_toolkit.models.regression.EnsembleStackingRegressorModel -->
@@ -172,8 +174,8 @@
 <!-- ai_toolkit.base.models.BaseMlModel&#45;&gt;ai_toolkit.models.regression.EnsembleStackingRegressorModel -->
 <g id="edge38" class="edge">
 <title>ai_toolkit.base.models.BaseMlModel&#45;&gt;ai_toolkit.models.regression.EnsembleStackingRegressorModel</title>
-<path fill="none" stroke="black" d="M5956.88,-983.02C6026.48,-1063.46 6120.52,-1172.15 6178.9,-1239.62"/>
-<polygon fill="none" stroke="black" points="6178.81,-1239.51 6185.76,-1241.43 6186.66,-1248.58 6179.71,-1246.66 6178.81,-1239.51"/>
+<path fill="none" stroke="black" d="M5969.07,-997.11C6037.27,-1075.93 6124.2,-1176.4 6179.22,-1239.98"/>
+<polygon fill="none" stroke="black" points="6178.99,-1239.72 6185.94,-1241.64 6186.84,-1248.8 6179.89,-1246.88 6178.99,-1239.72"/>
 <text text-anchor="middle" x="6138.17" y="-1143.7" font-family="Times New Roman,serif" font-size="14.00" fill="green">meta_model</text>
 </g>
 <!-- ai_toolkit.models.regression.BayesianRidgeRegressionModel -->
@@ -190,8 +192,8 @@
 <!-- ai_toolkit.models.regression.BayesianRidgeRegressionModel&#45;&gt;ai_toolkit.base.models.BaseMlModel -->
 <g id="edge13" class="edge">
 <title>ai_toolkit.models.regression.BayesianRidgeRegressionModel&#45;&gt;ai_toolkit.base.models.BaseMlModel</title>
-<path fill="none" stroke="black" d="M5866.88,-498.47C5866.88,-560.45 5866.88,-674.97 5866.88,-761.87"/>
-<polygon fill="none" stroke="black" points="5863.38,-761.62 5866.88,-771.62 5870.38,-761.62 5863.38,-761.62"/>
+<path fill="none" stroke="black" d="M5866.88,-498.47C5866.88,-557.14 5866.88,-662.88 5866.88,-747.72"/>
+<polygon fill="none" stroke="black" points="5863.38,-747.5 5866.88,-757.5 5870.38,-747.5 5863.38,-747.5"/>
 </g>
 <!-- ai_toolkit.models.regression.CatBoostRegressorModel -->
 <g id="node7" class="node">
@@ -207,8 +209,8 @@
 <!-- ai_toolkit.models.regression.CatBoostRegressorModel&#45;&gt;ai_toolkit.base.models.BaseMlModel -->
 <g id="edge14" class="edge">
 <title>ai_toolkit.models.regression.CatBoostRegressorModel&#45;&gt;ai_toolkit.base.models.BaseMlModel</title>
-<path fill="none" stroke="black" d="M6170.24,-498.47C6120.11,-561.02 6027.1,-677.07 5957.23,-764.26"/>
-<polygon fill="none" stroke="black" points="5954.58,-761.96 5951.06,-771.95 5960.05,-766.34 5954.58,-761.96"/>
+<path fill="none" stroke="black" d="M6170.24,-498.47C6122.79,-557.68 6036.91,-664.83 5968.61,-750.05"/>
+<polygon fill="none" stroke="black" points="5965.9,-747.84 5962.38,-757.83 5971.36,-752.22 5965.9,-747.84"/>
 </g>
 <!-- ai_toolkit.utils.evaluation.ClassificationMetrics -->
 <g id="node8" class="node">
@@ -224,24 +226,25 @@
 <!-- ai_toolkit.training.classification.ClassificationModelTrainer -->
 <g id="node9" class="node">
 <title>ai_toolkit.training.classification.ClassificationModelTrainer</title>
-<polygon fill="none" stroke="black" points="4411.75,-791.75 4411.75,-964.25 4934,-964.25 4934,-791.75 4411.75,-791.75"/>
-<text text-anchor="start" x="4597.88" y="-946.95" font-family="Times New Roman,serif" font-size="14.00">ClassificationModelTrainer</text>
-<polyline fill="none" stroke="black" points="4411.75,-939.75 4934,-939.75"/>
-<text text-anchor="start" x="4595.62" y="-922.45" font-family="Times New Roman,serif" font-size="14.00">best_model</text>
-<text text-anchor="start" x="4595.62" y="-905.95" font-family="Times New Roman,serif" font-size="14.00">best_score</text>
-<text text-anchor="start" x="4595.62" y="-889.45" font-family="Times New Roman,serif" font-size="14.00">feature_names : list</text>
-<text text-anchor="start" x="4595.62" y="-872.95" font-family="Times New Roman,serif" font-size="14.00">smote : NoneType, SMOTE</text>
-<text text-anchor="start" x="4595.62" y="-856.45" font-family="Times New Roman,serif" font-size="14.00">smote_ratio</text>
-<text text-anchor="start" x="4595.62" y="-839.95" font-family="Times New Roman,serif" font-size="14.00">use_smote</text>
-<polyline fill="none" stroke="black" points="4411.75,-832.75 4934,-832.75"/>
-<text text-anchor="start" x="4419.75" y="-815.45" font-family="Times New Roman,serif" font-size="14.00">predict(X: pd.DataFrame): Tuple[np.ndarray, np.ndarray]</text>
-<text text-anchor="start" x="4419.75" y="-798.95" font-family="Times New Roman,serif" font-size="14.00">train_and_optimize(X: pd.DataFrame, y: pd.Series, n_trials: int): Tuple[Any, Dict[str, float]]</text>
+<polygon fill="none" stroke="black" points="4411.75,-783.5 4411.75,-972.5 4934,-972.5 4934,-783.5 4411.75,-783.5"/>
+<text text-anchor="start" x="4597.88" y="-955.2" font-family="Times New Roman,serif" font-size="14.00">ClassificationModelTrainer</text>
+<polyline fill="none" stroke="black" points="4411.75,-948 4934,-948"/>
+<text text-anchor="start" x="4595.62" y="-930.7" font-family="Times New Roman,serif" font-size="14.00">best_model</text>
+<text text-anchor="start" x="4595.62" y="-914.2" font-family="Times New Roman,serif" font-size="14.00">best_score</text>
+<text text-anchor="start" x="4595.62" y="-897.7" font-family="Times New Roman,serif" font-size="14.00">encoder : LabelEncoder</text>
+<text text-anchor="start" x="4595.62" y="-881.2" font-family="Times New Roman,serif" font-size="14.00">feature_names : list</text>
+<text text-anchor="start" x="4595.62" y="-864.7" font-family="Times New Roman,serif" font-size="14.00">smote : NoneType, SMOTE</text>
+<text text-anchor="start" x="4595.62" y="-848.2" font-family="Times New Roman,serif" font-size="14.00">smote_ratio</text>
+<text text-anchor="start" x="4595.62" y="-831.7" font-family="Times New Roman,serif" font-size="14.00">use_smote</text>
+<polyline fill="none" stroke="black" points="4411.75,-824.5 4934,-824.5"/>
+<text text-anchor="start" x="4419.75" y="-807.2" font-family="Times New Roman,serif" font-size="14.00">predict(X: pd.DataFrame): Tuple[np.ndarray, np.ndarray]</text>
+<text text-anchor="start" x="4419.75" y="-790.7" font-family="Times New Roman,serif" font-size="14.00">train_and_optimize(X: pd.DataFrame, y: pd.Series, n_trials: int): Tuple[Any, Dict[str, float]]</text>
 </g>
 <!-- ai_toolkit.training.classification.ClassificationModelTrainer&#45;&gt;ai_toolkit.base.training.BaseMlTrainer -->
 <g id="edge22" class="edge">
 <title>ai_toolkit.training.classification.ClassificationModelTrainer&#45;&gt;ai_toolkit.base.training.BaseMlTrainer</title>
-<path fill="none" stroke="black" d="M4668.83,-964.6C4666.12,-1021.77 4662.51,-1098.23 4659.4,-1163.9"/>
-<polygon fill="none" stroke="black" points="4655.92,-1163.52 4658.94,-1173.68 4662.91,-1163.85 4655.92,-1163.52"/>
+<path fill="none" stroke="black" d="M4668.44,-972.88C4665.78,-1029.02 4662.36,-1101.37 4659.4,-1163.93"/>
+<polygon fill="none" stroke="black" points="4655.92,-1163.42 4658.95,-1173.58 4662.92,-1163.76 4655.92,-1163.42"/>
 </g>
 <!-- ai_toolkit.utils.visualization.ClassificationPlots -->
 <g id="node10" class="node">
@@ -353,17 +356,18 @@
 <!-- ai_toolkit.base.config.DataConfig -->
 <g id="node18" class="node">
 <title>ai_toolkit.base.config.DataConfig</title>
-<polygon fill="none" stroke="black" points="3479.25,-58.25 3479.25,-214.25 4058.5,-214.25 4058.5,-58.25 3479.25,-58.25"/>
-<text text-anchor="start" x="3737.38" y="-196.95" font-family="Times New Roman,serif" font-size="14.00">DataConfig</text>
-<polyline fill="none" stroke="black" points="3479.25,-189.75 4058.5,-189.75"/>
-<text text-anchor="start" x="3487.25" y="-172.45" font-family="Times New Roman,serif" font-size="14.00">array_length_strategy : Optional[Literal[&#39;zero&#39;, &#39;mean&#39;, &#39;median&#39;, &#39;last&#39;, &#39;truncate&#39;, &#39;global_mean&#39;]]</text>
-<text text-anchor="start" x="3487.25" y="-155.95" font-family="Times New Roman,serif" font-size="14.00">categorical_fill_strategy : Optional[Literal[&#39;mode&#39;, &#39;missing&#39;]]</text>
-<text text-anchor="start" x="3487.25" y="-139.45" font-family="Times New Roman,serif" font-size="14.00">categorical_preprocessing_strategy : Optional[Literal[&#39;OneHotEncoder&#39;, &#39;LabelEncoder&#39;, &#39;all&#39;]]</text>
-<text text-anchor="start" x="3487.25" y="-122.95" font-family="Times New Roman,serif" font-size="14.00">numerical_fill_strategy : Optional[Literal[&#39;median&#39;, &#39;mean&#39;, &#39;zero&#39;]]</text>
-<text text-anchor="start" x="3487.25" y="-106.45" font-family="Times New Roman,serif" font-size="14.00">numerical_preprocessing_strategy : Optional[Literal[&#39;StandardScaler&#39;, &#39;RobustScaler&#39;, &#39;MinMaxScaler&#39;]]</text>
-<text text-anchor="start" x="3487.25" y="-89.95" font-family="Times New Roman,serif" font-size="14.00">statistical_feature_set : Optional[Literal[&#39;minimal&#39;, &#39;efficient&#39;, &#39;comprehensive&#39;, &#39;custom&#39;]]</text>
-<polyline fill="none" stroke="black" points="3479.25,-82.75 4058.5,-82.75"/>
-<text text-anchor="start" x="3767" y="-65.45" font-family="Times New Roman,serif" font-size="14.00"> </text>
+<polygon fill="none" stroke="black" points="3479.25,-50 3479.25,-222.5 4058.5,-222.5 4058.5,-50 3479.25,-50"/>
+<text text-anchor="start" x="3737.38" y="-205.2" font-family="Times New Roman,serif" font-size="14.00">DataConfig</text>
+<polyline fill="none" stroke="black" points="3479.25,-198 4058.5,-198"/>
+<text text-anchor="start" x="3487.25" y="-180.7" font-family="Times New Roman,serif" font-size="14.00">array_length_strategy : Optional[Literal[&#39;zero&#39;, &#39;mean&#39;, &#39;median&#39;, &#39;last&#39;, &#39;truncate&#39;, &#39;global_mean&#39;]]</text>
+<text text-anchor="start" x="3487.25" y="-164.2" font-family="Times New Roman,serif" font-size="14.00">categorical_fill_strategy : Optional[Literal[&#39;mode&#39;, &#39;missing&#39;]]</text>
+<text text-anchor="start" x="3487.25" y="-147.7" font-family="Times New Roman,serif" font-size="14.00">categorical_preprocessing_strategy : Optional[Literal[&#39;OneHotEncoder&#39;, &#39;LabelEncoder&#39;, &#39;all&#39;]]</text>
+<text text-anchor="start" x="3487.25" y="-131.2" font-family="Times New Roman,serif" font-size="14.00">feature_selection : Optional[bool]</text>
+<text text-anchor="start" x="3487.25" y="-114.7" font-family="Times New Roman,serif" font-size="14.00">numerical_fill_strategy : Optional[Literal[&#39;median&#39;, &#39;mean&#39;, &#39;zero&#39;]]</text>
+<text text-anchor="start" x="3487.25" y="-98.2" font-family="Times New Roman,serif" font-size="14.00">numerical_preprocessing_strategy : Optional[Literal[&#39;StandardScaler&#39;, &#39;RobustScaler&#39;, &#39;MinMaxScaler&#39;]]</text>
+<text text-anchor="start" x="3487.25" y="-81.7" font-family="Times New Roman,serif" font-size="14.00">statistical_feature_set : Optional[Literal[&#39;minimal&#39;, &#39;efficient&#39;, &#39;comprehensive&#39;, &#39;custom&#39;]]</text>
+<polyline fill="none" stroke="black" points="3479.25,-74.5 4058.5,-74.5"/>
+<text text-anchor="start" x="3767" y="-57.2" font-family="Times New Roman,serif" font-size="14.00"> </text>
 </g>
 <!-- ai_toolkit.models.classification.DecisionTreeModel -->
 <g id="node19" class="node">
@@ -379,8 +383,8 @@
 <!-- ai_toolkit.models.classification.DecisionTreeModel&#45;&gt;ai_toolkit.base.models.BaseMlModel -->
 <g id="edge2" class="edge">
 <title>ai_toolkit.models.classification.DecisionTreeModel&#45;&gt;ai_toolkit.base.models.BaseMlModel</title>
-<path fill="none" stroke="black" d="M6504.4,-498.42C6468.67,-523.37 6422.76,-554.69 6380.88,-581 6264.72,-653.95 6130.28,-731.13 6028.03,-788.38"/>
-<polygon fill="none" stroke="black" points="6026.58,-785.18 6019.56,-793.11 6030,-791.29 6026.58,-785.18"/>
+<path fill="none" stroke="black" d="M6504.4,-498.42C6468.67,-523.37 6422.76,-554.69 6380.88,-581 6287.06,-639.92 6181.32,-701.59 6090.25,-753.3"/>
+<polygon fill="none" stroke="black" points="6088.65,-750.19 6081.67,-758.16 6092.1,-756.27 6088.65,-750.19"/>
 </g>
 <!-- ai_toolkit.models.classification.EnsembleStackingClassifierModel&#45;&gt;ai_toolkit.base.models.BaseMlEnsembleModel -->
 <g id="edge3" class="edge">
@@ -391,8 +395,8 @@
 <!-- ai_toolkit.models.regression.EnsembleStackingRegressorModel&#45;&gt;ai_toolkit.base.models.BaseMlEnsembleModel -->
 <g id="edge15" class="edge">
 <title>ai_toolkit.models.regression.EnsembleStackingRegressorModel&#45;&gt;ai_toolkit.base.models.BaseMlEnsembleModel</title>
-<path fill="none" stroke="black" d="M6174.31,-1356.51C6142.49,-1382.47 6101.26,-1412.2 6059.88,-1431 5986.79,-1464.21 5899.16,-1484.35 5828.09,-1496.3"/>
-<polygon fill="none" stroke="black" points="5827.62,-1492.83 5818.32,-1497.9 5828.76,-1499.74 5827.62,-1492.83"/>
+<path fill="none" stroke="black" d="M6174.31,-1356.51C6142.49,-1382.47 6101.26,-1412.2 6059.88,-1431 6006.01,-1455.47 5944.24,-1472.85 5887.02,-1485.08"/>
+<polygon fill="none" stroke="black" points="5886.57,-1481.6 5877.5,-1487.08 5888.01,-1488.45 5886.57,-1481.6"/>
 </g>
 <!-- ai_toolkit.models.classification.EnsembleVotingClassifierModel -->
 <g id="node22" class="node">
@@ -408,8 +412,8 @@
 <!-- ai_toolkit.models.classification.EnsembleVotingClassifierModel&#45;&gt;ai_toolkit.base.models.BaseMlEnsembleModel -->
 <g id="edge4" class="edge">
 <title>ai_toolkit.models.classification.EnsembleVotingClassifierModel&#45;&gt;ai_toolkit.base.models.BaseMlEnsembleModel</title>
-<path fill="none" stroke="black" d="M5220.36,-1348.33C5251.8,-1375.98 5295.54,-1410.16 5339.88,-1431 5409.54,-1463.74 5493.21,-1483.77 5561.83,-1495.78"/>
-<polygon fill="none" stroke="black" points="5561.2,-1499.22 5571.65,-1497.46 5562.38,-1492.32 5561.2,-1499.22"/>
+<path fill="none" stroke="black" d="M5220.36,-1348.33C5251.8,-1375.98 5295.54,-1410.16 5339.88,-1431 5390.47,-1454.78 5448.46,-1471.86 5502.7,-1484.02"/>
+<polygon fill="none" stroke="black" points="5501.86,-1487.42 5512.38,-1486.14 5503.36,-1480.58 5501.86,-1487.42"/>
 </g>
 <!-- ai_toolkit.models.regression.EnsembleVotingRegressorModel -->
 <g id="node23" class="node">
@@ -442,8 +446,8 @@
 <!-- ai_toolkit.models.classification.KNNModel&#45;&gt;ai_toolkit.base.models.BaseMlModel -->
 <g id="edge5" class="edge">
 <title>ai_toolkit.models.classification.KNNModel&#45;&gt;ai_toolkit.base.models.BaseMlModel</title>
-<path fill="none" stroke="black" d="M6879.12,-498.44C6844.28,-525.1 6797.31,-558.15 6751.88,-581 6511.64,-701.83 6210.88,-790.41 6029.08,-837.76"/>
-<polygon fill="none" stroke="black" points="6028.35,-834.34 6019.55,-840.23 6030.11,-841.11 6028.35,-834.34"/>
+<path fill="none" stroke="black" d="M6879.12,-498.44C6844.28,-525.1 6797.31,-558.15 6751.88,-581 6538.66,-688.24 6277.77,-770.08 6094.68,-820.23"/>
+<polygon fill="none" stroke="black" points="6094.02,-816.79 6085.29,-822.79 6095.86,-823.54 6094.02,-816.79"/>
 </g>
 <!-- ai_toolkit.models.regression.KNNRegressorModel -->
 <g id="node25" class="node">
@@ -459,8 +463,8 @@
 <!-- ai_toolkit.models.regression.KNNRegressorModel&#45;&gt;ai_toolkit.base.models.BaseMlModel -->
 <g id="edge17" class="edge">
 <title>ai_toolkit.models.regression.KNNRegressorModel&#45;&gt;ai_toolkit.base.models.BaseMlModel</title>
-<path fill="none" stroke="black" d="M7246.44,-498.34C7211.48,-525.83 7163.37,-559.81 7115.88,-581 6746.59,-745.77 6273.28,-825.68 6028.96,-858.24"/>
-<polygon fill="none" stroke="black" points="6028.81,-854.73 6019.35,-859.51 6029.73,-861.67 6028.81,-854.73"/>
+<path fill="none" stroke="black" d="M7246.44,-498.34C7211.48,-525.83 7163.37,-559.81 7115.88,-581 6777.61,-731.93 6352.07,-811.65 6095.18,-849.01"/>
+<polygon fill="none" stroke="black" points="6094.73,-845.54 6085.34,-850.43 6095.73,-852.46 6094.73,-845.54"/>
 </g>
 <!-- ai_toolkit.models.classification.LightGBMModel -->
 <g id="node26" class="node">
@@ -476,8 +480,8 @@
 <!-- ai_toolkit.models.classification.LightGBMModel&#45;&gt;ai_toolkit.base.models.BaseMlModel -->
 <g id="edge6" class="edge">
 <title>ai_toolkit.models.classification.LightGBMModel&#45;&gt;ai_toolkit.base.models.BaseMlModel</title>
-<path fill="none" stroke="black" d="M7611.91,-498.27C7577.63,-526.26 7529.83,-560.85 7481.88,-581 6980,-791.92 6328.12,-852.88 6029.36,-870.24"/>
-<polygon fill="none" stroke="black" points="6029.31,-866.73 6019.53,-870.8 6029.71,-873.72 6029.31,-866.73"/>
+<path fill="none" stroke="black" d="M7611.91,-498.27C7577.63,-526.26 7529.83,-560.85 7481.88,-581 7014.08,-777.6 6415.95,-843.91 6094.95,-866.06"/>
+<polygon fill="none" stroke="black" points="6094.89,-862.56 6085.15,-866.73 6095.37,-869.54 6094.89,-862.56"/>
 </g>
 <!-- ai_toolkit.models.regression.LightGBMRegressorModel -->
 <g id="node27" class="node">
@@ -493,8 +497,8 @@
 <!-- ai_toolkit.models.regression.LightGBMRegressorModel&#45;&gt;ai_toolkit.base.models.BaseMlModel -->
 <g id="edge18" class="edge">
 <title>ai_toolkit.models.regression.LightGBMRegressorModel&#45;&gt;ai_toolkit.base.models.BaseMlModel</title>
-<path fill="none" stroke="black" d="M7972.18,-498.47C7937.76,-526.73 7889.53,-561.55 7840.88,-581 7205.39,-835.07 6375.58,-873.3 6029.48,-877.5"/>
-<polygon fill="none" stroke="black" points="6029.6,-874 6019.64,-877.61 6029.68,-880.99 6029.6,-874"/>
+<path fill="none" stroke="black" d="M7972.18,-498.47C7937.76,-526.73 7889.53,-561.55 7840.88,-581 7242.59,-820.2 6472.07,-868.08 6095.1,-876.37"/>
+<polygon fill="none" stroke="black" points="6095.22,-872.87 6085.3,-876.58 6095.37,-879.87 6095.22,-872.87"/>
 </g>
 <!-- ai_toolkit.utils.logging.Logger -->
 <g id="node28" class="node">
@@ -527,8 +531,8 @@
 <!-- ai_toolkit.utils.logging.Logger&#45;&gt;ai_toolkit.base.models.BaseMlModel -->
 <g id="edge25" class="edge">
 <title>ai_toolkit.utils.logging.Logger&#45;&gt;ai_toolkit.base.models.BaseMlModel</title>
-<path fill="none" stroke="black" d="M2520.19,-478.17C2716.66,-507.08 3061.09,-554.84 3357.88,-581 3520.11,-595.3 3563.14,-572.73 3723.88,-599 3750.54,-603.36 3755.64,-611.66 3782.38,-615.5 3875.89,-628.94 5392.28,-606.68 5482.88,-633.5 5573.06,-660.2 5662.47,-714.79 5732.29,-765.52"/>
-<polygon fill="black" stroke="black" points="5732.05,-765.34 5739.26,-765.67 5741.73,-772.44 5734.52,-772.12 5732.05,-765.34"/>
+<path fill="none" stroke="black" d="M2520.19,-478.17C2716.66,-507.08 3061.09,-554.84 3357.88,-581 3520.11,-595.3 3563.14,-572.73 3723.88,-599 3750.54,-603.36 3755.64,-611.66 3782.38,-615.5 3875.89,-628.94 5392.28,-606.68 5482.88,-633.5 5564.78,-657.75 5646.06,-705.01 5712.6,-751.49"/>
+<polygon fill="black" stroke="black" points="5712.61,-751.5 5719.82,-751.69 5722.41,-758.42 5715.2,-758.22 5712.61,-751.5"/>
 <text text-anchor="middle" x="3799.62" y="-602.2" font-family="Times New Roman,serif" font-size="14.00" fill="green">logger</text>
 </g>
 <!-- ai_toolkit.utils.logging.Logger&#45;&gt;ai_toolkit.base.training.BaseMlTrainer -->
@@ -650,8 +654,8 @@
 <!-- ai_toolkit.models.classification.LogisticRegressionModel&#45;&gt;ai_toolkit.base.models.BaseMlModel -->
 <g id="edge7" class="edge">
 <title>ai_toolkit.models.classification.LogisticRegressionModel&#45;&gt;ai_toolkit.base.models.BaseMlModel</title>
-<path fill="none" stroke="black" d="M8330.95,-498.23C8297.79,-526.77 8250.87,-562 8202.88,-581 7804.37,-738.74 6491.5,-836.66 6029.48,-866.93"/>
-<polygon fill="none" stroke="black" points="6029.31,-863.43 6019.56,-867.58 6029.77,-870.42 6029.31,-863.43"/>
+<path fill="none" stroke="black" d="M8330.95,-498.23C8297.79,-526.77 8250.87,-562 8202.88,-581 7821.78,-731.85 6604.48,-827.99 6094.77,-862.57"/>
+<polygon fill="none" stroke="black" points="6094.85,-859.06 6085.11,-863.23 6095.32,-866.04 6094.85,-859.06"/>
 </g>
 <!-- ai_toolkit.base.config.MetricConfig -->
 <g id="node31" class="node">
@@ -680,8 +684,8 @@
 <!-- ai_toolkit.models.classification.MobileNetV3SmallModel&#45;&gt;ai_toolkit.base.models.BaseMlModel -->
 <g id="edge8" class="edge">
 <title>ai_toolkit.models.classification.MobileNetV3SmallModel&#45;&gt;ai_toolkit.base.models.BaseMlModel</title>
-<path fill="none" stroke="black" d="M8673.83,-498.2C8643,-526.92 8598.94,-562.37 8552.88,-581 8089.69,-768.34 6537.81,-848.85 6029.55,-870.61"/>
-<polygon fill="none" stroke="black" points="6029.46,-867.11 6019.62,-871.03 6029.76,-874.1 6029.46,-867.11"/>
+<path fill="none" stroke="black" d="M8673.83,-498.2C8643,-526.92 8598.94,-562.37 8552.88,-581 8108.07,-760.91 6659.25,-842.29 6094.85,-867.74"/>
+<polygon fill="none" stroke="black" points="6095.08,-864.22 6085.24,-868.17 6095.39,-871.22 6095.08,-864.22"/>
 </g>
 <!-- ai_toolkit.models.classification.NaiveBayesModel -->
 <g id="node34" class="node">
@@ -697,8 +701,8 @@
 <!-- ai_toolkit.models.classification.NaiveBayesModel&#45;&gt;ai_toolkit.base.models.BaseMlModel -->
 <g id="edge9" class="edge">
 <title>ai_toolkit.models.classification.NaiveBayesModel&#45;&gt;ai_toolkit.base.models.BaseMlModel</title>
-<path fill="none" stroke="black" d="M3556.55,-498.33C3586.05,-527.3 3628.58,-563 3673.88,-581 3718.73,-598.82 4058.66,-613.27 4106.88,-615.5 4183.24,-619.04 5409.6,-611.7 5482.88,-633.5 5573.39,-660.42 5663.17,-715.36 5733.13,-766.25"/>
-<polygon fill="none" stroke="black" points="5730.64,-768.76 5740.78,-771.86 5734.79,-763.12 5730.64,-768.76"/>
+<path fill="none" stroke="black" d="M3556.55,-498.33C3586.05,-527.3 3628.58,-563 3673.88,-581 3718.73,-598.82 4058.66,-613.27 4106.88,-615.5 4183.24,-619.04 5409.6,-611.7 5482.88,-633.5 5565.26,-658 5647.02,-705.71 5713.8,-752.45"/>
+<polygon fill="none" stroke="black" points="5711.7,-755.25 5721.88,-758.16 5715.74,-749.53 5711.7,-755.25"/>
 </g>
 <!-- ai_toolkit.models.classification.RandomForestModel -->
 <g id="node35" class="node">
@@ -714,8 +718,8 @@
 <!-- ai_toolkit.models.classification.RandomForestModel&#45;&gt;ai_toolkit.base.models.BaseMlModel -->
 <g id="edge10" class="edge">
 <title>ai_toolkit.models.classification.RandomForestModel&#45;&gt;ai_toolkit.base.models.BaseMlModel</title>
-<path fill="none" stroke="black" d="M3913.58,-498.37C3949.59,-527.17 4000.5,-562.64 4051.88,-581 4204.48,-635.53 4253.07,-606.46 4414.88,-615.5 4474.12,-618.81 5426.03,-616.47 5482.88,-633.5 5573.34,-660.59 5663.12,-715.54 5733.09,-766.39"/>
-<polygon fill="none" stroke="black" points="5730.6,-768.91 5740.74,-772 5734.74,-763.26 5730.6,-768.91"/>
+<path fill="none" stroke="black" d="M3913.58,-498.37C3949.59,-527.17 4000.5,-562.64 4051.88,-581 4204.48,-635.53 4253.07,-606.46 4414.88,-615.5 4474.12,-618.81 5426.03,-616.47 5482.88,-633.5 5565.03,-658.1 5646.61,-705.68 5713.31,-752.3"/>
+<polygon fill="none" stroke="black" points="5711.2,-755.09 5721.39,-757.99 5715.23,-749.37 5711.2,-755.09"/>
 </g>
 <!-- ai_toolkit.training.regression.RegressionModelTrainer -->
 <g id="node37" class="node">
@@ -750,8 +754,8 @@
 <!-- ai_toolkit.models.regression.RidgeRegressionModel&#45;&gt;ai_toolkit.base.models.BaseMlModel -->
 <g id="edge19" class="edge">
 <title>ai_toolkit.models.regression.RidgeRegressionModel&#45;&gt;ai_toolkit.base.models.BaseMlModel</title>
-<path fill="none" stroke="black" d="M4250.95,-498.44C4280.47,-527.26 4322.87,-562.74 4367.88,-581 4519.69,-642.59 4571.33,-605.86 4734.88,-615.5 4817.87,-620.39 5403.32,-609.36 5482.88,-633.5 5572.88,-660.81 5662.29,-715.45 5732.16,-766.06"/>
-<polygon fill="none" stroke="black" points="5730.09,-768.88 5740.23,-771.95 5734.22,-763.23 5730.09,-768.88"/>
+<path fill="none" stroke="black" d="M4250.95,-498.44C4280.47,-527.26 4322.87,-562.74 4367.88,-581 4519.69,-642.59 4571.33,-605.86 4734.88,-615.5 4817.87,-620.39 5403.32,-609.36 5482.88,-633.5 5564.76,-658.35 5646.15,-705.81 5712.78,-752.28"/>
+<polygon fill="none" stroke="black" points="5710.66,-755.07 5720.85,-757.96 5714.69,-749.34 5710.66,-755.07"/>
 </g>
 <!-- ai_toolkit.models.classification.SVCModel -->
 <g id="node40" class="node">
@@ -767,8 +771,8 @@
 <!-- ai_toolkit.models.classification.SVCModel&#45;&gt;ai_toolkit.base.models.BaseMlModel -->
 <g id="edge11" class="edge">
 <title>ai_toolkit.models.classification.SVCModel&#45;&gt;ai_toolkit.base.models.BaseMlModel</title>
-<path fill="none" stroke="black" d="M4566.59,-498.23C4596.1,-527.17 4638.64,-562.85 4683.88,-581 4849.48,-647.44 4905.82,-603.81 5083.88,-615.5 5172.44,-621.31 5398.22,-606.84 5482.88,-633.5 5572.23,-661.64 5661.26,-716.02 5731.06,-766.26"/>
-<polygon fill="none" stroke="black" points="5728.97,-769.07 5739.12,-772.11 5733.09,-763.4 5728.97,-769.07"/>
+<path fill="none" stroke="black" d="M4566.59,-498.23C4596.1,-527.17 4638.64,-562.85 4683.88,-581 4849.48,-647.44 4905.82,-603.81 5083.88,-615.5 5172.44,-621.31 5398.22,-606.84 5482.88,-633.5 5564.14,-659.09 5645.13,-706.38 5711.64,-752.53"/>
+<polygon fill="none" stroke="black" points="5709.48,-755.29 5719.68,-758.16 5713.5,-749.56 5709.48,-755.29"/>
 </g>
 <!-- ai_toolkit.models.regression.SVRModel -->
 <g id="node41" class="node">
@@ -784,8 +788,8 @@
 <!-- ai_toolkit.models.regression.SVRModel&#45;&gt;ai_toolkit.base.models.BaseMlModel -->
 <g id="edge20" class="edge">
 <title>ai_toolkit.models.regression.SVRModel&#45;&gt;ai_toolkit.base.models.BaseMlModel</title>
-<path fill="none" stroke="black" d="M4883.04,-498.23C4912.6,-526.96 4955,-562.42 4999.88,-581 5099.62,-622.31 5380.97,-597.83 5482.88,-633.5 5569.87,-663.95 5657.39,-717.28 5726.85,-766.28"/>
-<polygon fill="none" stroke="black" points="5724.69,-769.03 5734.87,-771.97 5728.74,-763.33 5724.69,-769.03"/>
+<path fill="none" stroke="black" d="M4883.04,-498.23C4912.6,-526.96 4955,-562.42 4999.88,-581 5099.62,-622.31 5380.97,-597.83 5482.88,-633.5 5561.86,-661.15 5641.28,-707.66 5707.23,-752.66"/>
+<polygon fill="none" stroke="black" points="5704.98,-755.36 5715.2,-758.14 5708.95,-749.59 5704.98,-755.36"/>
 </g>
 <!-- ai_toolkit.base.config.TrainingConfig -->
 <g id="node42" class="node">
@@ -818,8 +822,8 @@
 <!-- ai_toolkit.models.classification.XGBoostModel&#45;&gt;ai_toolkit.base.models.BaseMlModel -->
 <g id="edge12" class="edge">
 <title>ai_toolkit.models.classification.XGBoostModel&#45;&gt;ai_toolkit.base.models.BaseMlModel</title>
-<path fill="none" stroke="black" d="M5228.83,-498.29C5262.53,-524.56 5307.6,-557.26 5350.88,-581 5406.23,-611.37 5426.64,-604.8 5482.88,-633.5 5559.27,-672.48 5639.98,-722.23 5707.58,-766.59"/>
-<polygon fill="none" stroke="black" points="5705.49,-769.4 5715.77,-771.98 5709.34,-763.55 5705.49,-769.4"/>
+<path fill="none" stroke="black" d="M5228.83,-498.29C5262.53,-524.56 5307.6,-557.26 5350.88,-581 5406.23,-611.37 5426.64,-604.8 5482.88,-633.5 5551.43,-668.48 5623.46,-712.14 5686.38,-752.78"/>
+<polygon fill="none" stroke="black" points="5684.43,-755.69 5694.73,-758.19 5688.24,-749.82 5684.43,-755.69"/>
 </g>
 <!-- ai_toolkit.models.regression.XGBoostRegressorModel -->
 <g id="node44" class="node">
@@ -835,8 +839,8 @@
 <!-- ai_toolkit.models.regression.XGBoostRegressorModel&#45;&gt;ai_toolkit.base.models.BaseMlModel -->
 <g id="edge21" class="edge">
 <title>ai_toolkit.models.regression.XGBoostRegressorModel&#45;&gt;ai_toolkit.base.models.BaseMlModel</title>
-<path fill="none" stroke="black" d="M5562.62,-498.47C5612.89,-561.02 5706.18,-677.07 5776.26,-764.26"/>
-<polygon fill="none" stroke="black" points="5773.45,-766.35 5782.44,-771.96 5778.91,-761.97 5773.45,-766.35"/>
+<path fill="none" stroke="black" d="M5562.62,-498.47C5610.21,-557.68 5696.33,-664.83 5764.84,-750.05"/>
+<polygon fill="none" stroke="black" points="5762.1,-752.23 5771.09,-757.84 5767.56,-747.85 5762.1,-752.23"/>
 </g>
 </g>
 </svg>

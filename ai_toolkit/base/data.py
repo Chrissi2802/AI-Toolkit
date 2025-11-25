@@ -18,7 +18,7 @@ from sklearn.preprocessing import (
     RobustScaler,
     StandardScaler,
 )
-from tsfresh import extract_features
+from tsfresh import extract_features, select_features
 from tsfresh.feature_extraction import (
     ComprehensiveFCParameters,
     EfficientFCParameters,
@@ -69,6 +69,7 @@ class BaseDataset(ABC):
             self._handle_missing_numerical_values()
             self._preprocess_categorical()
             self._preprocess_numerical()
+            self._select_features_tsfresh()
 
             self.logger.info(
                 "Data preprocessing completed",
@@ -955,6 +956,26 @@ class BaseDataset(ABC):
         self.logger.info(f"Successfully created {len(plots)} plots")
 
         return plots
+
+    def _select_features_tsfresh(self) -> None:
+        """Select relevant features using tsfresh."""
+
+        if self.config.feature_selection:
+            self.logger.info("Selecting features using tsfresh")
+
+            initial_feature_count = self.X.shape[1]
+            X_filtered = select_features(self.X, self.y, fdr_level=0.05)
+            selected_features = X_filtered.columns
+
+            self.X = self.X[selected_features]
+            self.X_test = self.X_test[selected_features]
+
+            self.logger.info(
+                "Feature selection completed",
+                initial_feature_count=initial_feature_count,
+                final_feature_count=self.X.shape[1],
+                selection_ratio=np.round((100.0 * self.X.shape[1] / initial_feature_count), 2),
+            )
 
 
 def extract_statistical_features_from_array(arr: np.ndarray, column: str) -> pd.DataFrame:

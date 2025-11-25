@@ -40,6 +40,7 @@ __all__ = [
     "RandomForestModel",
     "XGBoostModel",
     "LightGBMModel",
+    "MobileNetV3SmallModel",
     "get_all_classification_models",
     "EnsembleVotingClassifierModel",
     "EnsembleStackingClassifierModel",

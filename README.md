@@ -14,7 +14,7 @@ A comprehensive Python toolkit for machine learning workflows with a focus on mo
 
 ## 📑 Table of contents
 - [Features](#-features)
-- [Development & Tests](#-development--tests)
+- [Development & tests](#-development--tests)
 - [Quick start](#-quick-start)
 - [Detailed documentation](#-detailed-documentation)
 - [License](#-license)
@@ -74,13 +74,15 @@ We use:
 Create new requirements.txt:
 ```bash
 # Basic dependencies
-pipreqs . --force
+pipreqs . --force --mode gt
 
 # Manually add jupyter
 jupyter>=1.0.0
 
 # Manual downgrading of the numpy version
 numpy>=1.16.0
+
+# Delete duplicate PyYAML
 ```
 
 ### 📦 Setup
@@ -95,7 +97,7 @@ source v_env_ai_toolkit/bin/activate  # Linux / Mac
 v_env_ai_toolkit\Scripts\activate     # Windows
 
 # Create a virtual environment with conda
-conda create --name v_env_ai_toolkit python=3.12
+conda create --name v_env_ai_toolkit python=3.10
 conda activate v_env_ai_toolkit
 
 # Install the ai toolkit
@@ -132,6 +134,22 @@ pytest tests/test_base/
 pytest tests/test_models/
 pytest tests/test_training/ # takes some time
 pytest tests/test_utils/
+```
+
+### Code quality checks
+Run pre-commit validation which executes linting, testing, docs generation, and project analysis.
+```bash
+# Run all checks
+.\pre-commit.ps1
+
+# Skip tests
+.\pre-commit.ps1 -SkipTests
+
+# Skip documentation generation
+.\pre-commit.ps1 -SkipDocs
+
+# Skip both tests and documentation, only linting and project analysis
+.\pre-commit.ps1 -SkipTests -SkipDocs
 ```
 
 ## 🚀 Quick start
@@ -295,6 +313,7 @@ AI-Toolkit/
 ├── CODE_OF_CONDUCT.md
 ├── CONTRIBUTING.md
 ├── LICENSE
+├── pre-commit.ps1
 ├── pyproject.toml
 ├── README.md
 ├── requirements-dev.txt
