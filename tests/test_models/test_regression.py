@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Any, Tuple
 from unittest.mock import Mock, patch
 
 import numpy as np
@@ -22,7 +22,7 @@ from ai_toolkit.models.regression import (
 class TestRidgeRegression:
     """Test suite for Ridge Regression model."""
 
-    def test_initialization(self):
+    def test_initialization(self) -> None:
         """Test model initialization."""
 
         model = RidgeRegressionModel()
@@ -30,7 +30,7 @@ class TestRidgeRegression:
         assert model.model is None
         assert model.best_params is None
 
-    def test_param_space(self, optuna_trial: optuna.trial.Trial):
+    def test_param_space(self, optuna_trial: optuna.trial.Trial) -> None:
         """Test parameter space generation.
 
         Args:
@@ -46,7 +46,7 @@ class TestRidgeRegression:
         assert "tol" in params
         assert "random_state" in params
 
-    def test_create_model(self, regression_data: Tuple[np.ndarray, np.ndarray]):
+    def test_create_model(self, regression_data: Tuple[np.ndarray, np.ndarray]) -> None:
         """Test model creation and fitting.
 
         Args:
@@ -73,7 +73,7 @@ class TestRidgeRegression:
         assert not np.any(np.isnan(y_pred))
 
 
-def test_get_all_regression_models():
+def test_get_all_regression_models() -> None:
     """Test get_all_regression_models function."""
 
     models = get_all_regression_models()
@@ -94,7 +94,7 @@ def test_get_all_regression_models():
         assert isinstance(models[name], model)
 
 
-def test_model_integration(regression_data: Tuple[np.ndarray, np.ndarray]):
+def test_model_integration(regression_data: Tuple[np.ndarray, np.ndarray]) -> None:
     """Test complete workflow for all regression models.
 
     Args:
@@ -107,7 +107,7 @@ def test_model_integration(regression_data: Tuple[np.ndarray, np.ndarray]):
     for name, model in models.items():
         # Create trial and get parameters
         study = optuna.create_study()
-        trial = optuna.trial.Trial(study, study._storage.create_new_trial(study._study_id))
+        trial = study.ask()
         params = model.get_param_space(trial)
 
         # Create and fit model
@@ -131,7 +131,7 @@ def test_model_integration(regression_data: Tuple[np.ndarray, np.ndarray]):
 
 def test_feature_importance(
     regression_data: Tuple[np.ndarray, np.ndarray], optuna_trial: optuna.trial.Trial
-):
+) -> None:
     """Test feature importance method for all regression models.
 
     Args:
@@ -158,7 +158,7 @@ def test_feature_importance(
 class TestEnsembleModels:
     """Test suite for ensemble models."""
 
-    def setup_method(self):
+    def setup_method(self) -> None:
         """Setup method for each test."""
 
         # Create two Ridge regression models
@@ -168,7 +168,7 @@ class TestEnsembleModels:
         self.model2 = RidgeRegressionModel()
         self.model2.model_name = "Model2"
 
-    def test_voting_regressor(self, regression_data):
+    def test_voting_regressor(self, regression_data: Any) -> None:
         """Test voting regressor ensemble."""
 
         X, y = regression_data
@@ -201,7 +201,7 @@ class TestEnsembleModels:
             assert isinstance(y_pred, np.ndarray)
             assert y_pred.shape == y.shape
 
-    def test_stacking_regressor(self, regression_data, optuna_trial):
+    def test_stacking_regressor(self, regression_data: Any, optuna_trial: Any) -> None:
         """Test stacking regressor ensemble."""
 
         X, y = regression_data

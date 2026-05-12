@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from ast import literal_eval
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import mlflow
 import optuna
@@ -19,10 +19,10 @@ class BaseMlModel(ABC):
         """
 
         self.model_name = model_name
-        self.model = None
-        self.best_params = None
-        self.num_classes = None
-        self.is_multiclass = None
+        self.model: Any = None
+        self.best_params: Optional[Dict[str, Any]] = None
+        self.num_classes: Optional[int] = None
+        self.is_multiclass: Optional[bool] = None
 
         # Initialize logger
         self.logger = get_logger(f"{self.__class__.__name__}_{model_name}")

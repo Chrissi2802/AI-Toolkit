@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Any, Tuple
 from unittest.mock import Mock
 
 import numpy as np
@@ -27,7 +27,7 @@ def simple_model() -> RidgeRegressionModel:
 class TestRegressionModelTrainer:
     """Test suite for RegressionModelTrainer."""
 
-    def test_initialization(self, simple_model: RidgeRegressionModel):
+    def test_initialization(self, simple_model: RidgeRegressionModel) -> None:
         """Test trainer initialization.
 
         Args:
@@ -52,7 +52,9 @@ class TestRegressionModelTrainer:
         assert trainer.best_score == float("inf")
 
     @pytest.mark.integration
-    def test_training_workflow(self, simple_model, regression_data_pd, mock_mlflow):
+    def test_training_workflow(
+        self, simple_model: Any, regression_data_pd: Any, mock_mlflow: Any
+    ) -> None:
         """Test complete training workflow."""
 
         X, y = regression_data_pd
@@ -91,7 +93,9 @@ class TestRegressionModelTrainer:
         assert mock_mlflow["log_metric"].called
         assert mock_mlflow["log_table"].called
 
-    def test_prediction(self, regression_data_pd: Tuple[pd.DataFrame, pd.Series], simple_model):
+    def test_prediction(
+        self, regression_data_pd: Tuple[pd.DataFrame, pd.Series], simple_model: Any
+    ) -> None:
         """Test prediction functionality.
 
         Args:
@@ -123,8 +127,8 @@ class TestRegressionModelTrainer:
         assert not np.any(np.isinf(predictions))
 
     def test_optimization_objective(
-        self, regression_data_pd: Tuple[np.ndarray, np.ndarray], simple_model
-    ):
+        self, regression_data_pd: Tuple[pd.DataFrame, pd.Series], simple_model: Any
+    ) -> None:
         """Test optimization objective function.
 
         Args:
@@ -167,8 +171,8 @@ class TestRegressionModelTrainer:
         assert score > 0  # RMSE is always positive
 
     def test_cross_validation_splits(
-        self, regression_data_pd: Tuple[pd.DataFrame, pd.Series], simple_model
-    ):
+        self, regression_data_pd: Tuple[pd.DataFrame, pd.Series], simple_model: Any
+    ) -> None:
         """Test different cross-validation configurations.
 
         Args:
@@ -201,8 +205,8 @@ class TestRegressionModelTrainer:
         ["root_mean_squared_error", "mean_absolute_error", "explained_variance"],
     )
     def test_different_optimization_metrics(
-        self, regression_data_pd, optimize_metric, simple_model
-    ):
+        self, regression_data_pd: Any, optimize_metric: Any, simple_model: Any
+    ) -> None:
         """Test optimization with different metrics."""
 
         X, y = regression_data_pd
@@ -223,7 +227,9 @@ class TestRegressionModelTrainer:
         assert isinstance(metrics[optimize_metric], float)
         assert metrics[optimize_metric] > 0
 
-    def test_error_handling(self, regression_data_pd: Tuple[pd.DataFrame, pd.Series], simple_model):
+    def test_error_handling(
+        self, regression_data_pd: Tuple[pd.DataFrame, pd.Series], simple_model: Any
+    ) -> None:
         """Test error handling in trainer.
 
         Args:
@@ -261,7 +267,7 @@ class TestRegressionModelTrainer:
             trainer_invalid.train_and_optimize(X, y, n_trials=2)
 
 
-def test_lazypredict_regression(regression_data_pd: Tuple[pd.DataFrame, pd.Series]):
+def test_lazypredict_regression(regression_data_pd: Tuple[pd.DataFrame, pd.Series]) -> None:
     """Test lazypredict_regression function.
 
     Args:
@@ -290,7 +296,9 @@ def test_lazypredict_regression(regression_data_pd: Tuple[pd.DataFrame, pd.Serie
 
 
 @pytest.mark.integration
-def test_full_training_pipeline(regression_data_pd: Tuple[pd.DataFrame, pd.Series], simple_model):
+def test_full_training_pipeline(
+    regression_data_pd: Tuple[pd.DataFrame, pd.Series], simple_model: Any
+) -> None:
     """Integration test for full regression pipeline.
 
     Args:

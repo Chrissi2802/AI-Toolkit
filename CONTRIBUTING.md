@@ -9,12 +9,15 @@ Here's how you can help:
   ```bash
   # Formating
   black .
-  
+
   # Import sorting
   isort .
 
   # Linting
   flake8 .
+
+  # Type checking
+  mypy
 
   # Tests
   pytest

@@ -19,12 +19,12 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Set up Python 3.10
       uses: actions/setup-python@v3
       with:
         python-version: "3.10"
-    
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
@@ -45,6 +45,10 @@ jobs:
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
+    - name: Type check with mypy
+      run: |
+        mypy
+
     - name: Test with pytest
       run: |
         pytest
@@ -53,7 +57,7 @@ jobs:
       run: |
         pyreverse -o svg -d .\docs .\ai_toolkit\
 
-    - name: Build sphinx documentation    
+    - name: Build sphinx documentation
       run: |
         cd docs
         make clean

@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Dict, Tuple, Union
+from typing import Any, Dict, Optional, Tuple, Union, cast
 
 import matplotlib.pyplot as plt
 import mlflow
@@ -60,7 +60,7 @@ class RegressionModelTrainer(BaseMlTrainer):
             }
         )
 
-    def _log_fold_results(
+    def _log_fold_results(  # type: ignore[override]
         self,
         fold: int,
         metrics: Dict[str, float],
@@ -98,7 +98,7 @@ class RegressionModelTrainer(BaseMlTrainer):
         # Calculate feature importance
         importance_scores = self._calc_feature_importance(model)
 
-        if importance_scores is not None:
+        if importance_scores is not None and self.feature_names is not None:
             # Create and log plot for feature importance
             fi_fig = ModelAnalysisPlots.plot_feature_importance(
                 importance_scores,
@@ -145,7 +145,7 @@ class RegressionModelTrainer(BaseMlTrainer):
 
                 self.logger.debug(f"Fold {fold+1} score: {metrics[self.optimize_metric]:.4f}")
 
-            mean_score = np.mean(scores)
+            mean_score = float(np.mean(scores))
 
             self.logger.debug(
                 "Trial completed",
@@ -195,7 +195,7 @@ class RegressionModelTrainer(BaseMlTrainer):
         # Calculate feature importance
         importance_scores = self._calc_feature_importance(self.best_model)
 
-        if importance_scores is not None:
+        if importance_scores is not None and self.feature_names is not None:
             # Create and log plot for feature importance
             fi_fig = ModelAnalysisPlots.plot_feature_importance(
                 importance_scores,
@@ -205,7 +205,13 @@ class RegressionModelTrainer(BaseMlTrainer):
             mlflow.log_figure(fi_fig, "best_feature_importance.png")
             plt.close(fi_fig)
 
-        if isinstance(X_val, np.ndarray):
+            # Log feature importance as JSON
+            df_feature_importance = pd.DataFrame(
+                {"feature": self.feature_names, "feature_importance": importance_scores}
+            )
+            mlflow.log_table(df_feature_importance, "best_feature_importance.json")
+
+        if isinstance(X_val, np.ndarray) and self.feature_names is not None:
             # Create and log plot for SHAP values
             shap_fig = ModelAnalysisPlots.plot_shapley_values(
                 self.best_model,
@@ -215,11 +221,23 @@ class RegressionModelTrainer(BaseMlTrainer):
             mlflow.log_figure(shap_fig, "best_shap_values.png")
             plt.close(shap_fig)
 
+        # Classification plot
+        # from ai_toolkit.utils.visualization import ClassificationPlots
+
+        # # Create and log plot for confusion matrix
+        # cm_fig = ClassificationPlots.plot_confusion_matrix(
+        #     y_val,
+        #     np.round(y_pred).astype(int),
+        #     f"Confusion Matrix - Best Model Fold: {fold}",
+        # )
+        # mlflow.log_figure(cm_fig, "best_confusion_matrix.png")
+        # plt.close(cm_fig)
+
     def train_and_optimize(
         self,
         X: pd.DataFrame,
         y: pd.Series,
-        n_trials: int = None,
+        n_trials: Optional[int] = None,
     ) -> Tuple[Any, Dict[str, float]]:
         """Train and optimize a ml model for regression.
 
@@ -305,6 +323,14 @@ class RegressionModelTrainer(BaseMlTrainer):
 
                 # Calculate metrics
                 metrics = RegressionMetrics.calculate_basic_metrics(y_val, y_pred)
+
+                # Classification metrics
+                # from ai_toolkit.utils.evaluation import ClassificationMetrics
+
+                # metrics_clf = ClassificationMetrics.calculate_basic_metrics(
+                #     y_val, np.round(y_pred).astype(int)
+                # )
+                # metrics.update(metrics_clf)
                 all_metrics.append(metrics)
 
                 # Log fold results
@@ -316,6 +342,7 @@ class RegressionModelTrainer(BaseMlTrainer):
                 ):  # Depends on the metric to be optimized
                     self.best_score = metrics[self.optimize_metric]
                     self.best_model = model
+                    self.best_fold = fold
 
                     self._track_best_model(
                         X_val=X_val,
@@ -344,7 +371,8 @@ class RegressionModelTrainer(BaseMlTrainer):
             if self.best_model is None:
                 raise ValueError("No model trained yet. Please call train_and_optimize first.")
 
-            y_pred = self.best_model.predict(X)
+            model = cast(Any, self.best_model)
+            y_pred = np.asarray(model.predict(X))
 
             self.logger.info("Predictions completed", predictions_shape=y_pred.shape)
 

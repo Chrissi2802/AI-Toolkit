@@ -1,6 +1,6 @@
 [flake8]
 # 88 Compatible with black
-max-line-length = 100  
+max-line-length = 100
 max-complexity = 10
 exclude =
     .git,

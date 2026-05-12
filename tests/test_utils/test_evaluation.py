@@ -1,9 +1,10 @@
-from typing import Dict, List, Tuple
+from typing import Any, Dict, List, Tuple
 
 import numpy as np
 import pytest
 from sklearn.metrics import (
     accuracy_score,
+    cohen_kappa_score,
     explained_variance_score,
     f1_score,
     mean_squared_error,
@@ -39,7 +40,7 @@ class TestClassificationMetrics:
 
     def test_basic_metrics(
         self, classification_predictions: Tuple[np.ndarray, np.ndarray, np.ndarray]
-    ):
+    ) -> None:
         """Test basic classification metrics calculation.
 
         Args:
@@ -59,6 +60,7 @@ class TestClassificationMetrics:
             "recall",
             "f1",
             "matthews_correlation_coefficient",
+            "quadratic_weighted_kappa",
             "jaccard",
             "hamming_loss",
             # "d2_log_loss",
@@ -78,10 +80,14 @@ class TestClassificationMetrics:
             metrics["recall"], recall_score(y_true, y_pred, average="weighted")
         )
         np.testing.assert_almost_equal(metrics["f1"], f1_score(y_true, y_pred, average="weighted"))
+        np.testing.assert_almost_equal(
+            metrics["quadratic_weighted_kappa"],
+            cohen_kappa_score(y_true, y_pred, weights="quadratic"),
+        )
 
     def test_metrics_without_probabilities(
         self, classification_predictions: Tuple[np.ndarray, np.ndarray, np.ndarray]
-    ):
+    ) -> None:
         """Test metrics calculation without probability predictions.
 
         Args:
@@ -100,7 +106,7 @@ class TestClassificationMetrics:
 
     def test_confusion_matrix(
         self, classification_predictions: Tuple[np.ndarray, np.ndarray, np.ndarray]
-    ):
+    ) -> None:
         """Test confusion matrix calculation.
 
         Args:
@@ -118,7 +124,7 @@ class TestClassificationMetrics:
         cm_normalized = ClassificationMetrics.get_confusion_matrix(y_true, y_pred, normalize="true")
         assert np.allclose(cm_normalized.sum(axis=1), 1)  # Row sums should be 1
 
-    def test_edge_cases(self):
+    def test_edge_cases(self) -> None:
         """Test edge cases for classification metrics."""
 
         # Perfect predictions
@@ -134,7 +140,7 @@ class TestClassificationMetrics:
         assert metrics["accuracy"] == 0.0
         assert metrics["f1"] == 0.0
 
-    def test_input_validation(self):
+    def test_input_validation(self) -> None:
         """Test input validation for classification metrics."""
 
         # Invalid input shapes
@@ -153,7 +159,7 @@ class TestClassificationMetrics:
 class TestRegressionMetrics:
     """Test suite for RegressionMetrics."""
 
-    def test_basic_metrics(self, regression_predictions: Tuple[np.ndarray, np.ndarray]):
+    def test_basic_metrics(self, regression_predictions: Tuple[np.ndarray, np.ndarray]) -> None:
         """Test basic regression metrics calculation.
 
         Args:
@@ -193,7 +199,7 @@ class TestRegressionMetrics:
         )
         np.testing.assert_almost_equal(metrics["r2"], r2_score(y_true, y_pred))
 
-    def test_residuals(self, regression_predictions: Tuple[np.ndarray, np.ndarray]):
+    def test_residuals(self, regression_predictions: Tuple[np.ndarray, np.ndarray]) -> None:
         """Test residuals calculation.
 
         Args:
@@ -208,7 +214,7 @@ class TestRegressionMetrics:
         assert len(residuals) == len(y_true)
         assert np.allclose(residuals, y_true - y_pred)
 
-    def test_edge_cases(self):
+    def test_edge_cases(self) -> None:
         """Test edge cases for regression metrics."""
 
         # Perfect predictions
@@ -223,7 +229,7 @@ class TestRegressionMetrics:
         metrics = RegressionMetrics.calculate_basic_metrics(y_true, y_pred)
         assert metrics["r2"] < 1.0
 
-    def test_input_validation(self):
+    def test_input_validation(self) -> None:
         """Test input validation for regression metrics."""
 
         # Invalid input shapes
@@ -236,7 +242,7 @@ class TestRegressionMetrics:
 class TestCrossValidationMetrics:
     """Test suite for CrossValidationMetrics."""
 
-    def test_metrics_aggregation(self, cv_metrics_data: List[Dict[str, float]]):
+    def test_metrics_aggregation(self, cv_metrics_data: List[Dict[str, float]]) -> None:
         """Test aggregation of cross-validation metrics.
 
         Args:
@@ -263,13 +269,13 @@ class TestCrossValidationMetrics:
                 np.testing.assert_almost_equal(stats["min"], 0.89)
                 np.testing.assert_almost_equal(stats["max"], 0.95)
 
-    def test_input_validation(self):
+    def test_input_validation(self) -> None:
         """Test input validation for cross-validation metrics aggregation."""
 
         with pytest.raises(RuntimeError):
             CrossValidationMetrics.aggregate_cv_metrics([])
 
-    def test_inconsistent_metrics(self):
+    def test_inconsistent_metrics(self) -> None:
         """Test aggregation with inconsistent metrics."""
 
         inconsistent_metrics = [
@@ -292,7 +298,9 @@ class TestCrossValidationMetrics:
         ("roc_auc", (0, 1)),
     ],
 )
-def test_classification_metric_ranges(classification_predictions, metric_name, expected_range):
+def test_classification_metric_ranges(
+    classification_predictions: Any, metric_name: Any, expected_range: Any
+) -> None:
     """Test that classification metrics stay within expected ranges."""
 
     y_true, y_pred, y_pred_proba = classification_predictions
@@ -303,7 +311,7 @@ def test_classification_metric_ranges(classification_predictions, metric_name, e
 
 
 @pytest.mark.parametrize("n_folds", [3, 5, 10])
-def test_cv_metrics_with_different_folds(n_folds):
+def test_cv_metrics_with_different_folds(n_folds: Any) -> None:
     """Test cross-validation metrics with different numbers of folds."""
 
     metrics = [{"accuracy": 0.9 + i / 100, "precision": 0.85 + i / 100} for i in range(n_folds)]

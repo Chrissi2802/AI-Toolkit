@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Optional, Tuple, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -69,6 +69,7 @@ class ClassificationPlots:
     def plot_confusion_matrix(
         y_true: np.ndarray,
         y_pred: np.ndarray,
+        feature_names: Optional[List[str]] = None,
         title: str = "Confusion Matrix",
         figsize: Tuple[int, int] = (10, 6),
     ) -> plt.Figure:
@@ -77,6 +78,8 @@ class ClassificationPlots:
         Args:
             y_true (np.ndarray): True labels
             y_pred (np.ndarray): Predicted labels
+            feature_names (Optional[List[str]], optional): Class names for axis labels.
+                Defaults to None (uses unique values from y_true).
             title (str, optional): Plot title. Defaults to "Confusion Matrix".
             figsize (Tuple[int, int], optional): Figure size. Defaults to (10, 6).
 
@@ -88,7 +91,7 @@ class ClassificationPlots:
             ClassificationPlots.logger.debug(
                 "Creating confusion matrix plot",
                 data_shape=y_true.shape,
-                classes=np.unique(y_true),
+                feature_names=feature_names,
                 figsize=figsize,
             )
 
@@ -96,8 +99,12 @@ class ClassificationPlots:
             if len(y_true) == 0 or len(y_pred) == 0:
                 raise ValueError("y_true and y_pred cannot be empty.")
 
+            labels = feature_names if feature_names is not None else list(np.unique(y_true))
+
             # Create figure and subplots
-            fig, (ax1, ax2) = plt.subplots(1, 2, figsize=figsize)
+            fig, axes = plt.subplots(1, 2, figsize=figsize)
+            ax1, ax2 = cast(Tuple[plt.Axes, plt.Axes], axes)
+            fig.suptitle(title)
 
             # Calculate confusion matrices
             cm = confusion_matrix(y_true, y_pred)
@@ -112,14 +119,14 @@ class ClassificationPlots:
                 ax=ax1,
                 cbar=True,
                 square=True,
-                xticklabels=np.unique(y_true),
-                yticklabels=np.unique(y_true),
+                xticklabels=labels,
+                yticklabels=labels,
                 linewidths=1,
                 linecolor="gray",
             )
             ax1.set_xlabel("Predicted")
             ax1.set_ylabel("True")
-            ax1.set_title(f"{title}\n(Absolute Numbers)")
+            ax1.set_title("Absolute Numbers")
 
             # Plot percentages
             sns.heatmap(
@@ -130,14 +137,14 @@ class ClassificationPlots:
                 ax=ax2,
                 cbar=True,
                 square=True,
-                xticklabels=np.unique(y_true),
-                yticklabels=np.unique(y_true),
+                xticklabels=labels,
+                yticklabels=labels,
                 linewidths=1,
                 linecolor="gray",
             )
             ax2.set_xlabel("Predicted")
             ax2.set_ylabel("True")
-            ax2.set_title(f"{title} normalized\n(Percentages %)")
+            ax2.set_title("Normalized (Percentages %)")
 
             # Add % symbol to annotations in the percentage plot
             for t in ax2.texts:
@@ -188,7 +195,8 @@ class RegressionPlots:
             if len(y_true) == 0 or len(y_pred) == 0:
                 raise ValueError("y_true and y_pred cannot be empty.")
 
-            fig, (ax1, ax2) = plt.subplots(1, 2, figsize=figsize)
+            fig, axes = plt.subplots(1, 2, figsize=figsize)
+            ax1, ax2 = cast(Tuple[plt.Axes, plt.Axes], axes)
 
             residuals = y_true - y_pred
 
@@ -275,7 +283,7 @@ class ModelAnalysisPlots:
         importance_scores: np.ndarray,
         feature_names: List[str],
         title: str = "Feature Importance",
-        figsize: Tuple[int, int] = (12, 6),
+        figsize: Tuple[int, int] = (10, 6),
     ) -> plt.Figure:
         """Plot feature importance scores.
 
@@ -360,19 +368,19 @@ class ModelAnalysisPlots:
             if X.shape[1] != len(feature_names):
                 raise ValueError("Number of features in X and feature_names do not match.")
 
-            # Create explainer
-            if hasattr(model, "apply"):
-                explainer = shap.TreeExplainer(model)
+            # Limit samples
+            sample_size = 200
+            if len(X) > sample_size:
+                X = shap.sample(X, sample_size, random_state=28)
+
+            # Use the unified SHAP explainer
+            explainer = shap.Explainer(model, X)
+            explanation = explainer(X)
+
+            if hasattr(explanation, "values"):
+                shap_values = explanation.values
             else:
-                # Reduce number of samples
-                sample_size = 100
-                if len(X) > sample_size:
-                    X = shap.sample(X, sample_size, random_state=28)
-
-                explainer = shap.KernelExplainer(model.predict, X)
-
-            # Calculate SHAP values
-            shap_values = explainer.shap_values(X)
+                shap_values = np.stack([e.values for e in explanation], axis=2)
 
             # Reduce dimensionality if necessary (e.g. multi-class classification)
             if shap_values.ndim == 3:

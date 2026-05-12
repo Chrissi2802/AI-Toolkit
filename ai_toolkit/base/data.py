@@ -1,6 +1,6 @@
 import os
 from abc import ABC, abstractmethod
-from typing import Dict, List, Tuple
+from typing import Callable, Dict, List, Optional, Tuple, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -45,9 +45,9 @@ class BaseDataset(ABC):
 
         self.config_factory = config_factory
         self.config = self.config_factory.get_config().data
-        self.X = None
-        self.X_test = None
-        self.y = None
+        self.X: pd.DataFrame = pd.DataFrame()
+        self.X_test: pd.DataFrame = pd.DataFrame()
+        self.y: pd.Series = pd.Series(dtype=object)
 
         # Initialize logger
         self.logger = get_logger(self.__class__.__name__)
@@ -90,11 +90,11 @@ class BaseDataset(ABC):
         self.logger.debug("Validating data")
 
         try:
-            if self.X is None:
+            if self.X.empty:
                 raise ValueError("X data not loaded.")
-            elif self.y is None:
+            elif self.y.empty:
                 raise ValueError("y data not loaded.")
-            elif self.X_test is None:
+            elif self.X_test.empty:
                 raise ValueError("X_test data not loaded.")
 
             self.logger.info(
@@ -527,8 +527,8 @@ class BaseDataset(ABC):
         )
 
     def _execute_array_length_strategy(
-        self, arrays: np.ndarray, target_length: int, global_mean: float
-    ) -> np.ndarray:
+        self, arrays: List[np.ndarray], target_length: int, global_mean: float
+    ) -> List[np.ndarray]:
         """Execute the array length strategy to ensure all arrays have the same length.
 
         Args:
@@ -620,7 +620,7 @@ class BaseDataset(ABC):
         self.X = pd.concat([self.X, df_statistical], axis=1)
         self.X_test = pd.concat([self.X_test, df_statistical_test], axis=1)
 
-    def plot_histograms(self, figsize: tuple = (15, 10)) -> plt.Figure:
+    def plot_histograms(self, figsize: tuple = (15, 10)) -> Optional[plt.Figure]:
         """Plot histograms for all numerical features.
 
         Args:
@@ -639,8 +639,8 @@ class BaseDataset(ABC):
             self.logger.warning("No numerical columns found for histogram plotting")
             return None
 
-        fig, axes = plt.subplots(nrows=(len(numerical_cols) + 2) // 3, ncols=3, figsize=figsize)
-        axes = axes.flatten()
+        fig, axes_raw = plt.subplots(nrows=(len(numerical_cols) + 2) // 3, ncols=3, figsize=figsize)
+        axes: np.ndarray = axes_raw.flatten()  # type: ignore[union-attr]
 
         for i, col in enumerate(numerical_cols):
             self.X[col].hist(ax=axes[i], bins=30, alpha=0.7, edgecolor="black")
@@ -659,7 +659,7 @@ class BaseDataset(ABC):
 
     def plot_correlation_matrix(
         self, method: str = "pearson", figsize: tuple = (12, 10)
-    ) -> plt.Figure:
+    ) -> Optional[plt.Figure]:
         """Plot correlation matrix with only lower triangle.
 
         Args:
@@ -705,7 +705,7 @@ class BaseDataset(ABC):
 
         return fig
 
-    def plot_pps_matrix(self, figsize: tuple = (12, 10)) -> plt.Figure:
+    def plot_pps_matrix(self, figsize: tuple = (12, 10)) -> Optional[plt.Figure]:
         """Plot Predictive Power Score (PPS) matrix.
 
         Args:
@@ -736,7 +736,7 @@ class BaseDataset(ABC):
 
         return fig
 
-    def plot_mic_matrix(self, figsize: tuple = (12, 10)) -> plt.Figure:
+    def plot_mic_matrix(self, figsize: tuple = (12, 10)) -> Optional[plt.Figure]:
         """Plot Maximal Information Coefficient (MIC) matrix.
 
         Args:
@@ -796,7 +796,8 @@ class BaseDataset(ABC):
 
         self.logger.debug("Creating target distribution plot")
 
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=figsize)
+        fig, axes = plt.subplots(1, 2, figsize=figsize)
+        ax1, ax2 = cast(Tuple[plt.Axes, plt.Axes], axes)
 
         # Count plot
         if self.y.dtype == "object" or self.y.nunique() < 20:
@@ -827,7 +828,7 @@ class BaseDataset(ABC):
 
         return fig
 
-    def plot_feature_importance_correlation(self, figsize: tuple = (12, 8)) -> plt.Figure:
+    def plot_feature_importance_correlation(self, figsize: tuple = (12, 8)) -> Optional[plt.Figure]:
         """Plot correlation between features and target variable.
 
         Args:
@@ -875,7 +876,7 @@ class BaseDataset(ABC):
 
         return None
 
-    def plot_outliers_boxplot(self, figsize: tuple = (15, 10)) -> plt.Figure:
+    def plot_outliers_boxplot(self, figsize: tuple = (15, 10)) -> Optional[plt.Figure]:
         """Plot box plots to identify outliers in numerical features.
 
         Args:
@@ -897,8 +898,8 @@ class BaseDataset(ABC):
         n_cols = min(4, len(numerical_cols))
         n_rows = (len(numerical_cols) + n_cols - 1) // n_cols
 
-        fig, axes = plt.subplots(n_rows, n_cols, figsize=figsize)
-        axes = axes.flatten() if n_rows > 1 else [axes] if n_cols == 1 else axes
+        fig, axes_raw = plt.subplots(n_rows, n_cols, figsize=figsize)
+        axes: np.ndarray = np.array(axes_raw).flatten()
 
         for i, col in enumerate(numerical_cols):
             self.X.boxplot(column=col, ax=axes[i])
@@ -913,7 +914,7 @@ class BaseDataset(ABC):
 
         return fig
 
-    def create_all_plots(self, save_path: str = None) -> Dict[str, plt.Figure]:
+    def create_all_plots(self, save_path: Optional[str] = None) -> Dict[str, plt.Figure]:
         """Create all available plots and return them in a dictionary.
 
         Args:
@@ -928,7 +929,7 @@ class BaseDataset(ABC):
         plots = {}
 
         # Create individual plots
-        plot_methods = [
+        plot_methods: List[Tuple[str, Callable[[], Optional[plt.Figure]]]] = [
             ("histograms", self.plot_histograms),
             ("correlation_matrix", self.plot_correlation_matrix),
             ("pps_matrix", self.plot_pps_matrix),

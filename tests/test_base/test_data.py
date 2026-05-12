@@ -1,3 +1,5 @@
+from typing import Any
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -43,7 +45,7 @@ class DummyDataset(BaseDataset):
 class DummyDatasetWithArrays(BaseDataset):
     """Dummy dataset with array columns for statistical feature testing."""
 
-    def __init__(self, config_factory: ConfigFactory = ConfigFactory()):
+    def __init__(self, config_factory: ConfigFactory = ConfigFactory()) -> None:
         """Initialize dataset with configuration."""
 
         super().__init__(config_factory=config_factory)
@@ -113,7 +115,7 @@ class DummyDatasetWithArrays(BaseDataset):
         self.y = pd.Series([0, 1, 0, 1, 0, 1], name="target")
 
 
-def test_dataset_config_defaults():
+def test_dataset_config_defaults() -> None:
     """Test DatasetConfig default values."""
 
     config_factory = ConfigFactory()
@@ -141,7 +143,7 @@ def test_dataset_config_defaults():
         },
     ],
 )
-def test_dataset_config_custom(config_params):
+def test_dataset_config_custom(config_params: Any) -> None:
     """Test DatasetConfig with custom parameters.
 
     Args:
@@ -157,7 +159,7 @@ def test_dataset_config_custom(config_params):
         assert getattr(config, param) == value
 
 
-def test_base_dataset_initialization():
+def test_base_dataset_initialization() -> None:
     """Test BaseDataset initialization."""
 
     config_factory = ConfigFactory()
@@ -165,12 +167,12 @@ def test_base_dataset_initialization():
     dataset = DummyDataset(config_factory)
 
     assert dataset.config == config
-    assert dataset.X is None
-    assert dataset.X_test is None
-    assert dataset.y is None
+    assert dataset.X.empty
+    assert dataset.X_test.empty
+    assert dataset.y.empty
 
 
-def test_data_loading():
+def test_data_loading() -> None:
     """Test data loading functionality."""
 
     dataset = DummyDataset(ConfigFactory())
@@ -184,7 +186,7 @@ def test_data_loading():
     assert len(dataset.y) == 5
 
 
-def test_column_type_detection():
+def test_column_type_detection() -> None:
     """Test automatic column type detection."""
 
     dataset = DummyDataset(ConfigFactory())
@@ -196,7 +198,7 @@ def test_column_type_detection():
 
 
 @pytest.mark.parametrize("fill_strategy", ["mode", "missing"])
-def test_categorical_missing_value_handling(fill_strategy):
+def test_categorical_missing_value_handling(fill_strategy: Any) -> None:
     """Test handling of missing values in categorical columns."""
 
     dataset = DummyDataset()
@@ -220,7 +222,7 @@ def test_categorical_missing_value_handling(fill_strategy):
 
 
 @pytest.mark.parametrize("fill_strategy", ["median", "mean", "zero"])
-def test_numerical_missing_value_handling(fill_strategy):
+def test_numerical_missing_value_handling(fill_strategy: Any) -> None:
     """Test handling of missing values in numerical columns."""
 
     dataset = DummyDataset()
@@ -243,7 +245,7 @@ def test_numerical_missing_value_handling(fill_strategy):
         assert 0.0 in dataset.X["num2"].values
 
 
-def test_label_encoding():
+def test_label_encoding() -> None:
     """Test label encoding of categorical variables."""
 
     dataset = DummyDataset()
@@ -264,7 +266,7 @@ def test_label_encoding():
     assert set(dataset.label_encoders.keys()) == set(dataset.categorical_columns)
 
 
-def test_one_hot_encoding():
+def test_one_hot_encoding() -> None:
     """Test one-hot encoding of categorical variables."""
 
     dataset = DummyDataset()
@@ -290,7 +292,7 @@ def test_one_hot_encoding():
         assert set(dataset.X_test[col].unique()).issubset({0, 1})
 
 
-def test_all_encoding():
+def test_all_encoding() -> None:
     """Test combined label and one-hot encoding."""
 
     dataset = DummyDataset()
@@ -312,7 +314,7 @@ def test_all_encoding():
 
 
 @pytest.mark.parametrize("scaler_type", ["StandardScaler", "RobustScaler", "MinMaxScaler"])
-def test_numerical_preprocessing(scaler_type):
+def test_numerical_preprocessing(scaler_type: Any) -> None:
     """Test numerical feature scaling."""
 
     dataset = DummyDataset()
@@ -340,7 +342,7 @@ def test_numerical_preprocessing(scaler_type):
             assert dataset.X[col].max() <= 1 + 1e-10
 
 
-def test_complete_preprocessing_pipeline():
+def test_complete_preprocessing_pipeline() -> None:
     """Test the complete preprocessing pipeline."""
 
     dataset = DummyDataset()
@@ -366,7 +368,7 @@ def test_complete_preprocessing_pipeline():
     assert all(np.issubdtype(dtype, np.number) for dtype in X_test.dtypes)
 
 
-def test_get_feature_types():
+def test_get_feature_types() -> None:
     """Test getting feature types."""
 
     dataset = DummyDataset()
@@ -378,7 +380,7 @@ def test_get_feature_types():
     assert set(num_cols) == {"num1", "num2"}
 
 
-def test_error_handling():
+def test_error_handling() -> None:
     """Test error handling in dataset processing."""
 
     dataset = DummyDataset()
@@ -405,32 +407,32 @@ def test_error_handling():
 
     # Test with invalid fill strategy
     dataset = DummyDataset()
-    dataset.config.categorical_fill_strategy = "invalid"
+    dataset.config.categorical_fill_strategy = "invalid"  # type: ignore[assignment]
     with pytest.raises(RuntimeError, match="Data preprocessing failed"):
         dataset.load_data()
         dataset.preprocess()
 
     dataset = DummyDataset()
-    dataset.config.numerical_fill_strategy = "invalid"
+    dataset.config.numerical_fill_strategy = "invalid"  # type: ignore[assignment]
     with pytest.raises(RuntimeError, match="Data preprocessing failed"):
         dataset.load_data()
         dataset.preprocess()
 
     # Test with invalid preprocessing strategy
     dataset = DummyDataset()
-    dataset.config.categorical_preprocessing_strategy = "invalid"
+    dataset.config.categorical_preprocessing_strategy = "invalid"  # type: ignore[assignment]
     with pytest.raises(RuntimeError, match="Data preprocessing failed"):
         dataset.load_data()
         dataset.preprocess()
 
     dataset = DummyDataset()
-    dataset.config.numerical_preprocessing_strategy = "invalid"
+    dataset.config.numerical_preprocessing_strategy = "invalid"  # type: ignore[assignment]
     with pytest.raises(RuntimeError, match="Data preprocessing failed"):
         dataset.load_data()
         dataset.preprocess()
 
 
-def test_dataset_load_and_preprocess():
+def test_dataset_load_and_preprocess() -> None:
     """Test data loading and preprocessing pipeline."""
 
     dataset = DummyDataset()
@@ -454,7 +456,7 @@ def test_dataset_load_and_preprocess():
         assert np.issubdtype(dataset.X_test[col].dtype, np.number)
 
 
-def test_get_data():
+def test_get_data() -> None:
     """Test getting processed data."""
 
     dataset = DummyDataset()
@@ -469,7 +471,7 @@ def test_get_data():
     assert X.shape[1] == X_test.shape[1]
 
 
-def test_missing_indicator_creation():
+def test_missing_indicator_creation() -> None:
     """Test creation of missing value indicators."""
 
     dataset = DummyDataset()
@@ -493,7 +495,7 @@ def test_missing_indicator_creation():
             assert f"{col}_is_missing" in dataset.X_test.columns
 
 
-def test_extract_statistical_features_from_array_basic():
+def test_extract_statistical_features_from_array_basic() -> None:
     """Test basic functionality of statistical feature extraction from array."""
 
     # Create simple test array
@@ -526,7 +528,7 @@ def test_extract_statistical_features_from_array_basic():
     assert df["test_range"].iloc[0] == 4.0  # max - min
 
 
-def test_extract_statistical_features_comprehensive():
+def test_extract_statistical_features_comprehensive() -> None:
     """Test comprehensive statistical feature extraction."""
 
     np.random.seed(28)
@@ -600,7 +602,7 @@ def test_extract_statistical_features_comprehensive():
     assert df["sensor_total_count"].iloc[3] == 100
 
 
-def test_extract_statistical_features_edge_cases():
+def test_extract_statistical_features_edge_cases() -> None:
     """Test statistical feature extraction with edge cases."""
 
     # Use the edge_case column from DummyDatasetWithArrays
@@ -630,7 +632,7 @@ def test_extract_statistical_features_edge_cases():
     assert not dataset.X["edge_case_max"].isnull().any()
 
 
-def test_extract_statistical_features_method():
+def test_extract_statistical_features_method() -> None:
     """Test the _extract_statistical_features method on dataset."""
 
     dataset = DummyDatasetWithArrays()
@@ -659,7 +661,7 @@ def test_extract_statistical_features_method():
     assert "sensor_data" in dataset.X_test.columns
 
 
-def test_extract_statistical_features_error_handling():
+def test_extract_statistical_features_error_handling() -> None:
     """Test error handling in statistical feature extraction."""
 
     dataset = DummyDatasetWithArrays()
@@ -670,7 +672,7 @@ def test_extract_statistical_features_error_handling():
         dataset._extract_statistical_features("nonexistent")
 
 
-def test_statistical_features_consistency():
+def test_statistical_features_consistency() -> None:
     """Test consistency of statistical features between train and test."""
 
     dataset = DummyDatasetWithArrays()
@@ -693,7 +695,7 @@ def test_statistical_features_consistency():
         assert np.issubdtype(dataset.X[col].dtype, np.number)
 
 
-def test_statistical_features_with_preprocessing():
+def test_statistical_features_with_preprocessing() -> None:
     """Test statistical features work with full preprocessing pipeline."""
 
     dataset = DummyDatasetWithArrays()
@@ -730,7 +732,7 @@ def test_statistical_features_with_preprocessing():
     assert all(np.issubdtype(dtype, np.number) for dtype in X_test.dtypes)
 
 
-def test_statistical_features_vectorization():
+def test_statistical_features_vectorization() -> None:
     """Test that vectorized operations work correctly."""
 
     # Create larger array to test vectorization performance
@@ -751,7 +753,7 @@ def test_statistical_features_vectorization():
     assert abs(df["big_test_std"].mean() - 1.0) < 0.1
 
 
-def test_statistical_features_signal_processing():
+def test_statistical_features_signal_processing() -> None:
     """Test signal processing features specifically."""
 
     # Create arrays with known signal characteristics
@@ -782,7 +784,7 @@ def test_statistical_features_signal_processing():
 
 
 @pytest.mark.parametrize("array_length", [10, 50, 100, 200])
-def test_statistical_features_different_lengths(array_length):
+def test_statistical_features_different_lengths(array_length: Any) -> None:
     """Test statistical features with different array lengths."""
 
     np.random.seed(28)
@@ -799,7 +801,7 @@ def test_statistical_features_different_lengths(array_length):
     assert all(df[f"len_{array_length}_sma"] > 0)
 
 
-def test_get_feature_statistics_with_arrays():
+def test_get_feature_statistics_with_arrays() -> None:
     """Test getting feature statistics works with statistical features."""
 
     dataset = DummyDatasetWithArrays()
@@ -833,7 +835,7 @@ def test_get_feature_statistics_with_arrays():
 
 
 @pytest.mark.parametrize("strategy", ["zero", "mean", "median", "last", "truncate", "global_mean"])
-def test_array_length_strategies_with_dummy_dataset(strategy):
+def test_array_length_strategies_with_dummy_dataset(strategy: Any) -> None:
     """Test all array length strategies using DummyDatasetWithArrays edge_case column."""
 
     dataset = DummyDatasetWithArrays()
@@ -868,7 +870,7 @@ def test_array_length_strategies_with_dummy_dataset(strategy):
     assert len(feature_cols) > 30
 
 
-def test_zero_strategy_with_edge_cases():
+def test_zero_strategy_with_edge_cases() -> None:
     """Test zero padding strategy with edge case arrays."""
 
     dataset = DummyDatasetWithArrays()
@@ -891,7 +893,7 @@ def test_zero_strategy_with_edge_cases():
     np.testing.assert_array_equal(dataset.X_arrays[1], expected_second)
 
 
-def test_mean_strategy_with_edge_cases():
+def test_mean_strategy_with_edge_cases() -> None:
     """Test mean padding strategy with edge case arrays."""
 
     dataset = DummyDatasetWithArrays()
@@ -911,7 +913,7 @@ def test_mean_strategy_with_edge_cases():
     np.testing.assert_array_equal(dataset.X_arrays[1], expected_second)
 
 
-def test_truncate_strategy_with_edge_cases():
+def test_truncate_strategy_with_edge_cases() -> None:
     """Test truncate strategy with edge case arrays."""
 
     dataset = DummyDatasetWithArrays()
@@ -939,7 +941,7 @@ def test_truncate_strategy_with_edge_cases():
     np.testing.assert_array_equal(dataset.X_arrays[3], [1.0, 2.0])
 
 
-def test_last_strategy_with_edge_cases():
+def test_last_strategy_with_edge_cases() -> None:
     """Test last value padding strategy with edge case arrays."""
 
     dataset = DummyDatasetWithArrays()
@@ -959,7 +961,7 @@ def test_last_strategy_with_edge_cases():
     np.testing.assert_array_equal(dataset.X_arrays[2], expected_third)
 
 
-def test_global_mean_strategy_with_edge_cases():
+def test_global_mean_strategy_with_edge_cases() -> None:
     """Test global mean padding strategy with edge case arrays."""
 
     dataset = DummyDatasetWithArrays()
@@ -983,7 +985,7 @@ def test_global_mean_strategy_with_edge_cases():
     np.testing.assert_array_almost_equal(dataset.X_arrays[0], expected_first)
 
 
-def test_median_strategy_with_edge_cases():
+def test_median_strategy_with_edge_cases() -> None:
     """Test median padding strategy with edge case arrays."""
 
     dataset = DummyDatasetWithArrays()
@@ -1002,7 +1004,7 @@ def test_median_strategy_with_edge_cases():
     np.testing.assert_array_equal(dataset.X_arrays[3], expected_fourth)
 
 
-def test_multiple_column_feature_extraction():
+def test_multiple_column_feature_extraction() -> None:
     """Test extracting features from multiple columns."""
 
     dataset = DummyDatasetWithArrays()
@@ -1023,7 +1025,7 @@ def test_multiple_column_feature_extraction():
     assert not set(sensor_features).intersection(set(edge_features))
 
 
-def test_config_defaults():
+def test_config_defaults() -> None:
     """Test that default configuration works with DummyDatasetWithArrays."""
 
     # Default config uses "zero" strategy
@@ -1038,14 +1040,14 @@ def test_config_defaults():
     np.testing.assert_array_equal(dataset.X_arrays[0], expected_first)
 
 
-def test_error_handling_with_dummy_dataset():
+def test_error_handling_with_dummy_dataset() -> None:
     """Test error handling using DummyDatasetWithArrays."""
 
     dataset = DummyDatasetWithArrays()
     dataset.load_data()
 
     # Test invalid strategy
-    dataset.config.array_length_strategy = "invalid_strategy"
+    dataset.config.array_length_strategy = "invalid_strategy"  # type: ignore[assignment]
 
     with pytest.raises(ValueError, match="Invalid array length strategy."):
         dataset._extract_statistical_features("edge_case")
@@ -1057,7 +1059,7 @@ def test_error_handling_with_dummy_dataset():
         dataset._extract_statistical_features("nonexistent")
 
 
-def test_check_columns_missing_in_test():
+def test_check_columns_missing_in_test() -> None:
     """Test _check_columns when X_test is missing columns."""
 
     dataset = DummyDataset()
@@ -1070,7 +1072,7 @@ def test_check_columns_missing_in_test():
         dataset._check_columns()
 
 
-def test_check_columns_extra_in_test():
+def test_check_columns_extra_in_test() -> None:
     """Test _check_columns when X_test has extra columns."""
 
     dataset = DummyDataset()
@@ -1083,7 +1085,7 @@ def test_check_columns_extra_in_test():
         dataset._check_columns()
 
 
-def test_check_columns_success():
+def test_check_columns_success() -> None:
     """Test _check_columns when columns match."""
 
     dataset = DummyDataset()
@@ -1093,7 +1095,7 @@ def test_check_columns_success():
     dataset._check_columns()
 
 
-def test_handle_missing_categorical_values_empty_columns():
+def test_handle_missing_categorical_values_empty_columns() -> None:
     """Test handling missing categorical values when no categorical columns exist."""
 
     dataset = DummyDataset()
@@ -1113,7 +1115,7 @@ def test_handle_missing_categorical_values_empty_columns():
     assert len(missing_indicator_cols) == 0
 
 
-def test_handle_missing_numerical_values_empty_columns():
+def test_handle_missing_numerical_values_empty_columns() -> None:
     """Test handling missing numerical values when no numerical columns exist."""
 
     dataset = DummyDataset()
@@ -1133,7 +1135,7 @@ def test_handle_missing_numerical_values_empty_columns():
     assert len(missing_indicator_cols) == 0
 
 
-def test_feature_engineering_default():
+def test_feature_engineering_default() -> None:
     """Test default feature_engineering method."""
 
     dataset = DummyDataset()
@@ -1150,7 +1152,7 @@ def test_feature_engineering_default():
     assert isinstance(dataset.y, pd.Series)
 
 
-def test_extract_date_features():
+def test_extract_date_features() -> None:
     """Test extracting date features from a date column."""
 
     dataset = DummyDataset()
@@ -1193,7 +1195,7 @@ def test_extract_date_features():
     assert isinstance(dataset.X["date_col_day_name"].dtype, pd.CategoricalDtype)
 
 
-def test_extract_date_features_nonexistent_column():
+def test_extract_date_features_nonexistent_column() -> None:
     """Test extracting date features from non-existent column."""
 
     dataset = DummyDataset()
@@ -1203,7 +1205,7 @@ def test_extract_date_features_nonexistent_column():
         dataset.extract_date_features("nonexistent")
 
 
-def test_extract_time_features():
+def test_extract_time_features() -> None:
     """Test extracting time features from a datetime column."""
 
     dataset = DummyDataset()
@@ -1239,7 +1241,7 @@ def test_extract_time_features():
     assert dataset.X["datetime_col_second"].iloc[0] == 45
 
 
-def test_extract_time_features_nonexistent_column():
+def test_extract_time_features_nonexistent_column() -> None:
     """Test extracting time features from non-existent column."""
 
     dataset = DummyDataset()
@@ -1249,7 +1251,7 @@ def test_extract_time_features_nonexistent_column():
         dataset.extract_time_features("nonexistent")
 
 
-def test_create_cyclical_features():
+def test_create_cyclical_features() -> None:
     """Test creating cyclical features for a column."""
 
     dataset = DummyDataset()
@@ -1270,7 +1272,7 @@ def test_create_cyclical_features():
     np.testing.assert_almost_equal(dataset.X["num1_cos"].iloc[0], np.cos(expected_angle))
 
 
-def test_create_cyclical_features_nonexistent_column():
+def test_create_cyclical_features_nonexistent_column() -> None:
     """Test creating cyclical features for non-existent column."""
 
     dataset = DummyDataset()
@@ -1280,7 +1282,7 @@ def test_create_cyclical_features_nonexistent_column():
         dataset.create_cyclical_features("nonexistent", max_val=24)
 
 
-def test_count_tokens():
+def test_count_tokens() -> None:
     """Test counting tokens in a text column."""
 
     dataset = DummyDataset()
@@ -1302,7 +1304,7 @@ def test_count_tokens():
     assert all(dataset.X_test["text_col_token_count"] > 0)
 
 
-def test_count_tokens_nonexistent_column():
+def test_count_tokens_nonexistent_column() -> None:
     """Test counting tokens for non-existent column."""
 
     dataset = DummyDataset()
@@ -1312,7 +1314,7 @@ def test_count_tokens_nonexistent_column():
         dataset.count_tokens("nonexistent")
 
 
-def test_count_tokens_custom_encoding():
+def test_count_tokens_custom_encoding() -> None:
     """Test counting tokens with custom encoding model."""
 
     dataset = DummyDataset()
@@ -1330,7 +1332,7 @@ def test_count_tokens_custom_encoding():
     assert "text_col_token_count" in dataset.X_test.columns
 
 
-def test_get_embedding_empty_text():
+def test_get_embedding_empty_text() -> None:
     """Test getting embeddings with empty text input."""
 
     dataset = DummyDataset()
@@ -1340,7 +1342,7 @@ def test_get_embedding_empty_text():
         dataset.get_embedding([])
 
 
-def test_get_feature_statistics():
+def test_get_feature_statistics() -> None:
     """Test getting feature statistics."""
 
     dataset = DummyDataset()
@@ -1376,15 +1378,15 @@ def test_get_feature_statistics():
     assert len(stats_test) == dataset.X_test.shape[1]
 
 
-def test_load_data_abstract_method():
+def test_load_data_abstract_method() -> None:
     """Test that load_data is an abstract method."""
 
     # Cannot instantiate BaseDataset directly due to abstract method
     with pytest.raises(TypeError):
-        BaseDataset()
+        BaseDataset()  # type: ignore[abstract]
 
 
-def test_extract_arrays_with_mixed_types():
+def test_extract_arrays_with_mixed_types() -> None:
     """Test extracting arrays with mixed data types."""
 
     dataset = DummyDatasetWithArrays()
@@ -1424,7 +1426,7 @@ def test_extract_arrays_with_mixed_types():
     np.testing.assert_array_equal(dataset.X_test_arrays[1], np.array([12.0]))
 
 
-def test_handle_array_lengths_with_different_strategies():
+def test_handle_array_lengths_with_different_strategies() -> None:
     """Test array length handling with all strategies comprehensively."""
 
     # Test each strategy individually with known data
@@ -1432,7 +1434,7 @@ def test_handle_array_lengths_with_different_strategies():
 
     for strategy in strategies_to_test:
         dataset = DummyDatasetWithArrays()
-        dataset.config.array_length_strategy = strategy
+        dataset.config.array_length_strategy = strategy  # type: ignore[assignment]
         dataset.load_data()
 
         # Use a simple test case
@@ -1459,11 +1461,11 @@ def test_handle_array_lengths_with_different_strategies():
             assert train_lengths[0] == 3  # Longest array length
 
 
-def test_execute_array_length_strategy_invalid():
+def test_execute_array_length_strategy_invalid() -> None:
     """Test _execute_array_length_strategy with invalid strategy."""
 
     dataset = DummyDatasetWithArrays()
-    dataset.config.array_length_strategy = "invalid_strategy"
+    dataset.config.array_length_strategy = "invalid_strategy"  # type: ignore[assignment]
 
     dataset.load_data()
 
@@ -1473,7 +1475,7 @@ def test_execute_array_length_strategy_invalid():
         dataset._execute_array_length_strategy(arrays, 3, 2.0)
 
 
-def test_categorical_fill_strategy_with_all_unique():
+def test_categorical_fill_strategy_with_all_unique() -> None:
     """Test categorical fill strategy when all values are unique (no clear mode)."""
 
     dataset = DummyDataset()
@@ -1495,7 +1497,7 @@ def test_categorical_fill_strategy_with_all_unique():
     assert not dataset.X_test["cat1"].isna().any()
 
 
-def test_numerical_fill_strategies_with_all_nan():
+def test_numerical_fill_strategies_with_all_nan() -> None:
     """Test numerical fill strategies when column has all NaN values."""
 
     dataset = DummyDataset()
@@ -1518,7 +1520,7 @@ def test_numerical_fill_strategies_with_all_nan():
     assert "num1_is_missing" in dataset.X.columns
 
 
-def test_preprocess_with_no_columns_of_type():
+def test_preprocess_with_no_columns_of_type() -> None:
     """Test preprocessing when dataset has no columns of specific types."""
 
     dataset = DummyDataset()
@@ -1546,11 +1548,11 @@ def test_preprocess_with_no_columns_of_type():
     assert isinstance(X_test, pd.DataFrame)
 
 
-def test_invalid_array_length_strategy_config():
+def test_invalid_array_length_strategy_config() -> None:
     """Test DatasetConfig with invalid array length strategy."""
 
     dataset = DummyDatasetWithArrays()
-    dataset.config.array_length_strategy = "invalid"
+    dataset.config.array_length_strategy = "invalid"  # type: ignore[assignment]
 
     dataset.load_data()
 
@@ -1559,7 +1561,7 @@ def test_invalid_array_length_strategy_config():
         dataset._extract_statistical_features("edge_case")
 
 
-def test_extract_date_features_week_number():
+def test_extract_date_features_week_number() -> None:
     """Test that week number is correctly extracted in date features."""
 
     dataset = DummyDataset()
@@ -1576,7 +1578,7 @@ def test_extract_date_features_week_number():
     assert all(1 <= week <= 53 for week in dataset.X["date_col_week"])
 
 
-def test_statistical_features_with_constant_arrays():
+def test_statistical_features_with_constant_arrays() -> None:
     """Test statistical features with arrays containing only constant values."""
 
     dataset = DummyDatasetWithArrays()
@@ -1610,7 +1612,7 @@ def test_statistical_features_with_constant_arrays():
     assert dataset.X["const_data_range"].iloc[1] == 0.0
 
 
-def test_extract_date_features_with_missing_week():
+def test_extract_date_features_with_missing_week() -> None:
     """Test extracting date features including week handling."""
 
     dataset = DummyDataset()
@@ -1644,7 +1646,7 @@ def test_extract_date_features_with_missing_week():
         assert feature in dataset.X.columns
 
 
-def test_extract_statistical_features_from_array_tsfresh():
+def test_extract_statistical_features_from_array_tsfresh() -> None:
     """Test extracting statistical features from array using tsfresh."""
 
     dataset = DummyDatasetWithArrays()
@@ -1674,11 +1676,11 @@ def test_extract_statistical_features_from_array_tsfresh():
         assert feature in df_features_test.columns
 
 
-def test_invalid_statistical_feature_set_config():
+def test_invalid_statistical_feature_set_config() -> None:
     """Test DatasetConfig with invalid statistical feature set."""
 
     dataset = DummyDatasetWithArrays()
-    dataset.config.statistical_feature_set = "invalid_feature_set"
+    dataset.config.statistical_feature_set = "invalid_feature_set"  # type: ignore[assignment]
     dataset.load_data()
 
     # Should raise error when trying to use invalid feature set
@@ -1686,7 +1688,7 @@ def test_invalid_statistical_feature_set_config():
         dataset._extract_statistical_features("edge_case")
 
 
-def test_plot_histograms():
+def test_plot_histograms() -> None:
     """Test plotting histograms for numerical features."""
 
     dataset = DummyDataset()
@@ -1706,7 +1708,7 @@ def test_plot_histograms():
     plt.close(fig)
 
 
-def test_plot_histograms_no_numerical_columns():
+def test_plot_histograms_no_numerical_columns() -> None:
     """Test plotting histograms when no numerical columns exist."""
 
     dataset = DummyDataset()
@@ -1720,7 +1722,7 @@ def test_plot_histograms_no_numerical_columns():
     assert fig is None
 
 
-def test_plot_histograms_custom_figsize():
+def test_plot_histograms_custom_figsize() -> None:
     """Test plotting histograms with custom figure size."""
 
     dataset = DummyDataset()
@@ -1738,7 +1740,7 @@ def test_plot_histograms_custom_figsize():
 
 
 @pytest.mark.parametrize("method", ["pearson", "spearman", "kendall"])
-def test_plot_correlation_matrix(method):
+def test_plot_correlation_matrix(method: Any) -> None:
     """Test plotting correlation matrix with different methods."""
 
     dataset = DummyDataset()
@@ -1758,7 +1760,7 @@ def test_plot_correlation_matrix(method):
     plt.close(fig)
 
 
-def test_plot_correlation_matrix_insufficient_columns():
+def test_plot_correlation_matrix_insufficient_columns() -> None:
     """Test correlation matrix with insufficient numerical columns."""
 
     dataset = DummyDataset()
@@ -1774,7 +1776,7 @@ def test_plot_correlation_matrix_insufficient_columns():
     assert fig is None
 
 
-def test_plot_pps_matrix():
+def test_plot_pps_matrix() -> None:
     """Test plotting Predictive Power Score matrix."""
 
     dataset = DummyDataset()
@@ -1794,7 +1796,7 @@ def test_plot_pps_matrix():
     plt.close(fig)
 
 
-def test_plot_pps_matrix_custom_figsize():
+def test_plot_pps_matrix_custom_figsize() -> None:
     """Test PPS matrix with custom figure size."""
 
     dataset = DummyDataset()
@@ -1810,7 +1812,7 @@ def test_plot_pps_matrix_custom_figsize():
     plt.close(fig)
 
 
-def test_plot_mic_matrix():
+def test_plot_mic_matrix() -> None:
     """Test plotting Maximal Information Coefficient matrix."""
 
     dataset = DummyDataset()
@@ -1830,7 +1832,7 @@ def test_plot_mic_matrix():
     plt.close(fig)
 
 
-def test_plot_mic_matrix_insufficient_columns():
+def test_plot_mic_matrix_insufficient_columns() -> None:
     """Test MIC matrix with insufficient numerical columns."""
 
     dataset = DummyDataset()
@@ -1844,7 +1846,7 @@ def test_plot_mic_matrix_insufficient_columns():
     assert fig is None
 
 
-def test_plot_target_distribution_categorical():
+def test_plot_target_distribution_categorical() -> None:
     """Test plotting target distribution for categorical target."""
 
     dataset = DummyDataset()
@@ -1861,7 +1863,7 @@ def test_plot_target_distribution_categorical():
     plt.close(fig)
 
 
-def test_plot_target_distribution_numerical():
+def test_plot_target_distribution_numerical() -> None:
     """Test plotting target distribution for numerical target."""
 
     dataset = DummyDataset()
@@ -1878,7 +1880,7 @@ def test_plot_target_distribution_numerical():
     plt.close(fig)
 
 
-def test_plot_target_distribution_custom_figsize():
+def test_plot_target_distribution_custom_figsize() -> None:
     """Test target distribution plot with custom figure size."""
 
     dataset = DummyDataset()
@@ -1893,7 +1895,7 @@ def test_plot_target_distribution_custom_figsize():
     plt.close(fig)
 
 
-def test_plot_feature_importance_correlation():
+def test_plot_feature_importance_correlation() -> None:
     """Test plotting feature-target correlation."""
 
     dataset = DummyDataset()
@@ -1915,7 +1917,7 @@ def test_plot_feature_importance_correlation():
     plt.close(fig)
 
 
-def test_plot_feature_importance_correlation_no_numerical():
+def test_plot_feature_importance_correlation_no_numerical() -> None:
     """Test feature correlation plot with no numerical columns."""
 
     dataset = DummyDataset()
@@ -1929,7 +1931,7 @@ def test_plot_feature_importance_correlation_no_numerical():
     assert fig is None
 
 
-def test_plot_feature_importance_correlation_categorical_target():
+def test_plot_feature_importance_correlation_categorical_target() -> None:
     """Test feature correlation plot with categorical target."""
 
     dataset = DummyDataset()
@@ -1944,7 +1946,7 @@ def test_plot_feature_importance_correlation_categorical_target():
     assert fig is None
 
 
-def test_plot_outliers_boxplot():
+def test_plot_outliers_boxplot() -> None:
     """Test plotting box plots for outlier detection."""
 
     dataset = DummyDataset()
@@ -1959,7 +1961,7 @@ def test_plot_outliers_boxplot():
     plt.close(fig)
 
 
-def test_plot_outliers_boxplot_no_numerical():
+def test_plot_outliers_boxplot_no_numerical() -> None:
     """Test outlier boxplot with no numerical columns."""
 
     dataset = DummyDataset()
@@ -1973,7 +1975,7 @@ def test_plot_outliers_boxplot_no_numerical():
     assert fig is None
 
 
-def test_plot_outliers_boxplot_custom_figsize():
+def test_plot_outliers_boxplot_custom_figsize() -> None:
     """Test outlier boxplot with custom figure size."""
 
     dataset = DummyDataset()
@@ -1989,7 +1991,7 @@ def test_plot_outliers_boxplot_custom_figsize():
     plt.close(fig)
 
 
-def test_create_all_plots():
+def test_create_all_plots() -> None:
     """Test creating all plots at once."""
 
     dataset = DummyDataset()
@@ -2011,7 +2013,7 @@ def test_create_all_plots():
         plt.close(fig)
 
 
-def test_create_all_plots_with_save_path(tmp_path):
+def test_create_all_plots_with_save_path(tmp_path: Any) -> None:
     """Test creating all plots with saving to file."""
 
     dataset = DummyDataset()
@@ -2042,7 +2044,7 @@ def test_create_all_plots_with_save_path(tmp_path):
         plt.close(fig)
 
 
-def test_create_all_plots_error_handling():
+def test_create_all_plots_error_handling() -> None:
     """Test that create_all_plots handles individual plot failures gracefully."""
 
     dataset = DummyDataset()
@@ -2065,7 +2067,7 @@ def test_create_all_plots_error_handling():
         plt.close(fig)
 
 
-def test_plot_target_distribution_few_unique_values():
+def test_plot_target_distribution_few_unique_values() -> None:
     """Test target distribution plot with few unique values."""
 
     dataset = DummyDataset()
@@ -2082,7 +2084,7 @@ def test_plot_target_distribution_few_unique_values():
     plt.close(fig)
 
 
-def test_plot_correlation_matrix_with_nan_values():
+def test_plot_correlation_matrix_with_nan_values() -> None:
     """Test correlation matrix with NaN values in data."""
 
     dataset = DummyDataset()
@@ -2099,7 +2101,7 @@ def test_plot_correlation_matrix_with_nan_values():
     plt.close(fig)
 
 
-def test_plot_mic_matrix_with_nan_values():
+def test_plot_mic_matrix_with_nan_values() -> None:
     """Test MIC matrix with NaN values in data."""
 
     dataset = DummyDataset()
@@ -2117,7 +2119,7 @@ def test_plot_mic_matrix_with_nan_values():
     plt.close(fig)
 
 
-def test_plotting_with_large_dataset():
+def test_plotting_with_large_dataset() -> None:
     """Test plotting functions with larger dataset."""
 
     # Create larger dummy dataset
@@ -2150,7 +2152,7 @@ def test_plotting_with_large_dataset():
         plt.close(fig)
 
 
-def test_plot_with_single_feature():
+def test_plot_with_single_feature() -> None:
     """Test plotting functions with dataset containing only one feature."""
 
     dataset = DummyDataset()
@@ -2197,7 +2199,7 @@ def test_plot_with_single_feature():
         "plot_outliers_boxplot",
     ],
 )
-def test_plotting_methods_exist(plot_method_name):
+def test_plotting_methods_exist(plot_method_name: Any) -> None:
     """Test that all plotting methods exist and are callable."""
 
     dataset = DummyDataset()
@@ -2207,7 +2209,7 @@ def test_plotting_methods_exist(plot_method_name):
     assert callable(getattr(dataset, plot_method_name))
 
 
-def test_plotting_with_preprocessed_statistical_features():
+def test_plotting_with_preprocessed_statistical_features() -> None:
     """Test plotting functions work with statistical features."""
 
     dataset = DummyDatasetWithArrays()
@@ -2241,7 +2243,7 @@ def test_plotting_with_preprocessed_statistical_features():
         plt.close(fig)
 
 
-def test_plot_feature_importance_with_zero_correlation():
+def test_plot_feature_importance_with_zero_correlation() -> None:
     """Test feature importance plot when all correlations are zero."""
 
     dataset = DummyDataset()
@@ -2259,7 +2261,7 @@ def test_plot_feature_importance_with_zero_correlation():
         plt.close(fig)
 
 
-def test_select_features_tsfresh():
+def test_select_features_tsfresh() -> None:
     """Test feature selection."""
 
     dataset = DummyDataset()

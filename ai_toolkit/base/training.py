@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union, cast
 
 import mlflow
 import numpy as np
@@ -37,8 +37,9 @@ class BaseMlTrainer(ABC):
         self.optimize_metric = self.config.optimize_metric
         self.metric_configs = self.config.get_metric_configs()
 
-        self.best_model = None
-        self.feature_names = None
+        self.best_model: Optional[object] = None
+        self.best_fold: Optional[int] = None
+        self.feature_names: Optional[List[str]] = None
 
         # Depends on the metric to optimize
         self.best_score = self.metric_configs.initial_score
@@ -100,7 +101,7 @@ class BaseMlTrainer(ABC):
             for stat_name, value in stats.items():
                 mlflow.log_metric(f"{metric_name}_{stat_name}", value)
 
-    def _log_fold_results(self, fold: int, metrics: Dict[str, float]) -> None:
+    def _log_fold_results(self, fold: int, metrics: Dict[str, float], **kwargs: Any) -> None:
         """Log metrics and plots for a specific fold.
 
         Args:
@@ -159,6 +160,8 @@ class BaseMlTrainer(ABC):
 
         # Create input example
         if isinstance(X_array, np.ndarray):
+            if self.feature_names is None:
+                raise ValueError("feature_names must be set before logging results")
             # Create model signature
             signature = ModelSignature(
                 inputs=Schema([ColSpec("double", name) for name in self.feature_names]),
@@ -170,12 +173,15 @@ class BaseMlTrainer(ABC):
 
             # Log the best model
             mlflow.sklearn.log_model(
-                self.best_model,
-                "model",
+                sk_model=self.best_model,
+                name=self.base_model.model_name,
                 signature=signature,
                 input_example=input_example,
             )
         elif isinstance(X_array, tf.Tensor):
+            if self.best_model is None:
+                raise ValueError("best_model must be set before logging results")
+            keras_model = cast(tf.keras.Model, self.best_model)
             # Create model signature
             signature = ModelSignature(
                 inputs=Schema(
@@ -183,7 +189,7 @@ class BaseMlTrainer(ABC):
                         TensorSpec(
                             shape=(-1,) + tuple(X_array.shape[1:].as_list()),
                             type=np.dtype(X_array.dtype.as_numpy_dtype),
-                            name=self.best_model.input_names[0],
+                            name=keras_model.input_names[0],
                         )
                     ]
                 ),
@@ -195,8 +201,8 @@ class BaseMlTrainer(ABC):
 
             # Log the best model
             mlflow.tensorflow.log_model(
-                self.best_model,
-                "model",
+                model=self.best_model,
+                name=self.base_model.model_name,
                 signature=signature,
                 input_example=input_example,
                 keras_model_kwargs={"save_format": "tf", "save_traces": True},
@@ -207,6 +213,8 @@ class BaseMlTrainer(ABC):
             data=pd.DataFrame([self.base_model.best_params]),
             artifact_file="best_params.json",
         )
+
+        mlflow.log_param("best_fold", self.best_fold)
 
         # Print results
         print(f"\n# Model: {self.base_model.model_name}")
@@ -220,7 +228,7 @@ class BaseMlTrainer(ABC):
 
         return mean_metrics
 
-    def _calc_feature_importance(self, model: Any) -> np.ndarray:
+    def _calc_feature_importance(self, model: Any) -> Optional[np.ndarray]:
         """Calculate feature importance scores for a trained model.
 
         Args:
@@ -232,21 +240,20 @@ class BaseMlTrainer(ABC):
 
         # Models with feature_importances_ attribute
         if hasattr(model, "feature_importances_"):
-            return model.feature_importances_
+            return np.asarray(model.feature_importances_)
 
         # Linear models with coefficients
         elif hasattr(model, "coef_"):
-            coef = model.coef_
+            coef = np.asarray(model.coef_)
 
             # Handle multi-target case
             if coef.ndim > 1:
-                return np.mean(np.abs(coef), axis=0)
+                return np.asarray(np.mean(np.abs(coef), axis=0))
 
-            return np.abs(coef)
+            return np.asarray(np.abs(coef))
 
         # Models with no feature importance
-        else:
-            return None
+        return None
 
     def array_indexing(
         self,
@@ -273,6 +280,8 @@ class BaseMlTrainer(ABC):
             if not isinstance(indices, tf.Tensor):
                 indices = tf.convert_to_tensor(indices, dtype=tf.int32)
             return tf.gather(data, indices)
+
+        raise TypeError(f"Unsupported data type: {type(data)}")
 
 
 if __name__ == "__main__":

@@ -3,6 +3,7 @@ import logging
 import tempfile
 from operator import gt, lt
 from pathlib import Path
+from typing import Any, Dict
 from unittest.mock import patch
 
 import pytest
@@ -23,7 +24,7 @@ from ai_toolkit.base.config import (
 class TestDataConfig:
     """Test cases for DataConfig."""
 
-    def test_data_config_defaults(self):
+    def test_data_config_defaults(self) -> None:
         """Test DataConfig default values."""
 
         config = DataConfig()
@@ -55,7 +56,7 @@ class TestDataConfig:
             },
         ],
     )
-    def test_data_config_custom(self, config_params):
+    def test_data_config_custom(self, config_params: Any) -> None:
         """Test DataConfig with custom parameters."""
 
         config = DataConfig(**config_params)
@@ -63,32 +64,32 @@ class TestDataConfig:
         for param, value in config_params.items():
             assert getattr(config, param) == value
 
-    def test_data_config_invalid_values(self):
+    def test_data_config_invalid_values(self) -> None:
         """Test DataConfig with invalid values."""
 
         with pytest.raises(ValueError):
-            DataConfig(categorical_fill_strategy="invalid")
+            DataConfig(categorical_fill_strategy="invalid")  # type: ignore[arg-type]
 
         with pytest.raises(ValueError):
-            DataConfig(numerical_fill_strategy="invalid")
+            DataConfig(numerical_fill_strategy="invalid")  # type: ignore[arg-type]
 
         with pytest.raises(ValueError):
-            DataConfig(categorical_preprocessing_strategy="invalid")
+            DataConfig(categorical_preprocessing_strategy="invalid")  # type: ignore[arg-type]
 
         with pytest.raises(ValueError):
-            DataConfig(numerical_preprocessing_strategy="invalid")
+            DataConfig(numerical_preprocessing_strategy="invalid")  # type: ignore[arg-type]
 
         with pytest.raises(ValueError):
-            DataConfig(array_length_strategy="invalid")
+            DataConfig(array_length_strategy="invalid")  # type: ignore[arg-type]
 
         with pytest.raises(ValueError):
-            DataConfig(statistical_feature_set="invalid")
+            DataConfig(statistical_feature_set="invalid")  # type: ignore[arg-type]
 
 
 class TestMetricConfig:
     """Test cases for MetricConfig."""
 
-    def test_metric_config_defaults(self):
+    def test_metric_config_defaults(self) -> None:
         """Test MetricConfig default values."""
 
         config = MetricConfig()
@@ -106,7 +107,7 @@ class TestMetricConfig:
             {"better_score": lt},
         ],
     )
-    def test_metric_config_custom(self, config_params):
+    def test_metric_config_custom(self, config_params: Any) -> None:
         """Test MetricConfig with custom parameters."""
 
         config = MetricConfig(**config_params)
@@ -114,7 +115,7 @@ class TestMetricConfig:
         for param, value in config_params.items():
             assert getattr(config, param) == value
 
-    def test_metric_config_validation(self):
+    def test_metric_config_validation(self) -> None:
         """Test MetricConfig field validation."""
 
         # Test valid values
@@ -124,23 +125,23 @@ class TestMetricConfig:
 
         # Test invalid initial_score
         with pytest.raises(ValidationError, match="Input should be a valid number"):
-            MetricConfig(initial_score="invalid")
+            MetricConfig(initial_score="invalid")  # type: ignore[arg-type]
 
         # Test invalid better_score
         with pytest.raises(ValidationError, match="Input should be callable"):
-            MetricConfig(better_score="not_callable")
+            MetricConfig(better_score="not_callable")  # type: ignore[arg-type]
 
-    def test_metric_config_invalid_values(self):
+    def test_metric_config_invalid_values(self) -> None:
         """Test MetricConfig with invalid values."""
 
         with pytest.raises(ValueError):
-            MetricConfig(direction="invalid")
+            MetricConfig(direction="invalid")  # type: ignore[arg-type]
 
 
 class TestTrainingConfig:
     """Test cases for TrainingConfig."""
 
-    def test_training_config_defaults(self):
+    def test_training_config_defaults(self) -> None:
         """Test TrainingConfig default values."""
 
         config = TrainingConfig()
@@ -174,7 +175,7 @@ class TestTrainingConfig:
             },
         ],
     )
-    def test_training_config_custom(self, config_params):
+    def test_training_config_custom(self, config_params: Any) -> None:
         """Test TrainingConfig with custom parameters."""
 
         config = TrainingConfig(**config_params)
@@ -182,7 +183,7 @@ class TestTrainingConfig:
         for param, value in config_params.items():
             assert getattr(config, param) == value
 
-    def test_training_config_validation(self):
+    def test_training_config_validation(self) -> None:
         """Test TrainingConfig field validation."""
 
         # Test valid optimize_metric
@@ -193,7 +194,7 @@ class TestTrainingConfig:
         with pytest.raises(ValueError, match="optimize_metric 'invalid' not supported."):
             TrainingConfig(optimize_metric="invalid")
 
-    def test_training_config_constraints(self):
+    def test_training_config_constraints(self) -> None:
         """Test TrainingConfig field constraints."""
 
         # Test n_splits constraints
@@ -221,7 +222,7 @@ class TestTrainingConfig:
         with pytest.raises(ValueError):
             TrainingConfig(smote_ratio=1.1)  # Above maximum
 
-    def test_get_metric_configs(self):
+    def test_get_metric_configs(self) -> None:
         """Test get_metric_configs method."""
 
         config = TrainingConfig(optimize_metric="accuracy")
@@ -236,7 +237,7 @@ class TestTrainingConfig:
 class TestLoggingConfig:
     """Test cases for LoggingConfig."""
 
-    def test_logging_config_defaults(self):
+    def test_logging_config_defaults(self) -> None:
         """Test LoggingConfig default values."""
 
         config = LoggingConfig()
@@ -270,7 +271,7 @@ class TestLoggingConfig:
             },
         ],
     )
-    def test_logging_config_custom(self, config_params):
+    def test_logging_config_custom(self, config_params: Any) -> None:
         """Test LoggingConfig with custom parameters."""
 
         config = LoggingConfig(**config_params)
@@ -278,7 +279,7 @@ class TestLoggingConfig:
         for param, value in config_params.items():
             assert getattr(config, param) == value
 
-    def test_logging_config_validation(self):
+    def test_logging_config_validation(self) -> None:
         """Test LoggingConfig field validation."""
 
         # Test valid level
@@ -287,7 +288,7 @@ class TestLoggingConfig:
 
         # Test invalid level types
         with pytest.raises(ValidationError, match="Input should be a valid integer"):
-            LoggingConfig(level="invalid")
+            LoggingConfig(level="invalid")  # type: ignore[arg-type]
 
         with pytest.raises(ValueError, match="Logging level must be an integer between 0 and 50."):
             LoggingConfig(level=-1)
@@ -299,7 +300,7 @@ class TestLoggingConfig:
 class TestAIToolkitConfig:
     """Test cases for AIToolkitConfig."""
 
-    def test_ai_toolkit_config_defaults(self):
+    def test_ai_toolkit_config_defaults(self) -> None:
         """Test AIToolkitConfig default values."""
 
         config = AIToolkitConfig()
@@ -313,7 +314,7 @@ class TestAIToolkitConfig:
         assert isinstance(config.logging, LoggingConfig)
         assert config.environment == "development"
 
-    def test_ai_toolkit_config_custom(self):
+    def test_ai_toolkit_config_custom(self) -> None:
         """Test AIToolkitConfig with custom parameters."""
 
         custom_data = DataConfig(categorical_fill_strategy="missing")
@@ -332,13 +333,13 @@ class TestAIToolkitConfig:
         assert config.training.n_trials == 50
         assert config.logging.name == "custom_logger"
 
-    def test_ai_toolkit_config_invalid_values(self):
+    def test_ai_toolkit_config_invalid_values(self) -> None:
         """Test AIToolkitConfig with invalid values."""
 
         with pytest.raises(ValueError):
-            AIToolkitConfig(environment="invalid")
+            AIToolkitConfig(environment="invalid")  # type: ignore[arg-type]
 
-    def test_from_yaml(self):
+    def test_from_yaml(self) -> None:
         """Test loading config from YAML file."""
 
         yaml_data = {
@@ -361,7 +362,7 @@ class TestAIToolkitConfig:
         finally:
             Path(temp_path).unlink()
 
-    def test_from_json(self):
+    def test_from_json(self) -> None:
         """Test loading config from JSON file."""
 
         json_data = {
@@ -384,7 +385,7 @@ class TestAIToolkitConfig:
         finally:
             Path(temp_path).unlink()
 
-    def test_from_env(self):
+    def test_from_env(self) -> None:
         """Test loading config from environment variables."""
 
         with patch.dict(
@@ -402,7 +403,7 @@ class TestAIToolkitConfig:
             assert config.training.n_trials == 50
             assert config.logging.name == "env_logger"
 
-    def test_save_yaml(self):
+    def test_save_yaml(self) -> None:
         """Test saving config to YAML file."""
 
         config = AIToolkitConfig(environment="production")
@@ -419,7 +420,7 @@ class TestAIToolkitConfig:
         finally:
             Path(temp_path).unlink()
 
-    def test_save_json(self):
+    def test_save_json(self) -> None:
         """Test saving config to JSON file."""
 
         config = AIToolkitConfig(environment="production")
@@ -436,7 +437,7 @@ class TestAIToolkitConfig:
         finally:
             Path(temp_path).unlink()
 
-    def test_merge_with(self):
+    def test_merge_with(self) -> None:
         """Test merging configurations."""
 
         base_config = AIToolkitConfig(
@@ -462,7 +463,7 @@ class TestAIToolkitConfig:
 class TestConfigFactory:
     """Test cases for ConfigFactory."""
 
-    def test_get_config_singleton(self):
+    def test_get_config_singleton(self) -> None:
         """Test ConfigFactory singleton pattern."""
 
         ConfigFactory._instance = None  # Reset singleton
@@ -473,7 +474,7 @@ class TestConfigFactory:
         assert config1 is config2
         assert isinstance(config1, AIToolkitConfig)
 
-    def test_get_config_reload(self):
+    def test_get_config_reload(self) -> None:
         """Test ConfigFactory reload functionality."""
 
         ConfigFactory._instance = None  # Reset singleton
@@ -484,7 +485,7 @@ class TestConfigFactory:
         assert config1 is not config2
         assert isinstance(config2, AIToolkitConfig)
 
-    def test_create_config_default(self):
+    def test_create_config_default(self) -> None:
         """Test ConfigFactory create_config with defaults."""
 
         config = ConfigFactory.create_config()
@@ -492,7 +493,7 @@ class TestConfigFactory:
         assert isinstance(config, AIToolkitConfig)
         assert config.environment == "development"
 
-    def test_create_config_with_environment(self):
+    def test_create_config_with_environment(self) -> None:
         """Test ConfigFactory create_config with environment."""
 
         # Create environment-specific config file
@@ -520,7 +521,7 @@ class TestConfigFactory:
         finally:
             expected_path.unlink()
 
-    def test_create_config_with_config_file(self):
+    def test_create_config_with_config_file(self) -> None:
         """Test ConfigFactory create_config with config file."""
 
         config_data = {
@@ -539,7 +540,7 @@ class TestConfigFactory:
         finally:
             Path(temp_path).unlink()
 
-    def test_load_config_file_invalid_format(self):
+    def test_load_config_file_invalid_format(self) -> None:
         """Test ConfigFactory with invalid config file format."""
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
@@ -552,7 +553,7 @@ class TestConfigFactory:
         finally:
             Path(temp_path).unlink()
 
-    def test_save_config_file_invalid_format(self):
+    def test_save_config_file_invalid_format(self) -> None:
         """Test ConfigFactory save with invalid format."""
 
         ConfigFactory._instance = AIToolkitConfig()
@@ -560,7 +561,7 @@ class TestConfigFactory:
         with pytest.raises(ValueError, match="Unsupported config file format"):
             ConfigFactory.save_config_file("config.txt")
 
-    def test_getattr_access(self):
+    def test_getattr_access(self) -> None:
         """Test ConfigFactory __getattr__ access."""
 
         ConfigFactory._instance = None  # Reset singleton
@@ -576,7 +577,7 @@ class TestConfigFactory:
             _ = factory.nonexistent_attribute
 
 
-def test_get_default_metric_configs():
+def test_get_default_metric_configs() -> None:
     """Test get_default_metric_configs function."""
 
     configs = get_default_metric_configs()
@@ -598,12 +599,12 @@ def test_get_default_metric_configs():
     assert configs["mean_squared_error"].better_score == lt
 
 
-def test_config_validation_errors():
+def test_config_validation_errors() -> None:
     """Test configuration validation errors."""
 
     # Test DataConfig validation
     with pytest.raises(ValueError):
-        DataConfig(categorical_fill_strategy="invalid")
+        DataConfig(categorical_fill_strategy="invalid")  # type: ignore[arg-type]
 
     # Test TrainingConfig validation
     with pytest.raises(ValueError):
@@ -611,18 +612,18 @@ def test_config_validation_errors():
 
     # Test LoggingConfig validation
     with pytest.raises(ValueError):
-        LoggingConfig(level="invalid")
+        LoggingConfig(level="invalid")  # type: ignore[arg-type]
 
     # Test MetricConfig validation
     with pytest.raises(ValueError):
-        MetricConfig(initial_score="not_a_number")
+        MetricConfig(initial_score="not_a_number")  # type: ignore[arg-type]
 
     with pytest.raises(ValueError):
-        MetricConfig(better_score="not_callable")
+        MetricConfig(better_score="not_callable")  # type: ignore[arg-type]
 
 
 @pytest.fixture
-def sample_configs():
+def sample_configs() -> Dict[str, Any]:
     """Fixture providing sample configurations for testing."""
 
     return {
@@ -633,7 +634,7 @@ def sample_configs():
     }
 
 
-def test_complete_config_workflow(sample_configs):
+def test_complete_config_workflow(sample_configs: Any) -> None:
     """Test complete configuration workflow."""
 
     # Create config with custom components

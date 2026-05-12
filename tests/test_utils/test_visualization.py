@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Any, Dict, Generator, List, Tuple
 from unittest.mock import Mock, patch
 
 import matplotlib.pyplot as plt
@@ -14,31 +14,32 @@ from ai_toolkit.utils.visualization import (
 
 
 @pytest.fixture
-def mock_shap():
+def mock_shap() -> Generator[Dict[str, Any], None, None]:
     """Create mock SHAP objects and functions."""
 
-    with patch("shap.TreeExplainer") as mock_tree_explainer:
-        with patch("shap.KernelExplainer") as mock_kernel_explainer:
-            with patch("shap.summary_plot") as mock_summary_plot:
-                # Configure mocks with proper numpy arrays
-                mock_values = np.random.randn(100, 5).astype(np.float32)
-                mock_tree_explainer.return_value.shap_values.return_value = mock_values
-                mock_kernel_explainer.return_value.shap_values.return_value = mock_values
+    with patch("shap.Explainer") as mock_explainer:
+        with patch("shap.summary_plot") as mock_summary_plot:
+            # Configure mock explanation with proper numpy arrays
+            mock_values = np.random.randn(100, 5).astype(np.float32)
+            mock_explanation = Mock()
+            mock_explanation.values = mock_values
+            mock_explainer.return_value.return_value = mock_explanation
 
-                # Configure summary_plot to do nothing
-                mock_summary_plot.return_value = None
+            # Configure summary_plot to do nothing
+            mock_summary_plot.return_value = None
 
-                yield {
-                    "tree_explainer": mock_tree_explainer,
-                    "kernel_explainer": mock_kernel_explainer,
-                    "summary_plot": mock_summary_plot,
-                }
+            yield {
+                "explainer": mock_explainer,
+                "summary_plot": mock_summary_plot,
+            }
 
 
 class TestClassificationPlots:
     """Test suite for ClassificationPlots."""
 
-    def test_roc_curve(self, classification_predictions: Tuple[np.ndarray, np.ndarray, np.ndarray]):
+    def test_roc_curve(
+        self, classification_predictions: Tuple[np.ndarray, np.ndarray, np.ndarray]
+    ) -> None:
         """Test ROC curve plotting.
 
         Args:
@@ -68,7 +69,7 @@ class TestClassificationPlots:
 
     def test_confusion_matrix(
         self, classification_predictions: Tuple[np.ndarray, np.ndarray, np.ndarray]
-    ):
+    ) -> None:
         """Test confusion matrix plotting.
 
         Args:
@@ -77,29 +78,34 @@ class TestClassificationPlots:
         """
 
         y_true, y_pred, _ = classification_predictions
+        feature_names = [f"class_{c}" for c in np.unique(y_true)]
 
-        fig = ClassificationPlots.plot_confusion_matrix(y_true, y_pred, "Test Confusion Matrix")
+        fig = ClassificationPlots.plot_confusion_matrix(
+            y_true, y_pred, feature_names, "Test Confusion Matrix"
+        )
 
         # Test figure properties
         assert isinstance(fig, Figure)
 
         # Count main subplot axes (excluding colorbars)
-        main_axes = [ax for ax in fig.axes if not ax.get_label().startswith("<colorbar>")]
+        main_axes = [ax for ax in fig.axes if not str(ax.get_label()).startswith("<colorbar>")]
         assert len(main_axes) == 2
 
         # Test titles and labels
+        assert "Confusion Matrix" in fig._suptitle.get_text()  # type: ignore[attr-defined]
+
         for ax in main_axes:
-            assert "Confusion Matrix" in ax.get_title()
             assert ax.get_xlabel() == "Predicted"
             assert ax.get_ylabel() == "True"
 
         plt.close(fig)
 
     @pytest.mark.parametrize("figsize", [(8, 6), (10, 8)])
-    def test_plot_sizes(self, classification_predictions, figsize):
+    def test_plot_sizes(self, classification_predictions: Any, figsize: Any) -> None:
         """Test different plot sizes."""
 
         y_true, y_pred, y_pred_proba = classification_predictions
+        feature_names = [f"class_{c}" for c in np.unique(y_true)]
 
         # Test ROC curve
         fig = ClassificationPlots.plot_roc_curve(
@@ -112,7 +118,7 @@ class TestClassificationPlots:
 
         # Test confusion matrix
         fig = ClassificationPlots.plot_confusion_matrix(
-            y_true, y_pred, "Test Confusion Matrix", figsize=figsize
+            y_true, y_pred, feature_names, "Test Confusion Matrix", figsize=figsize
         )
         size_inches = fig.get_size_inches()
         assert np.allclose(size_inches, figsize)
@@ -122,7 +128,7 @@ class TestClassificationPlots:
 class TestRegressionPlots:
     """Test suite for RegressionPlots."""
 
-    def test_residuals(self, regression_predictions: Tuple[np.ndarray, np.ndarray]):
+    def test_residuals(self, regression_predictions: Tuple[np.ndarray, np.ndarray]) -> None:
         """Test residual plots.
 
         Args:
@@ -146,7 +152,9 @@ class TestRegressionPlots:
         # Clean up
         plt.close(fig)
 
-    def test_prediction_scatter(self, regression_predictions: Tuple[np.ndarray, np.ndarray]):
+    def test_prediction_scatter(
+        self, regression_predictions: Tuple[np.ndarray, np.ndarray]
+    ) -> None:
         """Test prediction scatter plot.
 
         Args:
@@ -174,7 +182,7 @@ class TestRegressionPlots:
         plt.close(fig)
 
     @pytest.mark.parametrize("figsize", [(16, 6), (12, 8)])
-    def test_plot_sizes(self, regression_predictions, figsize):
+    def test_plot_sizes(self, regression_predictions: Any, figsize: Any) -> None:
         """Test different plot sizes."""
 
         y_true, y_pred = regression_predictions
@@ -197,7 +205,7 @@ class TestRegressionPlots:
 class TestModelAnalysisPlots:
     """Test suite for ModelAnalysisPlots."""
 
-    def test_feature_importance(self, feature_importance_data: Tuple[np.ndarray, list]):
+    def test_feature_importance(self, feature_importance_data: Tuple[np.ndarray, list]) -> None:
         """Test feature importance plot.
 
         Args:
@@ -225,7 +233,9 @@ class TestModelAnalysisPlots:
         # Clean up
         plt.close(fig)
 
-    def test_feature_importance_sorting(self, feature_importance_data: Tuple[np.ndarray, list]):
+    def test_feature_importance_sorting(
+        self, feature_importance_data: Tuple[np.ndarray, list]
+    ) -> None:
         """Test feature importance sorting.
 
         Args:
@@ -239,7 +249,7 @@ class TestModelAnalysisPlots:
         )
 
         # Get heights of bars
-        heights = [patch.get_height() for patch in fig.gca().patches]
+        heights = [patch.get_height() for patch in fig.gca().patches]  # type: ignore[attr-defined]
 
         # Test that bars are sorted in descending order
         assert heights == sorted(heights, reverse=True)
@@ -247,16 +257,16 @@ class TestModelAnalysisPlots:
         # Clean up
         plt.close(fig)
 
-    def test_shapley_plot_tree_model(self, mock_shap, feature_importance_data):
+    def test_shapley_plot_tree_model(self, mock_shap: Any, feature_importance_data: Any) -> None:
         """Test Shapley plot with tree-based model."""
 
         # Create mock tree-based model
         class TreeModel:
 
-            def predict(self, X):
+            def predict(self, X: Any) -> np.ndarray:
                 return np.zeros(len(X))
 
-            def apply(self, X):
+            def apply(self, X: Any) -> np.ndarray:
                 return np.zeros(len(X))
 
         mock_model = TreeModel()
@@ -268,9 +278,8 @@ class TestModelAnalysisPlots:
         # Create plot
         fig = ModelAnalysisPlots.plot_shapley_values(mock_model, X, feature_names)
 
-        # Verify TreeExplainer was used
-        mock_shap["tree_explainer"].assert_called_once()
-        mock_shap["kernel_explainer"].assert_not_called()
+        # Verify Explainer was called
+        mock_shap["explainer"].assert_called_once()
 
         # Verify plot creation
         mock_shap["summary_plot"].assert_called_once()
@@ -282,13 +291,13 @@ class TestModelAnalysisPlots:
 
         plt.close(fig)
 
-    def test_shapley_plot_kernel_model(self, mock_shap, feature_importance_data):
+    def test_shapley_plot_kernel_model(self, mock_shap: Any, feature_importance_data: Any) -> None:
         """Test Shapley plot with kernel-based model."""
 
         # Create mock kernel-based model
         class KernelModel:
 
-            def predict(self, X):
+            def predict(self, X: Any) -> np.ndarray:
                 return np.zeros(len(X))
 
         mock_model = KernelModel()
@@ -300,9 +309,8 @@ class TestModelAnalysisPlots:
         # Create plot
         fig = ModelAnalysisPlots.plot_shapley_values(mock_model, X, feature_names)
 
-        # Verify KernelExplainer was used
-        mock_shap["kernel_explainer"].assert_called_once()
-        mock_shap["tree_explainer"].assert_not_called()
+        # Verify Explainer was called
+        mock_shap["explainer"].assert_called_once()
 
         # Verify plot creation
         mock_shap["summary_plot"].assert_called_once()
@@ -314,24 +322,26 @@ class TestModelAnalysisPlots:
 
         plt.close(fig)
 
-    def test_shapley_plot_empty_data(self, mock_shap):
+    def test_shapley_plot_empty_data(self, mock_shap: Any) -> None:
         """Test Shapley plot with empty data."""
 
         mock_model = Mock()
         X = np.array([])
-        feature_names = []
+        feature_names: List[str] = []
 
         with pytest.raises(RuntimeError, match="Plot creation failed"):
             fig = ModelAnalysisPlots.plot_shapley_values(mock_model, X, feature_names)
             plt.close(fig)
 
-    def test_shapley_plot_sample_reduction(self, mock_shap, feature_importance_data):
+    def test_shapley_plot_sample_reduction(
+        self, mock_shap: Any, feature_importance_data: Any
+    ) -> None:
         """Test sample size reduction for large datasets in Shapley plot."""
 
         # Create mock kernel-based model
         class KernelModel:
 
-            def predict(self, X):
+            def predict(self, X: Any) -> np.ndarray:
                 return np.zeros(len(X))
 
         mock_model = KernelModel()
@@ -349,13 +359,13 @@ class TestModelAnalysisPlots:
             mock_sample.assert_called_once()
             args, kwargs = mock_sample.call_args
             assert args[0].shape == X.shape
-            assert args[1] == 100  # Sample size
+            assert args[1] == 200  # Sample size
             assert kwargs["random_state"] == 28
 
             plt.close(fig)
 
     @pytest.mark.parametrize("figsize", [(10, 6), (12, 8)])
-    def test_plot_sizes(self, feature_importance_data, mock_shap, figsize):
+    def test_plot_sizes(self, feature_importance_data: Any, mock_shap: Any, figsize: Any) -> None:
         """Test different plot sizes."""
 
         importance_scores, feature_names = feature_importance_data
@@ -371,10 +381,10 @@ class TestModelAnalysisPlots:
         # Test Shapley plot with proper mock model
         class TreeModel:
 
-            def predict(self, X):
+            def predict(self, X: Any) -> np.ndarray:
                 return np.zeros(len(X))
 
-            def apply(self, X):
+            def apply(self, X: Any) -> np.ndarray:
                 return np.zeros(len(X))
 
         mock_model = TreeModel()
@@ -386,7 +396,7 @@ class TestModelAnalysisPlots:
         plt.close(fig)
 
 
-def test_plot_style_consistency():
+def test_plot_style_consistency() -> None:
     """Test plot style consistency across all plots."""
 
     # Create test data
@@ -399,26 +409,30 @@ def test_plot_style_consistency():
 
     # Create proper mock model for Shapley plot
     class TreeModel:
-        def predict(self, X):
+        def predict(self, X: Any) -> np.ndarray:
             return np.zeros(len(X))
 
-        def apply(self, X):
+        def apply(self, X: Any) -> np.ndarray:
             return np.zeros(len(X))
 
     mock_model = TreeModel()
 
     # Mock SHAP functions
-    with patch("shap.TreeExplainer") as mock_tree_explainer:
+    with patch("shap.Explainer") as mock_explainer:
         with patch("shap.summary_plot") as mock_summary_plot:
             # Configure mock with proper numpy arrays
             mock_values = np.random.randn(4, 2).astype(np.float32)
-            mock_tree_explainer.return_value.shap_values.return_value = mock_values
+            mock_explanation = Mock()
+            mock_explanation.values = mock_values
+            mock_explainer.return_value.return_value = mock_explanation
             mock_summary_plot.return_value = None
 
             # Create all types of plots
             plots = [
                 ClassificationPlots.plot_roc_curve(y_true, y_pred_proba, "ROC"),
-                ClassificationPlots.plot_confusion_matrix(y_true, y_pred, "Confusion"),
+                ClassificationPlots.plot_confusion_matrix(
+                    y_true, y_pred, feature_names, "Confusion"
+                ),
                 RegressionPlots.plot_residuals(y_true, y_pred, "Residuals"),
                 RegressionPlots.plot_prediction_scatter(y_true, y_pred, "Scatter"),
                 ModelAnalysisPlots.plot_feature_importance(
@@ -435,7 +449,7 @@ def test_plot_style_consistency():
             for fig in plots:
                 assert isinstance(fig, Figure)
                 for ax in fig.axes:
-                    if not ax.get_label().startswith("<colorbar>"):
+                    if not str(ax.get_label()).startswith("<colorbar>"):
                         assert ax.get_title() != ""  # Should have a title
 
                         # Check if not Shapley plot
@@ -446,7 +460,7 @@ def test_plot_style_consistency():
 
                         # Test font sizes are consistent
                         title_size = ax.title.get_fontsize()
-                        assert title_size > 0
+                        assert float(title_size) > 0
 
                         # Test axis visibility
                         assert ax.get_xaxis().get_visible()
@@ -460,7 +474,7 @@ def test_plot_style_consistency():
         (ClassificationPlots.plot_roc_curve, (np.array([]), np.array([]), "Empty")),
         (
             ClassificationPlots.plot_confusion_matrix,
-            (np.array([]), np.array([]), "Empty"),
+            (np.array([]), np.array([]), [], "Empty"),
         ),
         (RegressionPlots.plot_residuals, (np.array([]), np.array([]), "Empty")),
         (
@@ -471,7 +485,7 @@ def test_plot_style_consistency():
         (ModelAnalysisPlots.plot_shapley_values, (None, np.array([]), [])),
     ],
 )
-def test_empty_data_handling(plot_func, args):
+def test_empty_data_handling(plot_func: Any, args: Any) -> None:
     """Test handling of empty data."""
 
     with pytest.raises(RuntimeError, match="Plot creation failed"):

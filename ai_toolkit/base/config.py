@@ -208,6 +208,11 @@ def get_default_metric_configs() -> Dict[str, MetricConfig]:
             initial_score=float("-inf"),
             better_score=gt,
         ),
+        "quadratic_weighted_kappa": MetricConfig(
+            direction="maximize",
+            initial_score=float("-inf"),
+            better_score=gt,
+        ),
         "jaccard": MetricConfig(
             direction="maximize",
             initial_score=float("-inf"),
@@ -430,7 +435,15 @@ class LoggingConfig(BaseModel):
             "unable to continue running)"
         ),
     )
-    dir: Path = Field(default=Path("logs"), description="The directory to save the log file.")
+    dir: Union[str, Path] = Field(
+        default=Path("logs"), description="The directory to save the log file."
+    )
+
+    @field_validator("dir", mode="before")
+    @classmethod
+    def validate_dir(cls, v: Union[str, Path]) -> Path:
+        return Path(v)
+
     file: str = Field(default=".log", description="The name of the log file.")
     enable_console: bool = Field(
         default=True,
@@ -574,7 +587,7 @@ class AIToolkitConfig(BaseSettings):
             Dict[str, Any]: The dictionary with serialized values.
         """
 
-        result = {}
+        result: Dict[str, Any] = {}
 
         for key, value in data.items():
             # Recursively serialize nested dictionaries
@@ -607,7 +620,7 @@ class AIToolkitConfig(BaseSettings):
             Dict[str, Any]: The dictionary with deserialized values.
         """
 
-        result = {}
+        result: Dict[str, Any] = {}
 
         for key, value in data.items():
             # Recursively deserialize nested dictionaries
@@ -737,7 +750,7 @@ class ConfigFactory:
     @classmethod
     def create_config(
         cls,
-        environment: Optional[str] = "development",
+        environment: Literal["development", "production"] = "development",
         config_file: Optional[Union[str, Path]] = None,
     ) -> AIToolkitConfig:
         """Create a configuration instance with various sources.
@@ -808,6 +821,9 @@ class ConfigFactory:
 
         if isinstance(path, str):
             path = Path(path)
+
+        if cls._instance is None:
+            raise RuntimeError("No configuration loaded. Call get_config() first.")
 
         if path.suffix.lower() == ".yaml" or path.suffix.lower() == ".yml":
             cls._instance.save_yaml(path)

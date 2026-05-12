@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, cast
 
 import numpy as np
 from sklearn import metrics
@@ -51,6 +51,9 @@ class ClassificationMetrics:
                 "recall": metrics.recall_score(y_true, y_pred, average=average),
                 "f1": metrics.f1_score(y_true, y_pred, average=average),
                 "matthews_correlation_coefficient": metrics.matthews_corrcoef(y_true, y_pred),
+                "quadratic_weighted_kappa": metrics.cohen_kappa_score(
+                    y_true, y_pred, weights="quadratic"
+                ),
                 "jaccard": metrics.jaccard_score(y_true, y_pred, average=average),
                 "hamming_loss": metrics.hamming_loss(y_true, y_pred),
                 # "d2_log_loss": metrics.d2_log_loss_score(y_true, y_pred),
@@ -112,10 +115,10 @@ class ClassificationMetrics:
             normalize: Normalization strategy ('true', 'pred', 'all', or None)
 
         Returns:
-            Confusion matrix
+            np.ndarray: Confusion matrix
         """
 
-        return metrics.confusion_matrix(y_true, y_pred, normalize=normalize)
+        return cast(np.ndarray, metrics.confusion_matrix(y_true, y_pred, normalize=normalize))
 
 
 class RegressionMetrics:
@@ -184,10 +187,10 @@ class RegressionMetrics:
             y_pred: Predicted values
 
         Returns:
-            Residuals array
+            np.ndarray: Residuals array
         """
 
-        return y_true - y_pred
+        return cast(np.ndarray, y_true - y_pred)
 
 
 class CrossValidationMetrics:

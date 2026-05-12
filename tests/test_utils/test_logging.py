@@ -2,7 +2,7 @@ import json
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Generator
+from typing import Any, Generator
 from unittest.mock import Mock
 
 import pytest
@@ -12,7 +12,7 @@ from ai_toolkit.utils.logging import Logger, get_logger
 
 
 @pytest.fixture
-def temp_log_dir(tmp_path) -> Generator[Path, None, None]:
+def temp_log_dir(tmp_path: Any) -> Generator[Path, None, None]:
     """Create a temporary directory for log files.
 
     Args:
@@ -30,7 +30,7 @@ def temp_log_dir(tmp_path) -> Generator[Path, None, None]:
 class TestLoggerConfig:
     """Test suite for LoggerConfig."""
 
-    def test_default_values(self):
+    def test_default_values(self) -> None:
         """Test default configuration values."""
 
         config = LoggingConfig()
@@ -41,7 +41,7 @@ class TestLoggerConfig:
         assert config.enable_console is True
         assert config.enable_file is True
 
-    def test_custom_values(self):
+    def test_custom_values(self) -> None:
         """Test custom configuration values."""
 
         config = LoggingConfig(
@@ -59,7 +59,7 @@ class TestLoggerConfig:
         assert config.enable_console is False
         assert config.enable_file is False
 
-    def test_dir_conversion(self):
+    def test_dir_conversion(self) -> None:
         """Test DIR string to Path conversion."""
 
         # Test with string
@@ -77,7 +77,7 @@ class TestLoggerConfig:
 class TestLogger:
     """Test suite for Logger."""
 
-    def test_initialization(self):
+    def test_initialization(self) -> None:
         """Test logger initialization."""
 
         config = LoggingConfig(name="test_logger")
@@ -88,7 +88,7 @@ class TestLogger:
         assert isinstance(logger.context, dict)
         assert len(logger.context) == 0
 
-    def test_console_handler(self):
+    def test_console_handler(self) -> None:
         """Test console handler setup."""
 
         config = LoggingConfig(name="test_logger", enable_console=True, enable_file=False)
@@ -98,7 +98,7 @@ class TestLogger:
         assert len(handlers) == 1
         assert isinstance(handlers[0], logging.StreamHandler)
 
-    def test_file_handler(self, temp_log_dir):
+    def test_file_handler(self, temp_log_dir: Any) -> None:
         """Test file handler setup."""
 
         config = LoggingConfig(
@@ -114,7 +114,7 @@ class TestLogger:
         log_files = list(temp_log_dir.glob("*.log"))
         assert len(log_files) == 1
 
-    def test_both_handlers(self, temp_log_dir):
+    def test_both_handlers(self, temp_log_dir: Any) -> None:
         """Test both console and file handlers."""
 
         config = LoggingConfig(
@@ -127,7 +127,7 @@ class TestLogger:
         assert any(isinstance(h, logging.StreamHandler) for h in handlers)
         assert any(isinstance(h, logging.FileHandler) for h in handlers)
 
-    def test_context_management(self):
+    def test_context_management(self) -> None:
         """Test context management."""
 
         logger = Logger(LoggingConfig(name="test_logger"))
@@ -147,7 +147,7 @@ class TestLogger:
         logger.clear_context()
         assert len(logger.context) == 0
 
-    def test_message_formatting(self):
+    def test_message_formatting(self) -> None:
         """Test message formatting."""
 
         logger = Logger(LoggingConfig(name="test_logger"))
@@ -171,7 +171,7 @@ class TestLogger:
         data = json.loads(message)
         assert data["extra"] == {"extra_key": "extra_value"}
 
-    def test_log_levels(self, temp_log_dir):
+    def test_log_levels(self, temp_log_dir: Any) -> None:
         """Test different log levels."""
 
         config = LoggingConfig(
@@ -198,7 +198,7 @@ class TestLogger:
                 level in content for level in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
             )
 
-    def test_error_logging(self):
+    def test_error_logging(self) -> None:
         """Test error logging with exception."""
 
         logger = Logger(LoggingConfig(name="test_logger"))
@@ -211,7 +211,7 @@ class TestLogger:
             assert "error" in data["extra"]
             assert data["extra"]["error"] == "Test error"
 
-    def test_serialize_dict_basic_types(self):
+    def test_serialize_dict_basic_types(self) -> None:
         """Test serialization of basic Python types."""
 
         logger = Logger(LoggingConfig())
@@ -229,7 +229,7 @@ class TestLogger:
         result = logger._serialize_dict(test_dict)
         assert result == test_dict
 
-    def test_serialize_dict_custom_objects(self):
+    def test_serialize_dict_custom_objects(self) -> None:
         """Test serialization of custom objects."""
 
         logger = Logger(LoggingConfig())
@@ -239,7 +239,7 @@ class TestLogger:
         class CustomString:
             __slots__ = ()
 
-            def __str__(self):
+            def __str__(self) -> str:
                 return "custom string representation"
 
         test_dict = {
@@ -278,18 +278,18 @@ class TestLogger:
         assert isinstance(result["complex_number"], str)
         assert result["complex_number"] == "(1+2j)"
 
-    def test_serialize_dict_non_serializable(self):
+    def test_serialize_dict_non_serializable(self) -> None:
         """Test handling of non-serializable objects."""
 
         logger = Logger(LoggingConfig())
 
         # Object that raises an exception when converted to string
         class NonSerializable:
-            def __str__(self):
+            def __str__(self) -> str:
                 raise Exception("Can't convert to string")
 
             @property
-            def __dict__(self):
+            def __dict__(self) -> dict:  # type: ignore[override]
                 raise Exception("Can't get dict")
 
         test_dict = {"bad_object": NonSerializable()}
@@ -298,7 +298,7 @@ class TestLogger:
         assert "<non-serializable: " in result["bad_object"]
 
 
-def test_get_logger():
+def test_get_logger() -> None:
     """Test get_logger convenience function."""
 
     # Test with default config
@@ -319,7 +319,7 @@ def test_get_logger():
 
 
 @pytest.fixture(autouse=True)
-def cleanup():
+def cleanup() -> Generator[None, None, None]:
     """Cleanup after tests."""
 
     yield

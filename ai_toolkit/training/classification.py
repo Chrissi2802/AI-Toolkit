@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Dict, Tuple, Union
+from typing import Any, Dict, Optional, Tuple, Union, cast
 
 import matplotlib.pyplot as plt
 import mlflow
@@ -44,7 +44,7 @@ class ClassificationModelTrainer(BaseMlTrainer):
 
         self.use_smote = self.config.use_smote
         self.smote_ratio = self.config.smote_ratio
-        self.smote = None
+        self.smote: Optional[SMOTE] = None
 
     def _log_training_info(self, n_trials: int) -> None:
         """Log training parameters to MLflow.
@@ -80,7 +80,7 @@ class ClassificationModelTrainer(BaseMlTrainer):
 
         mlflow.log_params(params)
 
-    def _log_fold_results(
+    def _log_fold_results(  # type: ignore[override]
         self,
         fold: int,
         metrics: Dict[str, float],
@@ -117,7 +117,8 @@ class ClassificationModelTrainer(BaseMlTrainer):
         cm_fig = ClassificationPlots.plot_confusion_matrix(
             y_true,
             y_pred,
-            f"Confusion Matrix - Fold: {fold}",
+            feature_names=self.feature_names,
+            title=f"Confusion Matrix - Fold: {fold}",
         )
         mlflow.log_figure(cm_fig, f"fold_{fold}_confusion_matrix.png")
         plt.close(cm_fig)
@@ -125,7 +126,7 @@ class ClassificationModelTrainer(BaseMlTrainer):
         # Calculate feature importance
         importance_scores = self._calc_feature_importance(model)
 
-        if importance_scores is not None:
+        if importance_scores is not None and self.feature_names is not None:
             # Create and log plot for feature importance
             fi_fig = ModelAnalysisPlots.plot_feature_importance(
                 importance_scores,
@@ -165,7 +166,7 @@ class ClassificationModelTrainer(BaseMlTrainer):
                 y_val = self.array_indexing(y, val_idx)
 
                 # Apply SMOTE if enabled
-                if self.use_smote:
+                if self.use_smote and self.smote is not None:
                     X_train, y_train = self.smote.fit_resample(X_train, y_train)
 
                 model.fit(X_train, y_train)
@@ -182,7 +183,7 @@ class ClassificationModelTrainer(BaseMlTrainer):
 
                 self.logger.debug(f"Fold {fold+1} score: {metrics[self.optimize_metric]:.4f}")
 
-            mean_score = np.mean(scores)
+            mean_score = float(np.mean(scores))
 
             self.logger.debug(
                 "Trial completed",
@@ -254,7 +255,8 @@ class ClassificationModelTrainer(BaseMlTrainer):
         cm_fig = ClassificationPlots.plot_confusion_matrix(
             y_val,
             y_pred,
-            f"Confusion Matrix - Best Model Fold: {fold}",
+            feature_names=self.feature_names,
+            title=f"Confusion Matrix - Best Model Fold: {fold}",
         )
         mlflow.log_figure(cm_fig, "best_confusion_matrix.png")
         plt.close(cm_fig)
@@ -262,7 +264,7 @@ class ClassificationModelTrainer(BaseMlTrainer):
         # Calculate feature importance
         importance_scores = self._calc_feature_importance(self.best_model)
 
-        if importance_scores is not None:
+        if importance_scores is not None and self.feature_names is not None:
             # Create and log plot for feature importance
             fi_fig = ModelAnalysisPlots.plot_feature_importance(
                 importance_scores,
@@ -272,7 +274,13 @@ class ClassificationModelTrainer(BaseMlTrainer):
             mlflow.log_figure(fi_fig, "best_feature_importance.png")
             plt.close(fi_fig)
 
-        if isinstance(X_val, np.ndarray):
+            # Log feature importance as JSON
+            df_feature_importance = pd.DataFrame(
+                {"feature": self.feature_names, "feature_importance": importance_scores}
+            )
+            mlflow.log_table(df_feature_importance, "best_feature_importance.json")
+
+        if isinstance(X_val, np.ndarray) and self.feature_names is not None:
             # Create and log plot for SHAP values
             shap_fig = ModelAnalysisPlots.plot_shapley_values(
                 self.best_model,
@@ -286,7 +294,7 @@ class ClassificationModelTrainer(BaseMlTrainer):
         self,
         X: pd.DataFrame,
         y: pd.Series,
-        n_trials: int = None,
+        n_trials: Optional[int] = None,
     ) -> Tuple[Any, Dict[str, float]]:
         """Train and optimize a ml model for classification.
 
@@ -301,9 +309,6 @@ class ClassificationModelTrainer(BaseMlTrainer):
 
         if n_trials is None:
             n_trials = self.config.n_trials
-
-        if self.use_smote:
-            self._setup_smote(y)
 
         # Set number of classes for the model
         self.base_model.set_num_classes(y.nunique())
@@ -326,6 +331,9 @@ class ClassificationModelTrainer(BaseMlTrainer):
             # Encode target labels
             self.encoder = LabelEncoder()
             y_array = self.encoder.fit_transform(y_array)
+
+            if self.use_smote:
+                self._setup_smote(pd.Series(y_array))
 
             # Optimize hyperparameters
             study = optuna.create_study(
@@ -365,7 +373,7 @@ class ClassificationModelTrainer(BaseMlTrainer):
                 y_train = self.array_indexing(y_array, train_idx)
                 y_val = self.array_indexing(y_array, val_idx)
 
-                if self.use_smote:
+                if self.use_smote and self.smote is not None:
                     X_train, y_train = self.smote.fit_resample(X_train, y_train)
 
                 # Create and train model
@@ -414,6 +422,7 @@ class ClassificationModelTrainer(BaseMlTrainer):
                 ):  # Depends on the metric to be optimized
                     self.best_score = metrics[self.optimize_metric]
                     self.best_model = model
+                    self.best_fold = fold
 
                     self._track_best_model(
                         X_val=X_val,
@@ -444,10 +453,11 @@ class ClassificationModelTrainer(BaseMlTrainer):
             if self.best_model is None:
                 raise ValueError("No model trained yet. Please call train_and_optimize first.")
 
-            y_pred = self.best_model.predict(X)
+            model = cast(Any, self.best_model)
+            y_pred = model.predict(X)
 
             if hasattr(self.best_model, "predict_proba"):
-                y_pred_proba = self.best_model.predict_proba(X)
+                y_pred_proba = model.predict_proba(X)
             else:
                 y_pred_proba = None
 

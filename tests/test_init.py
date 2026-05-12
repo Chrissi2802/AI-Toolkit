@@ -1,7 +1,7 @@
 import ai_toolkit
 
 
-def test_import_structure():
+def test_import_structure() -> None:
     """Test the import structure of the package."""
 
     # Test that submodules are properly structured
@@ -17,7 +17,7 @@ def test_import_structure():
     assert hasattr(ai_toolkit.utils, "__file__")
 
 
-def test_documentation_strings():
+def test_documentation_strings() -> None:
     """Test that main components have documentation."""
 
     assert ai_toolkit.__doc__ is not None

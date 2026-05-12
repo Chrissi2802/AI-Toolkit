@@ -7,14 +7,14 @@ import pytest
 from ai_toolkit.base.models import BaseMlEnsembleModel, BaseMlModel
 
 
-def test_base_model_initialization():
+def test_base_model_initialization() -> None:
     """Test that BaseMlModel initialization raises an error."""
 
     with pytest.raises(TypeError, match=r"Can't instantiate abstract class"):
-        BaseMlModel("Base Model Name")
+        BaseMlModel("Base Model Name")  # type: ignore[abstract]
 
 
-def test_dummy_model_initialization(dummy_model):
+def test_dummy_model_initialization(dummy_model: Any) -> None:
     """Test dummy model initialization.
 
     Args:
@@ -26,7 +26,7 @@ def test_dummy_model_initialization(dummy_model):
     assert dummy_model.best_params is None
 
 
-def test_get_model_info(dummy_model):
+def test_get_model_info(dummy_model: Any) -> None:
     """Test model info retrieval.
 
     Args:
@@ -43,7 +43,7 @@ def test_get_model_info(dummy_model):
     assert info["is_multiclass"] is None
 
 
-def test_model_creation(dummy_model):
+def test_model_creation(dummy_model: Any) -> None:
     """Test model creation with parameters.
 
     Args:
@@ -67,7 +67,7 @@ def test_model_creation(dummy_model):
         {"param1": 0.5, "param2": 5},  # Middle values
     ],
 )
-def test_model_creation_parameter_ranges(dummy_model, params):
+def test_model_creation_parameter_ranges(dummy_model: Any, params: Any) -> None:
     """Test model creation with different parameter ranges.
 
     Args:
@@ -80,7 +80,7 @@ def test_model_creation_parameter_ranges(dummy_model, params):
         assert getattr(model, param_name) == value
 
 
-def test_model_param_space(dummy_model, optuna_trial):
+def test_model_param_space(dummy_model: Any, optuna_trial: Any) -> None:
     """Test parameter space generation.
 
     Args:
@@ -102,7 +102,7 @@ def test_model_param_space(dummy_model, optuna_trial):
         {"param1": 0.5, "param2": 5, "unknown": 1},  # Extra param
     ],
 )
-def test_model_creation_with_invalid_params(dummy_model, invalid_params):
+def test_model_creation_with_invalid_params(dummy_model: Any, invalid_params: Any) -> None:
     """Test model creation with invalid parameters.
 
     Args:
@@ -117,7 +117,7 @@ def test_model_creation_with_invalid_params(dummy_model, invalid_params):
         assert getattr(model, param_name) == value
 
 
-def test_set_num_classes(dummy_model):
+def test_set_num_classes(dummy_model: Any) -> None:
     """Test setting number of classes.
 
     Args:
@@ -166,7 +166,7 @@ class DummyEnsembleModel(BaseMlEnsembleModel):
 
 
 @pytest.fixture
-def mock_mlflow_runs():
+def mock_mlflow_runs() -> Dict[str, Any]:
     """Create mock MLflow runs for testing.
 
     Returns:
@@ -193,7 +193,7 @@ def mock_mlflow_runs():
 
 
 @pytest.fixture
-def ensemble_model(dummy_model, mock_mlflow_runs):
+def ensemble_model(dummy_model: Any, mock_mlflow_runs: Any) -> "DummyEnsembleModel":
     """Create an ensemble model for testing.
 
     Args:
@@ -206,17 +206,17 @@ def ensemble_model(dummy_model, mock_mlflow_runs):
 
     with patch("mlflow.get_run") as mock_get_run:
         # Configure mock to return different runs based on run_id
-        def get_mock_run(run_id):
+        def get_mock_run(run_id: Any) -> Any:
             return mock_mlflow_runs[run_id]
 
         mock_get_run.side_effect = get_mock_run
 
         # Create ensemble model
         models = [(dummy_model, "mock_run_1"), (dummy_model, "mock_run_2")]
-        return DummyEnsembleModel("Dummy Ensemble", models)
+        return DummyEnsembleModel("Dummy Ensemble", models)  # type: ignore[arg-type]
 
 
-def test_ensemble_model_initialization(ensemble_model):
+def test_ensemble_model_initialization(ensemble_model: Any) -> None:
     """Test ensemble model initialization.
 
     Args:
@@ -236,7 +236,7 @@ def test_ensemble_model_initialization(ensemble_model):
         ({"weight_0": 1.0, "weight_1": 0.0}, [1.0, 0.0]),
     ],
 )
-def test_ensemble_weight_handling(ensemble_model, weights, expected):
+def test_ensemble_weight_handling(ensemble_model: Any, weights: Any, expected: Any) -> None:
     """Test ensemble model weight handling.
 
     Args:
@@ -250,7 +250,7 @@ def test_ensemble_weight_handling(ensemble_model, weights, expected):
     assert processed_params["weights"] == expected
 
 
-def test_ensemble_mlflow_integration(dummy_model, mock_mlflow_runs):
+def test_ensemble_mlflow_integration(dummy_model: Any, mock_mlflow_runs: Any) -> None:
     """Test ensemble model MLflow integration.
 
     Args:
@@ -260,14 +260,14 @@ def test_ensemble_mlflow_integration(dummy_model, mock_mlflow_runs):
 
     with patch("mlflow.get_run") as mock_get_run:
         # Configure mock
-        def get_mock_run(run_id):
+        def get_mock_run(run_id: Any) -> Any:
             return mock_mlflow_runs[run_id]
 
         mock_get_run.side_effect = get_mock_run
 
         # Create ensemble and verify MLflow integration
         models = [(dummy_model, "mock_run_1"), (dummy_model, "mock_run_2")]
-        ensemble = DummyEnsembleModel("Dummy Ensemble", models)
+        ensemble = DummyEnsembleModel("Dummy Ensemble", models)  # type: ignore[arg-type]
 
         # Verify that MLflow was called correctly
         assert mock_get_run.call_count == 2
@@ -279,7 +279,7 @@ def test_ensemble_mlflow_integration(dummy_model, mock_mlflow_runs):
             assert model.model is not None
 
 
-def test_ensemble_with_invalid_run_id(dummy_model):
+def test_ensemble_with_invalid_run_id(dummy_model: Any) -> None:
     """Test ensemble model with invalid MLflow run ID.
 
     Args:
@@ -292,7 +292,7 @@ def test_ensemble_with_invalid_run_id(dummy_model):
         # Create ensemble with invalid run ID
         models = [(dummy_model, "invalid_run_id")]
         with pytest.raises(Exception):
-            DummyEnsembleModel("Dummy Ensemble", models)
+            DummyEnsembleModel("Dummy Ensemble", models)  # type: ignore[arg-type]
 
 
 @pytest.mark.parametrize(
@@ -308,7 +308,9 @@ def test_ensemble_with_invalid_run_id(dummy_model):
         ),
     ],
 )
-def test_ensemble_parameter_processing(dummy_model, mock_params, expected_params):
+def test_ensemble_parameter_processing(
+    dummy_model: Any, mock_params: Any, expected_params: Any
+) -> None:
     """Test ensemble model parameter processing.
 
     Args:
@@ -325,7 +327,7 @@ def test_ensemble_parameter_processing(dummy_model, mock_params, expected_params
 
         # Create ensemble and verify parameter processing
         models = [(dummy_model, "mock_run")]
-        ensemble = DummyEnsembleModel("Dummy Ensemble", models)
+        ensemble = DummyEnsembleModel("Dummy Ensemble", models)  # type: ignore[arg-type]
 
         # Verify that base models were created with correct parameters
         for model, _ in ensemble.models:
@@ -335,7 +337,7 @@ def test_ensemble_parameter_processing(dummy_model, mock_params, expected_params
                 assert getattr(model.model, param_name) == expected_value
 
 
-def test_ensemble_model_creation(ensemble_model):
+def test_ensemble_model_creation(ensemble_model: Any) -> None:
     """Test ensemble model creation with parameters.
 
     Args:
@@ -353,7 +355,7 @@ def test_ensemble_model_creation(ensemble_model):
     assert created_model.voting == "soft"
 
 
-def test_set_num_classes_ensemble(ensemble_model):
+def test_set_num_classes_ensemble(ensemble_model: Any) -> None:
     """Test setting number of classes for ensemble model.
 
     Args:
@@ -377,7 +379,7 @@ def test_set_num_classes_ensemble(ensemble_model):
         assert model.is_multiclass is True
 
 
-def test_safe_convert():
+def test_safe_convert() -> None:
     """Test safe conversion of parameter values."""
 
     from ai_toolkit.base.models import safe_convert

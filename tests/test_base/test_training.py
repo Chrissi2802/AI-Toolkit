@@ -1,5 +1,6 @@
 from operator import gt, lt
 from types import SimpleNamespace
+from typing import Any
 
 import numpy as np
 import optuna
@@ -15,7 +16,9 @@ from ai_toolkit.base.training import (
 class DummyTrainer(BaseMlTrainer):
     """Dummy trainer implementation for testing."""
 
-    def __init__(self, base_model: BaseMlModel, config_factory: ConfigFactory = ConfigFactory()):
+    def __init__(
+        self, base_model: BaseMlModel, config_factory: ConfigFactory = ConfigFactory()
+    ) -> None:
         """Initialize dummy trainer.
 
         Args:
@@ -40,7 +43,7 @@ class DummyTrainer(BaseMlTrainer):
         return 0.5  # Dummy score
 
 
-def test_base_trainer_initialization(dummy_model):
+def test_base_trainer_initialization(dummy_model: Any) -> None:
     """Test BaseMlTrainer initialization."""
 
     trainer = DummyTrainer(base_model=dummy_model)
@@ -64,7 +67,7 @@ def test_base_trainer_initialization(dummy_model):
     assert trainer.feature_names is None
 
 
-def test_log_training_info(dummy_model, mock_mlflow):
+def test_log_training_info(dummy_model: Any, mock_mlflow: Any) -> None:
     """Test training info logging.
 
     Args:
@@ -82,7 +85,7 @@ def test_log_training_info(dummy_model, mock_mlflow):
     assert params["n_trials"] == 100
 
 
-def test_log_dataset_info(dummy_model, mock_mlflow):
+def test_log_dataset_info(dummy_model: Any, mock_mlflow: Any) -> None:
     """Test dataset info logging.
 
     Args:
@@ -104,7 +107,7 @@ def test_log_dataset_info(dummy_model, mock_mlflow):
     assert params["n_features"] == 2
 
 
-def test_log_fold_results(dummy_model, mock_mlflow):
+def test_log_fold_results(dummy_model: Any, mock_mlflow: Any) -> None:
     """Test fold results logging.
 
     Args:
@@ -126,7 +129,7 @@ def test_log_fold_results(dummy_model, mock_mlflow):
     assert actual_calls == expected_calls
 
 
-def test_calc_feature_importance(dummy_model):
+def test_calc_feature_importance(dummy_model: Any) -> None:
     """Test feature importance calculation."""
 
     trainer = DummyTrainer(base_model=dummy_model)
@@ -135,18 +138,21 @@ def test_calc_feature_importance(dummy_model):
     importance_array = np.array([0.7, 0.3])
     model_with_importance = SimpleNamespace(feature_importances_=importance_array)
     importance = trainer._calc_feature_importance(model_with_importance)
+    assert importance is not None
     np.testing.assert_array_almost_equal(importance, importance_array)
 
     # Test with coef_ attribute (single target)
     coef_array = np.array([0.5, -0.5])
     model_with_coef = SimpleNamespace(coef_=coef_array)
     importance = trainer._calc_feature_importance(model_with_coef)
+    assert importance is not None
     np.testing.assert_array_almost_equal(importance, np.abs(coef_array))
 
     # Test with coef_ attribute (multi target)
     multi_coef_array = np.array([[0.5, -0.5], [0.3, 0.7]])
     model_with_multi_coef = SimpleNamespace(coef_=multi_coef_array)
     importance = trainer._calc_feature_importance(model_with_multi_coef)
+    assert importance is not None
     expected = np.mean(np.abs(multi_coef_array), axis=0)
     np.testing.assert_array_almost_equal(importance, expected)
 
@@ -155,6 +161,7 @@ def test_calc_feature_importance(dummy_model):
         feature_importances_=np.array([0.7, 0.3]), coef_=np.array([0.5, -0.5])
     )
     importance = trainer._calc_feature_importance(model_with_both)
+    assert importance is not None
     np.testing.assert_array_almost_equal(importance, np.array([0.7, 0.3]))
 
     # Test with empty arrays
@@ -167,6 +174,7 @@ def test_calc_feature_importance(dummy_model):
     float32_array = np.array([0.7, 0.3], dtype=np.float32)
     model_float32 = SimpleNamespace(feature_importances_=float32_array)
     importance = trainer._calc_feature_importance(model_float32)
+    assert importance is not None
     assert importance.dtype == np.float32
     np.testing.assert_array_almost_equal(importance, float32_array)
 
@@ -177,7 +185,7 @@ def test_calc_feature_importance(dummy_model):
 
 
 @pytest.mark.parametrize("n_splits", [3, 5, 10])
-def test_trainer_with_different_cv_splits(dummy_model, n_splits: int):
+def test_trainer_with_different_cv_splits(dummy_model: Any, n_splits: int) -> None:
     """Test trainer with different CV split configurations.
 
     Args:
@@ -192,7 +200,7 @@ def test_trainer_with_different_cv_splits(dummy_model, n_splits: int):
     assert trainer.n_splits == n_splits
 
 
-def test_metric_config_better_score():
+def test_metric_config_better_score() -> None:
     """Test MetricConfig better_score functionality."""
 
     # Test default better_score (maximize)
@@ -213,7 +221,7 @@ def test_metric_config_better_score():
     assert config.better_score is lt
 
 
-def test_default_metric_configs():
+def test_default_metric_configs() -> None:
     """Test default metric configurations."""
 
     configs = get_default_metric_configs()
@@ -227,6 +235,7 @@ def test_default_metric_configs():
         "recall",
         "f1",
         "matthews_correlation_coefficient",
+        "quadratic_weighted_kappa",
         "jaccard",
         "hamming_loss",
         # "d2_log_loss",
@@ -262,6 +271,7 @@ def test_default_metric_configs():
         "recall",
         "f1",
         "matthews_correlation_coefficient",
+        "quadratic_weighted_kappa",
         "jaccard",
         "roc_auc",
         "explained_variance",

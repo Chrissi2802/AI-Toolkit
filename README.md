@@ -2,10 +2,12 @@
 ![Python Version](https://img.shields.io/badge/python-3.10+-blue.svg?logo=python)
 ![Version](https://img.shields.io/badge/version-0.1.0-blue.svg?logo=semver)
 ![License](https://img.shields.io/badge/license-Apache%202.0-D22128.svg?logo=apache)
+[![CI](https://github.com/Chrissi2802/AI-Toolkit/actions/workflows/python-app.yml/badge.svg?branch=main)](https://github.com/Chrissi2802/AI-Toolkit/actions/workflows/python-app.yml)
 ![Formatting](https://img.shields.io/badge/black-checked-blue.svg)
 ![Sort Imports](https://img.shields.io/badge/isort-checked-blue.svg)
 ![Linting](https://img.shields.io/badge/flake8-checked-blue.svg)
-![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg?logo=pytest)
+![Type Checking](https://img.shields.io/badge/mypy-checked-blue.svg)
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen.svg?logo=pre-commit)](https://github.com/Chrissi2802/AI-Toolkit/blob/main/.pre-commit-config.yaml)
 ![Documentation](https://img.shields.io/badge/docs-sphinx-blue.svg?logo=sphinx)
 
 <img src="./docs/ai_toolkit_logo.png" width="320" height="180" alt="Logo">
@@ -28,7 +30,7 @@ A comprehensive Python toolkit for machine learning workflows with a focus on mo
 
 **Automated training**
 - Hyperparameter optimization with [Optuna](https://optuna.org/)
-- K-fold cross-validation 
+- K-fold cross-validation
   - [StratifiedKFold](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.StratifiedKFold.html)
   - [KFold](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.KFold.html)
 - [SMOTE](https://imbalanced-learn.org/stable/references/generated/imblearn.over_sampling.SMOTE.html) for imbalanced data
@@ -66,12 +68,20 @@ We use:
 - [black](https://black.readthedocs.io/en/stable/) for code formatting
 - [isort](https://pycqa.github.io/isort/) for import sorting
 - [flake8](https://flake8.pycqa.org/en/latest/) for linting
+- [mypy](https://mypy.readthedocs.io/en/stable/) for static type checking
 - [pytest](https://docs.pytest.org/en/stable/) for testing
 
-### Dependencies
-[requirements.txt](requirements.txt)
+### Development tools
+This project was developed with support from modern AI coding assistants:
+- [Anthropic Claude](https://claude.ai/)
+- [Google Antigravity](https://antigravity.google/)
 
-Create new requirements.txt:
+I believe in transparent development practices and acknowledge the role of AI tools in modern software engineering, especially fitting for an AI toolkit! 🚀
+
+The final code quality, architecture decisions, and project direction remain human-driven and thoroughly tested.
+
+### Dependencies
+Create new [requirements.txt](requirements.txt):
 ```bash
 # Basic dependencies
 pipreqs . --force --mode gt
@@ -126,6 +136,9 @@ isort .
 # Linting
 flake8 .
 
+# Type checking
+mypy
+
 # Tests
 pytest
 
@@ -151,6 +164,25 @@ Run pre-commit validation which executes linting, testing, docs generation, and 
 # Skip both tests and documentation, only linting and project analysis
 .\pre-commit.ps1 -SkipTests -SkipDocs
 ```
+
+### Git hooks
+This project uses [pre-commit](https://pre-commit.com/) to automatically run formatting and linting checks before every commit.
+
+```bash
+# Run manually against all files
+pre-commit run --all-files
+```
+
+The following hooks run on every `git commit`:
+- **trailing-whitespace** — removes trailing whitespace
+- **end-of-file-fixer** — ensures files end with a newline
+- **check-yaml / check-toml** — validates config file syntax
+- **check-merge-conflict** — prevents committing unresolved merge conflicts
+- **debug-statements** — catches forgotten `pdb`/`breakpoint()` calls
+- **black** — code formatting
+- **isort** — import sorting
+- **flake8** — linting
+- **mypy** — static type checking
 
 ## 🚀 Quick start
 
@@ -260,6 +292,8 @@ AI-Toolkit/
 │   ├── _meta.py
 │   ├── base/
 │   │   ├── __init__.py
+│   │   ├── config_development.yaml
+│   │   ├── config_production.yaml
 │   │   ├── config.py
 │   │   ├── data.py
 │   │   ├── models.py
@@ -280,6 +314,8 @@ AI-Toolkit/
 ├── docs/
 │   ├── build/
 │   │   └── ...
+│   ├── logs
+│   │   └── ...
 │   ├── source/
 │   │   └── ...
 │   ├── ai_toolkit_logo.png
@@ -290,7 +326,11 @@ AI-Toolkit/
 ├── examples/
 │   ├── classification_examples.ipynb
 │   ├── classification_tf_examples.ipynb
-│   └── regression_examples.ipynb
+│   ├── regression_examples.ipynb
+│   ├── logs/
+│   │   └── ...
+│   └── mlruns/
+│       └── ...
 ├── logs/
 │   └── ...
 ├── mlruns/
@@ -308,8 +348,10 @@ AI-Toolkit/
 │   └── test_utils/
 │       └── ...
 ├── .env
+├── .env.example
 ├── .flake8
 ├── .gitignore
+├── .pre-commit-config.yaml
 ├── CODE_OF_CONDUCT.md
 ├── CONTRIBUTING.md
 ├── LICENSE
@@ -317,8 +359,7 @@ AI-Toolkit/
 ├── pyproject.toml
 ├── README.md
 ├── requirements-dev.txt
-├── requirements.txt
-└── template.env
+└── requirements.txt
 ```
 
 ### Architecture
@@ -329,7 +370,7 @@ The [docs](docs) contain diagrams that show the class structure and package depe
 pyreverse -o svg -d .\docs .\ai_toolkit\
 ```
 
-### Sphinx Documentation 
+### Sphinx Documentation
 The documentation is generated using Sphinx. To build the documentation, follow these steps:
 ```bash
 # Navigate to the docs folder

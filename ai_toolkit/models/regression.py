@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, Sequence, Tuple, cast
 
 import lightgbm as lgb
 import optuna
@@ -18,7 +18,7 @@ class RidgeRegressionModel(BaseMlModel):
     https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.Ridge.html
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the Ridge Regression model."""
 
         super().__init__("Ridge Regressor")
@@ -70,7 +70,7 @@ class BayesianRidgeRegressionModel(BaseMlModel):
     https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.BayesianRidge.html
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the Bayesian Ridge Regression model."""
 
         super().__init__("Bayesian Ridge Regressor")
@@ -122,7 +122,7 @@ class SVRModel(BaseMlModel):
     https://scikit-learn.org/stable/modules/generated/sklearn.svm.SVR.html
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the Support Vector Regression model."""
 
         super().__init__("Support Vector Regressor")
@@ -184,7 +184,7 @@ class KNNRegressorModel(BaseMlModel):
     https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KNeighborsRegressor.html
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the K-Nearest Neighbors Regression model."""
 
         super().__init__("K-Nearest Neighbors Regressor")
@@ -236,7 +236,7 @@ class XGBoostRegressorModel(BaseMlModel):
     https://xgboost.readthedocs.io/en/stable/parameter.html
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the XGBoost Regressor model."""
 
         super().__init__("XGBoost Regressor")
@@ -282,7 +282,7 @@ class XGBoostRegressorModel(BaseMlModel):
         try:
             self.logger.info("Creating XGBoost regression model", params=params)
             self.model = xgb.XGBRegressor(**params)
-            return self.model
+            return cast(xgb.XGBRegressor, self.model)
         except Exception as e:
             self.logger.error("Failed to create XGBoost regression model", error=e)
             raise RuntimeError("Model creation failed") from e
@@ -293,7 +293,7 @@ class LightGBMRegressorModel(BaseMlModel):
     https://lightgbm.readthedocs.io/en/latest/Parameters.html
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the LightGBM Regressor model."""
 
         super().__init__("LightGBM Regressor")
@@ -351,7 +351,7 @@ class CatBoostRegressorModel(BaseMlModel):
     https://catboost.ai/docs/en/concepts/python-reference_catboostregressor
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the CatBoost Regressor model."""
 
         super().__init__("CatBoost Regressor")
@@ -439,15 +439,15 @@ class EnsembleVotingRegressorModel(BaseMlEnsembleModel):
     https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.VotingRegressor.html
     """
 
-    def __init__(self, models: List[Tuple[BaseMlModel, str]]) -> None:
+    def __init__(self, models: Sequence[Tuple[BaseMlModel, str]]) -> None:
         """Initialize the ensemble voting regressor model.
 
         Args:
-            models (List[Tuple[BaseMlModel, str]]):
+            models (Sequence[Tuple[BaseMlModel, str]]):
                 List of ml models for ensemble and MLflow run ids for best parameters.
         """
 
-        super().__init__(model_name="Ensemble Voting Regressor", models=models)
+        super().__init__(model_name="Ensemble Voting Regressor", models=list(models))
 
     def get_param_space(self, trial: optuna.Trial) -> Dict[str, Any]:
         """Get the hyperparameter space for the ensemble voting regressor model.
@@ -462,7 +462,7 @@ class EnsembleVotingRegressorModel(BaseMlEnsembleModel):
         params = {
             "estimators": trial.suggest_categorical(
                 "estimators",
-                [[(model.model_name, model.model) for model, _ in self.models]],
+                cast(Any, [[(model.model_name, model.model) for model, _ in self.models]]),
             ),
             "weights": [
                 trial.suggest_float(f"weight_{i}", 0.0, 1.0) for i in range(self.num_models)
@@ -496,16 +496,16 @@ class EnsembleStackingRegressorModel(BaseMlEnsembleModel):
     https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.StackingRegressor.html
     """
 
-    def __init__(self, models: List[Tuple[BaseMlModel, str]], meta_model: BaseMlModel) -> None:
+    def __init__(self, models: Sequence[Tuple[BaseMlModel, str]], meta_model: BaseMlModel) -> None:
         """Initialize the ensemble stacking regressor model.
 
         Args:
-            models (List[Tuple[BaseMlModel, str]]):
+            models (Sequence[Tuple[BaseMlModel, str]]):
                 List of ml models for ensemble and MLflow run ids for best parameters.
             meta_model (BaseMlModel): A meta model for stacking.
         """
 
-        super().__init__(model_name="Ensemble Stacking Regressor", models=models)
+        super().__init__(model_name="Ensemble Stacking Regressor", models=list(models))
         self.meta_model = meta_model
 
     def get_param_space(self, trial: optuna.Trial) -> Dict[str, Any]:
@@ -521,7 +521,7 @@ class EnsembleStackingRegressorModel(BaseMlEnsembleModel):
         params = {
             "estimators": trial.suggest_categorical(
                 "estimators",
-                [[(model.model_name, model.model) for model, _ in self.models]],
+                cast(Any, [[(model.model_name, model.model) for model, _ in self.models]]),
             ),
             "final_estimator": self.meta_model.create_model(self.meta_model.get_param_space(trial)),
             "passthrough": trial.suggest_categorical("passthrough", [False, True]),

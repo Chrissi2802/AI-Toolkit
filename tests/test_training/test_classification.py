@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Any, Tuple
 from unittest.mock import Mock
 
 import numpy as np
@@ -27,7 +27,7 @@ def simple_model() -> LogisticRegressionModel:
 class TestClassificationModelTrainer:
     """Test suite for ClassificationModelTrainer."""
 
-    def test_initialization(self, simple_model: LogisticRegressionModel):
+    def test_initialization(self, simple_model: LogisticRegressionModel) -> None:
         """Test trainer initialization.
 
         Args:
@@ -53,7 +53,9 @@ class TestClassificationModelTrainer:
         assert trainer.best_score == float("-inf")
 
     @pytest.mark.integration
-    def test_training_workflow(self, simple_model, classification_data_pd, mock_mlflow):
+    def test_training_workflow(
+        self, simple_model: Any, classification_data_pd: Any, mock_mlflow: Any
+    ) -> None:
         """Test complete training workflow."""
 
         X, y = classification_data_pd
@@ -84,7 +86,9 @@ class TestClassificationModelTrainer:
         assert mock_mlflow["log_metric"].called
         assert mock_mlflow["log_table"].called
 
-    def test_prediction(self, classification_data_pd: Tuple[pd.DataFrame, pd.Series], simple_model):
+    def test_prediction(
+        self, classification_data_pd: Tuple[pd.DataFrame, pd.Series], simple_model: Any
+    ) -> None:
         """Test prediction functionality.
 
         Args:
@@ -119,8 +123,8 @@ class TestClassificationModelTrainer:
         assert np.all(np.sum(y_pred_proba, axis=1) == 1.0)  # Probabilities sum to 1.0
 
     def test_optimization_objective(
-        self, classification_data_pd: Tuple[pd.DataFrame, pd.Series], simple_model
-    ):
+        self, classification_data_pd: Tuple[pd.DataFrame, pd.Series], simple_model: Any
+    ) -> None:
         """Test optimization objective function.
 
         Args:
@@ -163,7 +167,9 @@ class TestClassificationModelTrainer:
         assert 0 <= score <= 1  # F1 score range
 
     @pytest.mark.parametrize("use_smote,smote_ratio", [(True, 1.0), (False, 1.0), (True, 0.7)])
-    def test_smote_integration(self, classification_data_pd, use_smote, smote_ratio, simple_model):
+    def test_smote_integration(
+        self, classification_data_pd: Any, use_smote: Any, smote_ratio: Any, simple_model: Any
+    ) -> None:
         """Test SMOTE integration with different configurations."""
 
         X, y = classification_data_pd
@@ -184,8 +190,8 @@ class TestClassificationModelTrainer:
         assert isinstance(metrics, dict)
 
     def test_cross_validation_splits(
-        self, classification_data_pd: Tuple[pd.DataFrame, pd.Series], simple_model
-    ):
+        self, classification_data_pd: Tuple[pd.DataFrame, pd.Series], simple_model: Any
+    ) -> None:
         """Test different cross-validation configurations.
 
         Args:
@@ -213,8 +219,8 @@ class TestClassificationModelTrainer:
 
     @pytest.mark.parametrize("optimize_metric", ["accuracy", "f1", "precision", "recall"])
     def test_different_optimization_metrics(
-        self, classification_data_pd, optimize_metric, simple_model
-    ):
+        self, classification_data_pd: Any, optimize_metric: Any, simple_model: Any
+    ) -> None:
         """Test optimization with different metrics."""
 
         X, y = classification_data_pd
@@ -238,8 +244,8 @@ class TestClassificationModelTrainer:
     def test_error_handling(
         self,
         classification_data_pd: Tuple[pd.DataFrame, pd.Series],
-        simple_model,
-    ):
+        simple_model: Any,
+    ) -> None:
         """Test error handling in trainer.
 
         Args:
@@ -278,7 +284,7 @@ class TestClassificationModelTrainer:
 
 def test_lazypredict_classification(
     classification_data_pd: Tuple[pd.DataFrame, pd.Series],
-):
+) -> None:
     """Test lazypredict_classification function.
 
     Args:
@@ -309,8 +315,8 @@ def test_lazypredict_classification(
 
 @pytest.mark.integration
 def test_full_training_pipeline(
-    classification_data_pd: Tuple[pd.DataFrame, pd.Series], simple_model
-):
+    classification_data_pd: Tuple[pd.DataFrame, pd.Series], simple_model: Any
+) -> None:
     """Integration test for full training pipeline.
 
     Args:

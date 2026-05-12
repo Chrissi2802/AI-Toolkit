@@ -1,5 +1,5 @@
 import gc
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Generator, Tuple
 from unittest.mock import Mock, patch
 
 import matplotlib
@@ -221,7 +221,7 @@ def feature_importance_data() -> Tuple[np.ndarray, list]:
 
 
 @pytest.fixture
-def mock_mlflow():
+def mock_mlflow() -> Generator[Dict[str, Any], None, None]:
     """Mock MLflow functionality."""
 
     with patch("mlflow.start_run") as mock_run:
@@ -241,7 +241,7 @@ def mock_mlflow():
 
 
 @pytest.fixture(autouse=True)
-def mock_mlflow_experiment():
+def mock_mlflow_experiment() -> Generator[Any, None, None]:
     """Mock MLflow set_experiment function."""
 
     with patch("mlflow.set_experiment") as mock_set_experiment:
@@ -251,7 +251,7 @@ def mock_mlflow_experiment():
 
 
 @pytest.fixture(autouse=True)
-def mlflow_cleanup():
+def mlflow_cleanup() -> Generator[None, None, None]:
     """Cleanup MLflow runs before and after each test."""
 
     mlflow.end_run()
@@ -260,7 +260,7 @@ def mlflow_cleanup():
 
 
 @pytest.fixture(autouse=True, scope="session")
-def mpl_backend():
+def mpl_backend() -> None:
     """Configure matplotlib to use Agg backend for all tests."""
 
     matplotlib.use("Agg")
@@ -268,7 +268,7 @@ def mpl_backend():
 
 
 @pytest.fixture(autouse=True, scope="package")  # package, module
-def cleanup():
+def cleanup() -> Generator[None, None, None]:
     """Cleanup memory after tests."""
 
     yield  # Run the tests
@@ -276,7 +276,7 @@ def cleanup():
 
 
 @pytest.fixture(autouse=True)
-def reset_config_factory():
+def reset_config_factory() -> Generator[None, None, None]:
     """Reset ConfigFactory after each test."""
 
     yield  # Test runs

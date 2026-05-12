@@ -1,9 +1,10 @@
 import re
+from typing import Any
 
 from ai_toolkit._meta import __author__, __version__, display_banner, get_author, get_version
 
 
-def test_version_format():
+def test_version_format() -> None:
     """Test that version string follows semantic versioning."""
 
     version = __version__
@@ -15,7 +16,7 @@ def test_version_format():
     ), f"Version {version} doesn't follow semantic versioning"
 
 
-def test_get_version():
+def test_get_version() -> None:
     """Test get_version function."""
 
     # Test function returns correct version
@@ -24,7 +25,7 @@ def test_get_version():
     assert isinstance(version, str)
 
 
-def test_get_author():
+def test_get_author() -> None:
     """Test get_author function."""
 
     # Test function returns correct author
@@ -33,7 +34,7 @@ def test_get_author():
     assert isinstance(author, str)
 
 
-def test_display_banner(capsys):
+def test_display_banner(capsys: Any) -> None:
     """Test display_banner function."""
 
     # Call the function
@@ -52,7 +53,7 @@ def test_display_banner(capsys):
     assert len(output.strip()) > 0
 
 
-def test_version_consistency():
+def test_version_consistency() -> None:
     """Test version consistency across different access methods."""
 
     # Direct access
@@ -69,14 +70,14 @@ def test_version_consistency():
     assert isinstance(version_func, str)
 
 
-def test_author_metadata():
+def test_author_metadata() -> None:
     """Test author metadata."""
 
     assert isinstance(__author__, str)
     assert len(__author__) > 0
 
 
-def test_author_consistency():
+def test_author_consistency() -> None:
     """Test author consistency across different access methods."""
 
     # Direct access
@@ -93,13 +94,13 @@ def test_author_consistency():
     assert isinstance(author_func, str)
 
 
-def test_banner_function_callable():
+def test_banner_function_callable() -> None:
     """Test that display_banner function is callable."""
 
     assert callable(display_banner)
 
 
-def test_module_constants():
+def test_module_constants() -> None:
     """Test that module constants have expected values."""
 
     # Test version format
@@ -111,7 +112,7 @@ def test_module_constants():
     assert __author__ == "Chrissi"
 
 
-def test_banner_no_exception():
+def test_banner_no_exception() -> None:
     """Test that display_banner doesn't raise exceptions."""
 
     # This should not raise any exceptions

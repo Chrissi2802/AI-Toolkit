@@ -2,6 +2,7 @@ import json
 import logging
 import sys
 from datetime import date, datetime
+from pathlib import Path
 from typing import Any, Dict, Optional
 
 from ai_toolkit.base.config import ConfigFactory, LoggingConfig
@@ -45,15 +46,14 @@ class Logger:
     def _setup_file_handler(self) -> None:
         """Setup the file handler."""
 
-        self.config.dir.mkdir(parents=True, exist_ok=True)
+        log_dir = Path(self.config.dir)
+        log_dir.mkdir(parents=True, exist_ok=True)
 
         # Date and time format
-        # log_file = (
-        #     self.config.dir / f"{datetime.now():%Y-%m-%d_%H-%M-%S}{self.config.file}"
-        # )
+        # log_file = log_dir / f"{datetime.now():%Y-%m-%d_%H-%M-%S}{self.config.file}"
 
         # Date format
-        log_file = self.config.dir / f"{datetime.now():%Y-%m-%d}{self.config.file}"
+        log_file = log_dir / f"{datetime.now():%Y-%m-%d}{self.config.file}"
 
         self.file_handler = logging.FileHandler(log_file)
         self.file_handler.setFormatter(self.formatter)

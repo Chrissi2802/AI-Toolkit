@@ -5,7 +5,8 @@ param([switch]$SkipTests, [switch]$SkipDocs)
 $CoreSteps = @(
     "black .",
     "isort .",
-    "flake8 ."
+    "flake8 .",
+    "mypy"
 )
 
 # Optional checks

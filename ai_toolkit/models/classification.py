@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, Sequence, Tuple, cast
 
 import lightgbm as lgb
 import optuna
@@ -25,7 +25,7 @@ class LogisticRegressionModel(BaseMlModel):
     https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LogisticRegression.html
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the Logistic Regression model."""
 
         super().__init__("Logistic Regression Classifier")
@@ -83,7 +83,7 @@ class SVCModel(BaseMlModel):
     https://scikit-learn.org/stable/modules/generated/sklearn.svm.SVC.html
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the Support Vector Machine model."""
 
         super().__init__("Support Vector Classifier")
@@ -142,7 +142,7 @@ class KNNModel(BaseMlModel):
     https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KNeighborsClassifier.html
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the K-Nearest Neighbors model."""
 
         super().__init__("K-Nearest Neighbors Classifier")
@@ -193,7 +193,7 @@ class NaiveBayesModel(BaseMlModel):
     https://scikit-learn.org/stable/modules/generated/sklearn.naive_bayes.GaussianNB.html
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the Naive Bayes model."""
 
         super().__init__("Naive Bayes Classifier")
@@ -238,7 +238,7 @@ class DecisionTreeModel(BaseMlModel):
     https://scikit-learn.org/stable/modules/generated/sklearn.tree.DecisionTreeClassifier.html
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the Decision Tree model."""
 
         super().__init__("Decision Tree Classifier")
@@ -292,7 +292,7 @@ class RandomForestModel(BaseMlModel):
     https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestClassifier.html
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the Random Forest model."""
 
         super().__init__("Random Forest Classifier")
@@ -347,7 +347,7 @@ class XGBoostModel(BaseMlModel):
     https://xgboost.readthedocs.io/en/stable/parameter.html
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the XGBoost model."""
 
         super().__init__("XGBoost Classifier")
@@ -377,18 +377,10 @@ class XGBoostModel(BaseMlModel):
 
         # For multi-class classification
         if self.is_multiclass:
-            params.update(
-                {
-                    "objective": trial.suggest_categorical("objective", ["multi:softmax"]),
-                    "num_class": trial.suggest_categorical("num_class", [self.num_classes]),
-                }
-            )
-        else:  # For binary classification
-            params.update(
-                {
-                    "objective": trial.suggest_categorical("objective", ["binary:logistic"]),
-                }
-            )
+            params["objective"] = trial.suggest_categorical("objective", ["multi:softmax"])
+            params["num_class"] = trial.suggest_categorical("num_class", [self.num_classes])
+        else:
+            params["objective"] = trial.suggest_categorical("objective", ["binary:logistic"])
 
         return params
 
@@ -405,7 +397,7 @@ class XGBoostModel(BaseMlModel):
         try:
             self.logger.info("Creating XGBoost model", params=params)
             self.model = xgb.XGBClassifier(**params)
-            return self.model
+            return cast(xgb.XGBClassifier, self.model)
         except Exception as e:
             self.logger.error("Failed to create XGBoost model", error=e)
             raise RuntimeError("Model creation failed") from e
@@ -416,7 +408,7 @@ class LightGBMModel(BaseMlModel):
     https://lightgbm.readthedocs.io/en/latest/Parameters.html
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the LightGBM model."""
 
         super().__init__("LightGBM Classifier")
@@ -509,7 +501,7 @@ class MobileNetV3SmallModel(BaseMlModel):
     https://www.tensorflow.org/api_docs/python/tf/keras/applications/MobileNetV3Small
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the MobileNetV3Small model."""
 
         super().__init__("MobileNetV3 Small Classifier")
@@ -526,7 +518,7 @@ class MobileNetV3SmallModel(BaseMlModel):
 
         params = {
             # Model parameters
-            "input_shape": trial.suggest_categorical("input_shape", [(224, 224, 3)]),
+            "input_shape": trial.suggest_categorical("input_shape", cast(Any, [(224, 224, 3)])),
             "weights": trial.suggest_categorical("weights", ["imagenet"]),
             "minimalistic": trial.suggest_categorical("minimalistic", [False, True]),
             "include_top": trial.suggest_categorical("include_top", [False]),
@@ -536,7 +528,7 @@ class MobileNetV3SmallModel(BaseMlModel):
             "batch_size": trial.suggest_categorical("batch_size", [16, 32, 64, 128]),
             "epochs": trial.suggest_int("epochs", 10, 50),
             "loss": trial.suggest_categorical("loss", ["sparse_categorical_crossentropy"]),
-            "metrics": trial.suggest_categorical("metrics", [["accuracy"]]),
+            "metrics": trial.suggest_categorical("metrics", cast(Any, [["accuracy"]])),
             "validation_split": trial.suggest_categorical("validation_split", [0.2]),
         }
 
@@ -584,9 +576,7 @@ class MobileNetV3SmallModel(BaseMlModel):
             original_fit = model.fit
             original_predict = model.predict
 
-            def custom_fit(x, y, **kwargs):
-                """Custom fit method to handle the training process."""
-
+            def custom_fit(x: Any, y: Any, **kwargs: Any) -> Any:
                 return original_fit(
                     x,
                     y,
@@ -596,9 +586,7 @@ class MobileNetV3SmallModel(BaseMlModel):
                     **kwargs,
                 )
 
-            def custom_predict(x, **kwargs):
-                """Custom predict method to handle the prediction process."""
-
+            def custom_predict(x: Any, **kwargs: Any) -> Any:
                 # Only return the class with the highest probability
                 return original_predict(x, **kwargs).argmax(axis=1)
 
@@ -651,15 +639,15 @@ class EnsembleVotingClassifierModel(BaseMlEnsembleModel):
     https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.VotingClassifier.html
     """
 
-    def __init__(self, models: List[Tuple[BaseMlModel, str]]) -> None:
+    def __init__(self, models: Sequence[Tuple[BaseMlModel, str]]) -> None:
         """Initialize the ensemble voting classifier model.
 
         Args:
-            models (List[Tuple[BaseMlModel, str]]):
+            models (Sequence[Tuple[BaseMlModel, str]]):
                 List of ml models for ensemble and MLflow run ids for best parameters.
         """
 
-        super().__init__(model_name="Ensemble Voting Classifier", models=models)
+        super().__init__(model_name="Ensemble Voting Classifier", models=list(models))
 
     def get_param_space(self, trial: optuna.Trial) -> Dict[str, Any]:
         """Get the hyperparameter space for the ensemble voting classifier model.
@@ -674,7 +662,7 @@ class EnsembleVotingClassifierModel(BaseMlEnsembleModel):
         params = {
             "estimators": trial.suggest_categorical(
                 "estimators",
-                [[(model.model_name, model.model) for model, _ in self.models]],
+                cast(Any, [[(model.model_name, model.model) for model, _ in self.models]]),
             ),
             "voting": trial.suggest_categorical("voting", ["hard", "soft"]),
             "weights": [
@@ -709,16 +697,16 @@ class EnsembleStackingClassifierModel(BaseMlEnsembleModel):
     https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.StackingClassifier.html
     """
 
-    def __init__(self, models: List[Tuple[BaseMlModel, str]], meta_model: BaseMlModel) -> None:
+    def __init__(self, models: Sequence[Tuple[BaseMlModel, str]], meta_model: BaseMlModel) -> None:
         """Initialize the ensemble stacking classifier model.
 
         Args:
-            models (List[Tuple[BaseMlModel, str]]):
+            models (Sequence[Tuple[BaseMlModel, str]]):
                 List of ml models for ensemble and MLflow run ids for best parameters.
             meta_model (BaseMlModel): A meta model for stacking.
         """
 
-        super().__init__(model_name="Ensemble Stacking Classifier", models=models)
+        super().__init__(model_name="Ensemble Stacking Classifier", models=list(models))
         self.meta_model = meta_model
 
     def get_param_space(self, trial: optuna.Trial) -> Dict[str, Any]:
@@ -734,7 +722,7 @@ class EnsembleStackingClassifierModel(BaseMlEnsembleModel):
         params = {
             "estimators": trial.suggest_categorical(
                 "estimators",
-                [[(model.model_name, model.model) for model, _ in self.models]],
+                cast(Any, [[(model.model_name, model.model) for model, _ in self.models]]),
             ),
             "final_estimator": self.meta_model.create_model(self.meta_model.get_param_space(trial)),
             "stack_method": trial.suggest_categorical("stack_method", ["auto"]),

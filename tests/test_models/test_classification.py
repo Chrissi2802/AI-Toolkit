@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Any, Tuple
 from unittest.mock import Mock, patch
 
 import numpy as np
@@ -23,7 +23,7 @@ from ai_toolkit.models.classification import (
 class TestLogisticRegression:
     """Test suite for LogisticRegression model."""
 
-    def test_initialization(self):
+    def test_initialization(self) -> None:
         """Test model initialization."""
 
         model = LogisticRegressionModel()
@@ -31,7 +31,7 @@ class TestLogisticRegression:
         assert model.model is None
         assert model.best_params is None
 
-    def test_param_space(self, optuna_trial: optuna.trial.Trial):
+    def test_param_space(self, optuna_trial: optuna.trial.Trial) -> None:
         """Test parameter space generation.
 
         Args:
@@ -53,7 +53,7 @@ class TestLogisticRegression:
         if params["penalty"] == "elasticnet":
             assert "l1_ratio" in params
 
-    def test_create_model(self, classification_data: Tuple[np.ndarray, np.ndarray]):
+    def test_create_model(self, classification_data: Tuple[np.ndarray, np.ndarray]) -> None:
         """Test model creation and fitting.
 
         Args:
@@ -83,7 +83,7 @@ class TestLogisticRegression:
         assert np.all(np.unique(y_pred) == np.unique(y))
 
 
-def test_get_all_classification_models():
+def test_get_all_classification_models() -> None:
     """Test get_all_classification_models function."""
 
     models = get_all_classification_models()
@@ -105,7 +105,7 @@ def test_get_all_classification_models():
         assert isinstance(models[name], model)
 
 
-def test_model_integration(classification_data: Tuple[np.ndarray, np.ndarray]):
+def test_model_integration(classification_data: Tuple[np.ndarray, np.ndarray]) -> None:
     """Test complete workflow for all models.
 
     Args:
@@ -119,12 +119,12 @@ def test_model_integration(classification_data: Tuple[np.ndarray, np.ndarray]):
     for name, model in models.items():
         # Create trial and get parameters
         study = optuna.create_study()
-        trial = optuna.trial.Trial(study, study._storage.create_new_trial(study._study_id))
+        trial = study.ask()
         params = model.get_param_space(trial)
 
         # Create and fit model
-        clf = model.create_model(params)
         try:
+            clf = model.create_model(params)
             clf.fit(X, y)
 
             # Test predictions
@@ -148,7 +148,7 @@ def test_model_integration(classification_data: Tuple[np.ndarray, np.ndarray]):
 
 def test_feature_importance(
     classification_data: Tuple[np.ndarray, np.ndarray], optuna_trial: optuna.trial.Trial
-):
+) -> None:
     """Test feature importance method for all models.
 
     Args:
@@ -178,7 +178,7 @@ def test_feature_importance(
 class TestEnsembleModels:
     """Test suite for ensemble models."""
 
-    def setup_method(self):
+    def setup_method(self) -> None:
         """Setup method for each test."""
 
         # Create two logistic regression models
@@ -188,7 +188,7 @@ class TestEnsembleModels:
         self.model2 = LogisticRegressionModel()
         self.model2.model_name = "Model2"  # Set different model name
 
-    def test_voting_classifier(self, classification_data):
+    def test_voting_classifier(self, classification_data: Any) -> None:
         """Test voting classifier ensemble."""
 
         X, y = classification_data
@@ -223,7 +223,7 @@ class TestEnsembleModels:
             assert y_proba.shape == (len(y), len(np.unique(y)))
             assert np.allclose(np.sum(y_proba, axis=1), 1.0)
 
-    def test_stacking_classifier(self, classification_data, optuna_trial):
+    def test_stacking_classifier(self, classification_data: Any, optuna_trial: Any) -> None:
         """Test stacking classifier ensemble."""
 
         X, y = classification_data
